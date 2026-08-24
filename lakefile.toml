@@ -1,0 +1,7 @@
+# lakefile: the current lake (Robert) format; mathlib is the main requirement.
+[require]
+#mathlib = "^4"   # fetch the current mathlib for Lean 4.33
+
+[lake]
+binary = "lean"
+precompiled = [ "Registered" ]
