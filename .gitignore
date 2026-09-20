@@ -16,3 +16,7 @@ lake_export/
 .DS_Store
 *.swp
 .env
+# CI-generated Lean logs (artifacts, not source)
+lake-build.log
+lean-audit.log
+Audit.lean

@@ -1,0 +1,128 @@
+name: lean
+
+# Two lanes, deliberately split:
+#
+#   lint  -- needs NO Lean toolchain. Enforces the syntactic half of the
+#            grading rule: no `sorry` in the protected T1/T2 node, the sorry
+#            ratchet, no new axioms, every stack theorem still declared, and
+#            the anti-vacuity independence guard (d2 not defined from d1,
+#            bsPut not defined from bsCall). Runs in seconds, on any runner,
+#            and in any sandbox -- including ones where elan cannot be
+#            installed at all.
+#
+#   build -- the real thing. Installs elan, fetches the Mathlib olean cache,
+#            runs `lake build`. This is the authority on whether the proofs
+#            are correct. It needs network access to the Lean release CDN and
+#            to Mathlib's cache; a sandbox without it cannot substitute for
+#            this job, only for `lint`.
+#
+# A green `lint` with a red `build` means: the tree is honestly labelled but a
+# proof is wrong. A red `lint` means: do not trust anything the build says yet.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: lint (no toolchain)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Lean tree lint (sorry ratchet, protected node, independence guard)
+        run: python3 scripts/lean_lint.py
+
+      - name: Toolchain pin consistency
+        # A mismatched pin is the classic way to turn a 3-minute cached build
+        # into a 3-hour from-source one, and the failure looks like a timeout
+        # rather than a config error. Check it before spending the runner.
+        run: |
+          set -euo pipefail
+          tc="$(tr -d '[:space:]' < lean-toolchain)"
+          man_fixed="$(python3 -c 'import json;print(json.load(open("lake-manifest.json"))["fixedToolchain"])')"
+          man_rev="$(python3 -c 'import json;p=json.load(open("lake-manifest.json"))["packages"];print([x for x in p if x["name"]=="mathlib"][0]["inputRev"])')"
+          lake_rev="$(python3 -c 'import tomllib;print(tomllib.load(open("lakefile.toml","rb"))["require"][0]["rev"])')"
+          echo "lean-toolchain      = $tc"
+          echo "manifest fixed      = $man_fixed"
+          echo "manifest mathlib rev= $man_rev"
+          echo "lakefile mathlib rev= $lake_rev"
+          [ "$man_rev" = "$lake_rev" ] || { echo "FAIL: lakefile.toml and lake-manifest.json pin different mathlib revisions"; exit 1; }
+          case "$tc" in *"${man_rev#v}"*) ;; *) echo "FAIL: lean-toolchain ($tc) does not match mathlib $man_rev"; exit 1 ;; esac
+          echo "OK: toolchain and mathlib pins agree"
+
+      - name: Upload lint report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lean-lint-failure
+          path: |
+            .github/lean_lint_baseline.json
+            ImprovedBS/
+          if-no-files-found: ignore
+
+  build:
+    name: lake build (mathlib)
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+
+      # lean-action installs elan and fetches the Mathlib olean cache. We run
+      # `lake build` ourselves in the next step so the output can be tee'd into
+      # an artifact -- BRIEF_001 requires a fail artifact on a non-clean exit,
+      # and the runner log is not downloadable by the grader.
+      - name: Set up Lean + Mathlib cache
+        uses: leanprover/lean-action@v1
+        with:
+          auto-config: "false"
+          build: "false"
+          test: "false"
+          use-mathlib-cache: "true"
+
+      - name: lake build
+        run: |
+          set -o pipefail
+          lake build 2>&1 | tee lake-build.log
+
+      - name: Confirm the protected theorems do not rest on sorryAx
+        # `lake build` succeeding is necessary but not sufficient: a theorem
+        # whose proof is `sorry` still builds, it just elaborates to something
+        # that depends on the `sorryAx` axiom. `#print axioms` is the built-in
+        # that makes the dependency visible, so this is the mechanical form of
+        # the repo's "no prose-assumed proof" rule.
+        run: |
+          set -euo pipefail
+          cat > /tmp/Audit.lean <<'LEAN'
+          import ImprovedBS
+
+          #print axioms ImprovedBS.Phi_add_Phi_neg
+          #print axioms ImprovedBS.Phi_neg
+          #print axioms ImprovedBS.t1_d1_minus_d2
+          #print axioms ImprovedBS.t2_put_call_parity
+          #print axioms ImprovedBS.t2_put_call_parity_spread
+          LEAN
+          lake env lean /tmp/Audit.lean 2>&1 | tee lean-audit.log
+          if grep -q sorryAx lean-audit.log; then
+            echo "FAIL: a protected theorem depends on sorryAx"
+            exit 1
+          fi
+          echo "OK: no protected theorem depends on sorryAx"
+
+      - name: Upload build artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lean-build-logs
+          path: |
+            lake-build.log
+            lean-audit.log
+          if-no-files-found: ignore

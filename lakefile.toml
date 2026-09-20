@@ -1,7 +1,29 @@
-# lakefile: the current lake (Robert) format; mathlib is the main requirement.
-[require]
-#mathlib = "^4"   # fetch the current mathlib for Lean 4.33
+# Lake package configuration for the ImprovedBS formalization.
+#
+# Toolchain: pinned by `lean-toolchain` (currently leanprover/lean4:v4.34.0),
+# which must match the mathlib revision pinned below and the `fixedToolchain`
+# field of lake-manifest.json. If you bump one, bump all three, and re-run
+# `lake exe cache get` -- a mismatched toolchain silently forces a from-source
+# mathlib build (hours, not minutes).
+#
+# mathlib is pinned to a TAG, not a branch. `rev = "v4.34.0"` together with
+# the committed lake-manifest.json makes `lake build` reproducible; pinning a
+# branch would let `lake update` drift the transitive dependencies out from
+# under the proofs.
 
-[lake]
-binary = "lean"
-precompiled = [ "Registered" ]
+name = "improved_black_scholes"
+version = "0.1.0"
+defaultTargets = ["ImprovedBS"]
+
+[leanOptions]
+pp.unicode.fun = true     # pretty-prints `fun a ↦ b`
+autoImplicit = false      # an unbound variable is an error, not a new implicit
+relaxedAutoImplicit = false
+
+[[require]]
+name = "mathlib"
+git = "https://github.com/leanprover-community/mathlib4"
+rev = "v4.34.0"
+
+[[lean_lib]]
+name = "ImprovedBS"
