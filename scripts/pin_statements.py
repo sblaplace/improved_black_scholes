@@ -217,6 +217,58 @@ def save_golden(pins: dict, elab: dict) -> None:
         fh.write("\n")
 
 
+def _mentions(text: str, names: tuple[str, ...], prefix: str = "") -> set[str]:
+    """Which spec constants a piece of text mentions, as bare or qualified names."""
+    return {
+        n
+        for n in names
+        if re.search(rf"(?<![\w.'])(?:{re.escape(prefix)})?{re.escape(n)}(?![\w.'])", text)
+    }
+
+
+def cross_layer_check(pins: dict) -> list[str]:
+    """Do the two layers of the artifact still describe the same theorem?
+
+    A pinned theorem's *source statement* and its pinned *elaborated type* must
+    mention the same members of the specification vocabulary -- the pinned `def`s
+    themselves. That catches the one stale-state accident the rest of this file is
+    blind to: someone regenerates `pins` after editing a claim (legal, reviewable)
+    and leaves `elab` behind, so the artifact quietly stops being a pin.
+
+        statement:  ... : True              <- mentions bsCall? no
+        elab.type:  ... max ... ≤ BSM.bsCall ...  <- mentions bsCall? yes -> red
+
+    Deliberately narrow, because a heuristic that fires on honest work gets
+    switched off: only `def` names are compared, only set-membership (never
+    structure), and only when an `elab` block exists at all. It cannot catch a
+    claim changed *and* both layers regenerated with a toolchain -- that is the
+    documented route for changing a claim, and it is what the reviewer reads. What
+    it removes is the quiet version.
+    """
+    elab = load_golden().get("elab", {})
+    if not elab:
+        return []  # bootstrap state; the build job's `--elab-check` is the enforcer
+    spec = tuple(
+        sorted(key.split(".")[-1] for key, e in pins.items() if e.get("kind") == "def")
+    )
+    failures: list[str] = []
+    for key, entry in sorted(pins.items()):
+        if entry.get("kind") not in STATEMENT_KINDS or key not in elab:
+            continue
+        in_stmt = _mentions(entry["pin"], spec)
+        in_type = _mentions(elab[key].get("type", ""), spec, prefix=f"{LEAN_NAMESPACE}.")
+        if in_stmt != in_type:
+            failures.append(
+                f"[PINS][LAYER SKEW] `{key}`: the pinned statement mentions "
+                f"{sorted(in_stmt) or 'no spec constant'} but the pinned elaborated type "
+                f"mentions {sorted(in_type) or 'none'}. One of the two layers is stale -- "
+                "a claim that changed must move BOTH, which means it must be reviewed. "
+                "Regenerate with `python3 scripts/pin_statements.py --write` and, where a "
+                "toolchain exists, `--elab-write`; read the diff before committing either."
+            )
+    return failures
+
+
 def check() -> list[str]:
     """Layer 1: source text vs committed pins. No toolchain needed."""
     pins, errors = extract()
@@ -261,6 +313,7 @@ def check() -> list[str]:
                 "If the proof improved and the claim did not, this failure means the "
                 "statement text moved -- check for a weakened hypothesis."
             )
+    errors.extend(cross_layer_check(pins))
     return errors
 
 
@@ -439,7 +492,8 @@ def main(argv: list[str]) -> int:
         if failures:
             for f in failures:
                 print("FAIL", f)
-            print("\n" + json.dumps({"elab": fresh}, indent=2, sort_keys=True))
+            print("\n" + json.dumps({"elab": fresh}, indent=2, sort_keys=True,
+                                    ensure_ascii=False))
             print(
                 "\nThe block above is paste-ready because CI logs are readable from a "
                 "sandbox via `gh api` and Actions artifacts are not -- the same reason "
@@ -455,7 +509,13 @@ def main(argv: list[str]) -> int:
         print(f"\n{len(failures)} pin failure(s)")
         return 1
     pins, _ = extract()
-    print(f"OK: {len(pins)} pinned declaration(s) match the tree.")
+    elab = load_golden().get("elab", {})
+    layer = (
+        f"+ {len(elab)} elaborated type/axiom pair(s)"
+        if elab
+        else "(elab block empty: CI-only layer not yet bootstrapped)"
+    )
+    print(f"OK: {len(pins)} pinned declaration(s) match the tree {layer}.")
     return 0
 
 

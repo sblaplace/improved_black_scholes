@@ -17,7 +17,7 @@ Verdict discipline:
 | 1 | BRIEF_001 (T1+T2, Lean lane) | arena-ai-coding-agent | [#1](https://github.com/sblaplace/improved_black_scholes/pull/1) | **GREEN** @ `638c66e`, run 35509578689 — `lake build` + `#print axioms` audit + `lint` + `oracle` all pass. Reached on the 8th run; see the CI history. |
 | 2 | BRIEF_002 (oracle ↔ Lean cross-verifier) | arena-ai-coding-agent | [#3](https://github.com/sblaplace/improved_black_scholes/pull/3) | **GREEN** @ `2a7bacb`, run 35517328856 — 39-point golden grid, docs/04 guard (3) active: `ImprovedBS/Crosscheck.lean` (#eval) cross-verified against `experiments/black_scholes.py` with max price diff 1.6e-14 (tol 1e-12) and 4/4 mutants caught. |
 | 3 | BRIEF_003 (T3 delta identity + T4 bounds) | arena-ai-coding-agent | [#2](https://github.com/sblaplace/improved_black_scholes/pull/2) | **GREEN** @ `726325d`, run 35514867674 (first green: run 35514609619 @ `2273461`) — `lake build` + `#print axioms` audit + `lint` + `oracle` all pass; ratchet 3 → 0. Reached on the 1st run; see the CI history and correction C4. |
-| — | *(tooling, no brief)* statement pins + the lint's own falsifiers | arena-ai-coding-agent | [#4](https://github.com/sblaplace/improved_black_scholes/pull/4) | PENDING — run 35519747870: `lake build` **green** (8926 jobs, `Build completed successfully`), `#print axioms` audit **green** (all 25 protected declarations on `[propext, Classical.choice, Quot.sound]`, no `sorryAx`), `lint` **green** (4s), `oracle` **green** (9s, incl. `test_lint.py`). Red on one step: the new `Statement pins` step, whose parser assumed `#print axioms` echoes bare names like `#check` does — Lean quotes them. Fixed in-sandbox by replaying the recorded output (`tests/test_pins.py` 8/8); the `elab` block is the bootstrap payload this row is waiting on. |
+| — | *(tooling, no brief)* statement pins + the lint's own falsifiers | arena-ai-coding-agent | [#4](https://github.com/sblaplace/improved_black_scholes/pull/4) | PENDING — run 35519747870: `lake build` **green** (8926 jobs, `Build completed successfully`), `#print axioms` audit **green** (all 25 protected declarations on `[propext, Classical.choice, Quot.sound]`, no `sorryAx`), `lint` **green** (4s), `oracle` **green** (9s, incl. `test_lint.py`). Red on one step: the new `Statement pins` step, whose parser assumed `#print axioms` echoes bare names like `#check` does — Lean quotes them. Fixed in-sandbox by replaying the recorded output (`tests/test_pins.py` 8/8); the `elab` block is the bootstrap payload this row is waiting on. Run 35520154876 then went green on build+audit and printed the block: 31 elaborated pairs committed verbatim. |
 | 4 | BRIEF_004 (α-stable moment obstruction) | — | — | OPEN — not started, independent of #1–#3 |
 
 ## Corrections and co-recorded changes to the ask
@@ -352,6 +352,27 @@ the Lean assumptions. Four findings, only one of which was about the oracle.
    human reading that the twin matches the tree. A `BSM.*`-anchored version of
    that guard (validated bounds on the real definitions via `norm_num`/`interval`
    arithmetic, at a few grid points) is the fix, and it would retire the twin.
+
+5. **The bootstrap and the skew.** `elab` can only be produced by `lake env lean`,
+   so the artifact ships with an empty block and the build job prints the block to
+   commit — a red first run, by design, because a pin that was never produced is not
+   a passing pin. That red found a real bug: `#print axioms` quotes the constant name
+   (`'BSM.Phi' depends on axioms: [...]`) where `#check` does not (`BSM.Phi : ℝ → ℝ`),
+   and the parser had assumed symmetry between two commands that share no format. The
+   parser refused to pin a half-result (type recovered, axioms empty), which is the
+   behaviour that made this a fixable log line rather than a corrupt artifact. It is
+   now a pure function tested against recorded CI output in `tests/test_pins.py`, so
+   the assumption is exercised where it can be iterated on. Committing a real `elab`
+   block then enabled a check the empty artifact could not have: `cross_layer_check()`
+   compares which spec constants the pinned *statement* mentions against which the
+   pinned *type* mentions, catching the stale combination (`--write` preserves `elab`,
+   so a toolchain-less author can produce it by accident). The mutant that used to be
+   the harness's declared local gap is now killed by it, and the gap entry was
+   replaced by the deliberate self-consistent forgery — hollow the claim, re-run
+   `--write`, hand-edit `elab` — which no local lane can see and CI sees instantly,
+   because CI re-elaborates rather than re-reading. Attribution was checked, not
+   assumed: disabling only `cross_layer_check()` leaves exactly one survivor out of
+   22 mutants; deleting the whole `[PINS]` block leaves eight.
 
 **Generalizable:** a graded tree needs its *grader* graded. Every lane here had a
 falsifier except the one whose verdicts the others were written to satisfy, and

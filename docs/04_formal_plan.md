@@ -185,16 +185,25 @@ in increasing strength:
 
    Why two layers, and what each one is *not*: the source-level layer catches a
    re-stated claim (`: True`, a dropped hypothesis, `theorem`→`def`, a duplicate
-   shadow declaration, a shrunk artifact) on any runner, but it cannot distinguish
-   "the claim changed" from "the claim was hollowed and the pins regenerated" —
-   regeneration is a legal act, and forbidding it would punish every honest
-   restatement. The elaborated layer closes that, because `#check
-   @BSM.t4_call_bounds` printing `: True` is a diff against a committed type. The
-   limit is asserted mechanically, in
-   `tests/test_lint.py::test_known_local_gaps_stay_open`, rather than left as
-   folklore: if the local layer ever gets strong enough to catch it, that test
-   goes red and this paragraph must be rewritten.
+   shadow declaration, a shrunk artifact) on any runner, and `cross_layer_check()`
+   also catches the *stale* combination — regenerate layer 1 after editing a
+   claim and leave the `elab` block behind, and the two layers disagree about which
+   spec constants the theorem mentions. That one is a common accident rather than
+   an attack: `--write` deliberately preserves `elab`, so an author without a
+   toolchain can produce it without meaning to.
 
+   What no local lane can catch is the deliberate, self-consistent version — hollow
+   the statement, re-run `--write`, and hand-edit `elab` to match. On disk that is
+   indistinguishable from an honest claim change, and this artifact exists to make
+   claim changes *loud and reviewable*, not impossible. What ends it is that CI
+   never reads the block, it re-elaborates it: `#check @BSM.t4_call_bounds` prints
+   the bound, so a committed `: True` is a diff against reality rather than against a
+   file. The residual gap is asserted mechanically, in
+   `tests/test_lint.py::test_known_local_gaps_stay_open`, rather than left as
+   folklore — and the mechanism has already paid for itself: the skew check above
+   started life as that test's single entry, and closing it moved the mutant into
+   `MUTANTS`, which is what the test tells you to do. A gap that closes without the
+   entry moving turns the suite red and says so out loud.
    Note what this replaces. The audit that prompted these pins found the repo's own
    rule — *a green check is only evidence if it could have been red* — applied to
    the proofs (no `sorry`), to the tests (`test_mutants.py`), and to the
@@ -204,14 +213,16 @@ in increasing strength:
    via `needs:`. That is the "unverified second pillar" this repository is
    exposed to — not the numeric oracle, which no theorem imports and whose removal
    would leave T1–T4 standing (it would leave the *gate* unable to run, which is a
-   different and fixable problem). `tests/test_lint.py` seeds 21 cheats into
+   different and fixable problem). `tests/test_lint.py` seeds 22 cheats into
    throwaway copies of the tree and requires each to be killed by a named check —
    the 11-mutant discipline, turned on the grader — while 5 controls (a marker word
    inside a comment, a re-wrapped statement, parity reproved from `erf_neg`
    directly) must stay green, since a guard that rejects legitimate work is a guard
-   that gets disabled. Two of its results are worth quoting: with `[PINS]` removed
-   from the lint, 7 of the 21 mutants survive; with the odd-symmetry guard narrowed
-   back to a single preferred lemma name, a correct proof of T2 goes red.
+   that gets disabled. Three of its results are worth quoting: with `[PINS]` removed
+   from the lint, 8 of the 22 mutants survive (P1–P8); with ONLY
+   `cross_layer_check()` switched off, exactly one survives, which is how a check's
+   contribution is attributed rather than assumed; and with the odd-symmetry guard
+   narrowed back to a single preferred lemma name, a correct proof of T2 goes red.
 
 Until (3) existed, the correspondence rested on (1) and (2) plus human reading of
 docs/01 §4. All four guards are now active; guard (4)'s elaborated layer is

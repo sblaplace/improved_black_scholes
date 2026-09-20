@@ -42,7 +42,7 @@ Three things this harness is NOT
   via `erf_neg` directly (the same odd symmetry, one step closer to its source).
   A guard that rejects honest work is a guard that gets switched off.
 
-Run:  python3 tests/test_lint.py     (stdlib only, ~5s, no Lean toolchain)
+Run:  python3 tests/test_lint.py     (stdlib only, ~8s, no Lean toolchain)
 """
 
 from __future__ import annotations
@@ -241,6 +241,20 @@ MUTANTS = [
         "json_drop": "BSM.t4_call_bounds",
         "tag": "[PINS]",
     },
+    {
+        # Was KNOWN_LOCAL_GAPS[0] ("the local layer cannot see this; only CI's elab
+        # can"). It added cross_layer_check(), whose whole job is this skew: layer 1
+        # regenerated, layer 2 left behind. Moved here per that test's own
+        # instruction -- if a gap closes, the mutant must go red until it is moved.
+        "name": "P8 hollow T4 and regenerate layer 1, leaving the elaborated pin stale",
+        "file": CORE,
+        "from": T4_STATEMENT,
+        "to": "theorem t4_call_bounds (S K tau r q sigma : ℝ)\n"
+              "    (hS : 0 < S) (hK : 0 < K) (htau : 0 < tau) (hsigma : 0 < sigma) :\n"
+              "    True := by",
+        "also_rewrite_pins": True,
+        "tag": "[PINS]",
+    },
 ]
 
 # Attacks the toolchain-free lanes provably CANNOT see, kept as
@@ -250,12 +264,26 @@ MUTANTS = [
 # documentation quietly overstate what `lint` guarantees.
 KNOWN_LOCAL_GAPS = [
     {
-        "name": "P8 hollow T4 *and* regenerate the pins (the reviewable-diff route)",
+        # The residual boundary, stated exactly. Layer 2's *content* can only be
+        # produced by a toolchain, so a forgery that is self-consistent on disk
+        # passes every lane that can run here. It cannot pass CI, because CI
+        # re-elaborates instead of re-reading: `#check @BSM.t4_call_bounds` really
+        # prints the bound, and a committed `: True` is a diff.
+        "name": "P9 hollow T4 and hand-forge BOTH layers into self-consistency",
         "file": CORE,
         "from": T4_STATEMENT,
         "to": "theorem t4_call_bounds (S K tau r q sigma : ℝ)\n"
               "    (hS : 0 < S) (hK : 0 < K) (htau : 0 < tau) (hsigma : 0 < sigma) :\n"
               "    True := by",
+        "also_apply": [
+            {"file": GOLDEN, "json_hollow_t4_forgery": True},
+        ],
+        # ...and layer 1 regenerated, so nothing on disk is stale. The order that
+        # buys this: the JSON extra is applied first, then the Core.lean edit, then
+        # --write re-pins layer 1 while *preserving* the elab block (that is what
+        # --write does, so a toolchain-less author cannot drop layer 2 by
+        # accident). Result: a fully self-consistent artifact describing a theorem
+        # that no longer bounds a price.
         "also_rewrite_pins": True,
     },
 ]
@@ -348,6 +376,20 @@ def _apply(work: str, mut: dict) -> None:
                     data[k] = v
         if "json_drop" in mut:
             data.get("pins", {}).pop(mut["json_drop"], None)
+        if mut.get("json_hollow_t4_forgery"):
+            # Make the artifact self-consistent with the hollowed claim, the way an
+            # author with no toolchain *could*: layer 1 says `True`, so layer 2 must
+            # be edited to say `True` too. Everything else in `elab` is discarded,
+            # which is itself the tell -- but only CI can read the tell.
+            pins = data.get("pins", {})
+            data["elab"] = {
+                "BSM.t4_call_bounds": {
+                    "type": "BSM.t4_call_bounds : True",
+                    "axioms": "'BSM.t4_call_bounds' depends on axioms: "
+                              "[propext, Classical.choice, Quot.sound]",
+                }
+            }
+            data["pins"] = pins
         with open(path, "w", encoding="utf-8") as fh:
             json.dump(data, fh, indent=2, ensure_ascii=False)
             fh.write("\n")

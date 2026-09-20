@@ -1,7 +1,132 @@
 {
   "_generated_by": "python3 scripts/pin_statements.py --write",
-  "_read_this": "Pinned claims for the protected Lean stack. A theorem is pinned by its STATEMENT (through the first `:=`), a definition by its BODY; whitespace is collapsed and comments stripped, so a reformatted proof is free and a reworded claim is not. `pins` is enforced by scripts/lean_lint.py with no toolchain. `elab` holds the #check type and #print axioms output and is enforced by the lake-build job, which can run a toolchain. Weakening, renaming away, or deleting an entry here is not a way to pass CI: the key set is derived from REQUIRED|PROTECTED in lean_lint.py. Regenerate with `python3 scripts/pin_statements.py --write`; the diff is the audit trail, and it must be read before it is committed.",
-  "elab": {},
+  "_read_this": "Pinned claims for the protected Lean stack. A theorem is pinned by its STATEMENT (through the first `:=`), a definition by its BODY; whitespace is collapsed and comments stripped, so a reformatted proof is free and a reworded claim is not. `pins` is enforced by scripts/lean_lint.py with no toolchain. `elab` holds the #check type and #print axioms output and is enforced by the lake-build job, which can run a toolchain. Weakening, renaming away, or deleting an entry here is not a way to pass CI: the key set is derived from REQUIRED|PROTECTED in lean_lint.py. Regenerate with `python3 scripts/pin_statements.py --write`; the diff is the audit trail, and it must be read before it is committed. The `elab` block here was produced by CI run 35520154876 and committed verbatim from its published log.",
+  "elab": {
+    "BSM.Phi": {
+      "axioms": "'BSM.Phi' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.Phi : ℝ → ℝ"
+    },
+    "BSM.Phi_add_Phi_neg": {
+      "axioms": "'BSM.Phi_add_Phi_neg' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.Phi_add_Phi_neg : ∀ (x : ℝ), BSM.Phi x + BSM.Phi (-x) = 1"
+    },
+    "BSM.Phi_eq_integral_Iic": {
+      "axioms": "'BSM.Phi_eq_integral_Iic' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.Phi_eq_integral_Iic : ∀ (x : ℝ), BSM.Phi x = ∫ (u : ℝ) in Set.Iic x, BSM.phi u"
+    },
+    "BSM.Phi_le_exp_mul_Phi_add": {
+      "axioms": "'BSM.Phi_le_exp_mul_Phi_add' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.Phi_le_exp_mul_Phi_add : ∀ (x a : ℝ), 0 ≤ a → BSM.Phi x ≤ Real.exp (a * x + a ^ 2 / 2) * BSM.Phi (x + a)"
+    },
+    "BSM.Phi_le_one": {
+      "axioms": "'BSM.Phi_le_one' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.Phi_le_one : ∀ (x : ℝ), BSM.Phi x ≤ 1"
+    },
+    "BSM.Phi_neg": {
+      "axioms": "'BSM.Phi_neg' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.Phi_neg : ∀ (x : ℝ), BSM.Phi (-x) = 1 - BSM.Phi x"
+    },
+    "BSM.Phi_nonneg": {
+      "axioms": "'BSM.Phi_nonneg' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.Phi_nonneg : ∀ (x : ℝ), 0 ≤ BSM.Phi x"
+    },
+    "BSM.bsCall": {
+      "axioms": "'BSM.bsCall' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.bsCall : ℝ → ℝ → ℝ → ℝ → ℝ → ℝ → ℝ"
+    },
+    "BSM.bsCall_nonneg": {
+      "axioms": "'BSM.bsCall_nonneg' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.bsCall_nonneg : ∀ (S K tau r q sigma : ℝ), 0 < S → 0 < K → 0 < tau → 0 < sigma → 0 ≤ BSM.bsCall S K tau r q sigma"
+    },
+    "BSM.bsPut": {
+      "axioms": "'BSM.bsPut' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.bsPut : ℝ → ℝ → ℝ → ℝ → ℝ → ℝ → ℝ"
+    },
+    "BSM.bsPut_nonneg": {
+      "axioms": "'BSM.bsPut_nonneg' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.bsPut_nonneg : ∀ (S K tau r q sigma : ℝ), 0 < S → 0 < K → 0 < tau → 0 < sigma → 0 ≤ BSM.bsPut S K tau r q sigma"
+    },
+    "BSM.d1": {
+      "axioms": "'BSM.d1' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.d1 : ℝ → ℝ → ℝ → ℝ → ℝ → ℝ → ℝ"
+    },
+    "BSM.d1_exponent": {
+      "axioms": "'BSM.d1_exponent' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.d1_exponent : ∀ (S K tau r q sigma : ℝ), 0 < tau → sigma ≠ 0 → sigma * √tau * BSM.d1 S K tau r q sigma - (sigma * √tau) ^ 2 / 2 = Real.log (S / K) + (r - q) * tau"
+    },
+    "BSM.d2": {
+      "axioms": "'BSM.d2' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.d2 : ℝ → ℝ → ℝ → ℝ → ℝ → ℝ → ℝ"
+    },
+    "BSM.d2_exponent": {
+      "axioms": "'BSM.d2_exponent' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.d2_exponent : ∀ (S K tau r q sigma : ℝ), 0 < tau → sigma ≠ 0 → sigma * √tau * BSM.d2 S K tau r q sigma + (sigma * √tau) ^ 2 / 2 = Real.log (S / K) + (r - q) * tau"
+    },
+    "BSM.erf": {
+      "axioms": "'BSM.erf' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.erf : ℝ → ℝ"
+    },
+    "BSM.erf_neg": {
+      "axioms": "'BSM.erf_neg' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.erf_neg : ∀ (x : ℝ), BSM.erf (-x) = -BSM.erf x"
+    },
+    "BSM.exp_neg_sq_even": {
+      "axioms": "'BSM.exp_neg_sq_even' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.exp_neg_sq_even : ∀ (t : ℝ), Real.exp (-(-t) ^ 2) = Real.exp (-t ^ 2)"
+    },
+    "BSM.forward_eq": {
+      "axioms": "'BSM.forward_eq' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.forward_eq : ∀ (S K tau r q : ℝ), 0 < S → 0 < K → K * Real.exp (-r * tau) * Real.exp (Real.log (S / K) + (r - q) * tau) = S * Real.exp (-q * tau)"
+    },
+    "BSM.integral_phi_Iic_zero": {
+      "axioms": "'BSM.integral_phi_Iic_zero' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.integral_phi_Iic_zero : ∫ (u : ℝ) in Set.Iic 0, BSM.phi u = 1 / 2"
+    },
+    "BSM.phi": {
+      "axioms": "'BSM.phi' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.phi : ℝ → ℝ"
+    },
+    "BSM.phi_add": {
+      "axioms": "'BSM.phi_add' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.phi_add : ∀ (u a : ℝ), Real.exp (a * u + a ^ 2 / 2) * BSM.phi (u + a) = BSM.phi u"
+    },
+    "BSM.phi_integrable": {
+      "axioms": "'BSM.phi_integrable' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.phi_integrable : MeasureTheory.Integrable BSM.phi MeasureTheory.volume"
+    },
+    "BSM.phi_neg": {
+      "axioms": "'BSM.phi_neg' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.phi_neg : ∀ (x : ℝ), BSM.phi (-x) = BSM.phi x"
+    },
+    "BSM.phi_nonneg": {
+      "axioms": "'BSM.phi_nonneg' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.phi_nonneg : ∀ (x : ℝ), 0 ≤ BSM.phi x"
+    },
+    "BSM.t1_d1_minus_d2": {
+      "axioms": "'BSM.t1_d1_minus_d2' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.t1_d1_minus_d2 : ∀ (S K tau r q sigma : ℝ), 0 < tau → sigma ≠ 0 → BSM.d1 S K tau r q sigma - BSM.d2 S K tau r q sigma = sigma * √tau"
+    },
+    "BSM.t2_put_call_parity": {
+      "axioms": "'BSM.t2_put_call_parity' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.t2_put_call_parity : ∀ (S K tau r q sigma : ℝ), BSM.bsPut S K tau r q sigma = BSM.bsCall S K tau r q sigma - S * Real.exp (-q * tau) + K * Real.exp (-r * tau)"
+    },
+    "BSM.t2_put_call_parity_spread": {
+      "axioms": "'BSM.t2_put_call_parity_spread' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.t2_put_call_parity_spread : ∀ (S K tau r q sigma : ℝ), BSM.bsCall S K tau r q sigma - BSM.bsPut S K tau r q sigma = S * Real.exp (-q * tau) - K * Real.exp (-r * tau)"
+    },
+    "BSM.t3_delta_identity": {
+      "axioms": "'BSM.t3_delta_identity' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.t3_delta_identity : ∀ (S K tau r q sigma : ℝ), 0 < S → 0 < K → 0 < tau → sigma ≠ 0 → S * Real.exp (-q * tau) * BSM.phi (BSM.d1 S K tau r q sigma) = K * Real.exp (-r * tau) * BSM.phi (BSM.d2 S K tau r q sigma)"
+    },
+    "BSM.t4_call_bounds": {
+      "axioms": "'BSM.t4_call_bounds' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.t4_call_bounds : ∀ (S K tau r q sigma : ℝ), 0 < S → 0 < K → 0 < tau → 0 < sigma → max (S * Real.exp (-q * tau) - K * Real.exp (-r * tau)) 0 ≤ BSM.bsCall S K tau r q sigma ∧ BSM.bsCall S K tau r q sigma ≤ S * Real.exp (-q * tau)"
+    },
+    "BSM.t4_put_bounds": {
+      "axioms": "'BSM.t4_put_bounds' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.t4_put_bounds : ∀ (S K tau r q sigma : ℝ), 0 < S → 0 < K → 0 < tau → 0 < sigma → max (K * Real.exp (-r * tau) - S * Real.exp (-q * tau)) 0 ≤ BSM.bsPut S K tau r q sigma ∧ BSM.bsPut S K tau r q sigma ≤ K * Real.exp (-r * tau)"
+    }
+  },
   "namespace": "BSM",
   "pins": {
     "BSM.Phi": {

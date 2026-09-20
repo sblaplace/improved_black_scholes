@@ -73,14 +73,20 @@ where a statement that *reads* the same but elaborates differently gets caught.
 Weakening a claim is still allowed. It is now a diff a reviewer sees.
 
 And because `lean_lint.py` has authority over how the Lean tree is labelled while
-nothing had authority over *it*, `tests/test_lint.py` seeds 21 cheats into copies
+nothing had authority over *it*, `tests/test_lint.py` seeds 22 cheats into copies
 of the tree and requires each to be killed by a *named* check, keeps 5 legitimate
 edits green (a re-wrapped proof, marker words inside a comment, parity reproved
-from `erf_neg` directly), and asserts — rather than folklore-claims — the one
-attack the toolchain-free lanes provably cannot see: hollow the statement *and*
-regenerate the pins. That is also why swapping the numeric oracle for another
-language would have bought nothing here. The oracle is a probe; the linter was the
-pillar, and a pillar in any language is unverified until something pushes on it.
+from `erf_neg` directly), and asserts — rather than folklore-claims — the boundary
+it cannot cross: hollow a statement, regenerate the source pins, *and* hand-forge
+the elaborated block to match, and every lane that can run without a toolchain is
+satisfied by the self-consistency. That forgery is exactly what CI cannot survive,
+because CI re-elaborates rather than re-reading: `#check @BSM.t4_call_bounds`
+prints the bound, so a committed `: True` is a diff. The half of it that *was*
+local — regenerating layer 1 and leaving layer 2 stale — is now caught by the
+cross-layer skew check, and its mutant moved into the must-die list.
+That is also why swapping the numeric oracle for another language would have bought
+nothing here: the oracle is a probe, the linter was the pillar, and a pillar is
+unverified in any language until something pushes on it.
 
 ## How the work is packaged
 
@@ -173,7 +179,7 @@ cheapest high-value theorem in the research tier. Details in docs/03 §D1.
 | Lean theorems | `Phi_add_Phi_neg`, T1, T2, T2′ | **GREEN** — `lake build` + `#print axioms` audit, run 35509578689 |
 | Lean theorems | T3, T4, T4′ + the `Φ = ∫ φ` infrastructure (18 lemmas) | **GREEN** — `lake build` + `#print axioms` audit, run 35514867674 |
 | Deferred | *(nothing)* | ratcheted at 0 `sorry`s — `deferred: {}` |
-| Lint is a falsifier | `tests/test_lint.py`: 21 seeded cheats each killed by a named check, 5 legitimate edits green, 1 local gap asserted open | verified — 7/7 tests |
+| Lint is a falsifier | `tests/test_lint.py`: 22 seeded cheats each killed by a named check, 5 legitimate edits green, 1 residual gap asserted open | verified — 7/7 tests |
 | Pinned claims | `tests/golden_statements.json`: 31 declarations — theorem statements, definition bodies | machine-checked (source level, no toolchain); `#check`/axioms layer runs in the build job |
 | Grading lane | briefs/ + benchmarks/ + 2 CI workflows + toolchain-free lint + pins | standing |
 | First brief | BRIEF_001, re-scoped to what is actually checkable | see briefs/ |
@@ -219,7 +225,7 @@ All three are dependency-free Python; none needs a Lean toolchain.
 ```sh
 python3 tests/test_bs.py          # 13/13 — the oracle satisfies the claimed identities
 python3 tests/test_mutants.py     #  4/4  — and those tests can actually fail (11 mutants)
-python3 tests/test_lint.py        #  7/7  — the linter can fail too (21 cheats, 5 controls)
+python3 tests/test_lint.py        #  7/7  — the linter can fail too (22 cheats, 5 controls)
 python3 tests/test_pins.py        #  8/8  — and the pins that back it parse real CI output
 python3 scripts/lean_lint.py      #  OK   — no sorry in the protected node, ratchet, independence, pins
 python3 scripts/pin_statements.py --check   # 31 statements match tests/golden_statements.json
