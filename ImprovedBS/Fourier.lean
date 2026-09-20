@@ -131,7 +131,7 @@ theorem integrable_exp_neg_abs_rpow {c Y : ℝ} (hc : 0 < c) (hY : 0 < Y) :
   · -- the left half-line: transport the right one across `u ↦ −u`
     rw [← (Measure.measurePreserving_neg (volume : Measure ℝ)).integrableOn_comp_preimage
         (Homeomorph.neg ℝ).measurableEmbedding]
-    simp only [Function.comp_def, neg_Iio, neg_zero, abs_neg]
+    simp only [Function.comp_def, Set.neg_preimage, Set.neg_Iio, neg_zero, abs_neg]
     refine Integrable.mono' hbase (hcont.measurable.aestronglyMeasurable) ?_
     -- `Integrable.mono'` at the tag wants `‖f x‖ ≤ g x` (no norm on `g`)
     filter_upwards [ae_restrict_mem hmeas] with x hx
@@ -391,14 +391,14 @@ theorem gbmCharFactor_contour_norm (m s u α : ℝ) :
       = Real.exp (s * α ^ 2 - α * m) * Real.exp (-(s * u ^ 2)) := by
   have hre : ((Complex.I * ↑m * (↑u + ↑α * Complex.I)
         - ↑s * (↑u + ↑α * Complex.I) ^ 2 : ℂ).re) = s * α ^ 2 - α * m - s * u ^ 2 := by
-    simp only [Complex.add_re, Complex.sub_re, Complex.mul_re, Complex.mul_im,
-      Complex.mul_I_re, Complex.mul_I_im, Complex.ofReal_re, Complex.ofReal_im,
-      Complex.I_re, Complex.I_im, pow_two]
+    simp only [Complex.add_re, Complex.add_im, Complex.sub_re, Complex.mul_re,
+      Complex.mul_im, Complex.mul_I_re, Complex.mul_I_im, Complex.ofReal_re,
+      Complex.ofReal_im, Complex.I_re, Complex.I_im, pow_two]
     ring
   unfold gbmCharFactor
-  rw [Complex.norm_exp, hre, ← Real.exp_add]
-  congr 1
-  ring
+  have hsplit : s * α ^ 2 - α * m - s * u ^ 2
+      = s * α ^ 2 - α * m + -(s * u ^ 2) := by ring
+  rw [Complex.norm_exp, hre, hsplit, Real.exp_add]
 
 theorem gbmCharFactor_contour_continuous (m s α : ℝ) :
     Continuous fun u : ℝ => gbmCharFactor m s (↑u + ↑α * Complex.I) := by
