@@ -17,6 +17,7 @@ Verdict discipline:
 | 1 | BRIEF_001 (T1+T2, Lean lane) | arena-ai-coding-agent | [#1](https://github.com/sblaplace/improved_black_scholes/pull/1) | **GREEN** @ `638c66e`, run 35509578689 — `lake build` + `#print axioms` audit + `lint` + `oracle` all pass. Reached on the 8th run; see the CI history. |
 | 2 | BRIEF_002 (oracle ↔ Lean cross-verifier) | arena-ai-coding-agent | [#3](https://github.com/sblaplace/improved_black_scholes/pull/3) | **GREEN** @ `2a7bacb`, run 35517328856 — 39-point golden grid, docs/04 guard (3) active: `ImprovedBS/Crosscheck.lean` (#eval) cross-verified against `experiments/black_scholes.py` with max price diff 1.6e-14 (tol 1e-12) and 4/4 mutants caught. |
 | 3 | BRIEF_003 (T3 delta identity + T4 bounds) | arena-ai-coding-agent | [#2](https://github.com/sblaplace/improved_black_scholes/pull/2) | **GREEN** @ `726325d`, run 35514867674 (first green: run 35514609619 @ `2273461`) — `lake build` + `#print axioms` audit + `lint` + `oracle` all pass; ratchet 3 → 0. Reached on the 1st run; see the CI history and correction C4. |
+| — | *(tooling, no brief)* statement pins + the lint's own falsifiers | arena-ai-coding-agent | [#4](https://github.com/sblaplace/improved_black_scholes/pull/4) | **GREEN** @ `341b9f4`, run 35520713909 (tip re-graded green: run 35521215779 @ `0785e90`) — `lake build` + `#print axioms` audit + **Statement pins (elab)** + `lint` + `oracle` all pass. Three-run arc, which is the informative part: run 35519747870 red on an empty `elab` block (by design — a pin that was never produced is not a passing pin) → run 35520154876 red on a parser format bug (`#print axioms` quotes the constant, `#check` does not; the parser refused to half-pin and printed the block instead) → block committed verbatim → run 35520713909 green, the 31 elaborated pairs reproducing identically across two independent checkouts, which is what makes them a pin rather than a transcription. Locally: `test_lint.py` 7/7 (22 cheats killed by named checks, 5 controls green, 1 residual gap asserted open), `test_pins.py` 8/8, `lean_lint` OK (43 decls, 31 pins + 31 elab, cross-layer skew clean), oracle 13/13, mutants 4/4, crosscheck 4/4. No `.lean` file changed; sorry baseline untouched. |
 | 4 | BRIEF_004 (α-stable moment obstruction) | — | — | OPEN — not started, independent of #1–#3 |
 
 ## Corrections and co-recorded changes to the ask
@@ -298,3 +299,84 @@ Stands up guard (3) from `docs/04` §"Oracle ↔ formal correspondence":
   and `.github/workflows/oracle.yml`. Failure logs and divergence reports are automatically
   published back to the PR if triggered.
 
+### C6 — statement pins and the lint's own mutation harness
+
+**Date:** 2026-09-20. **Trigger:** an audit of the *grading lane* — the question
+asked was whether the toolchain-free Python had become an unverified pillar under
+the Lean assumptions. Four findings, only one of which was about the oracle.
+
+1. **No theorem depends on the Python, and that was worth checking rather than
+   asserting.** `ImprovedBS/Core.lean` imports no numeric value, declares no
+   `axiom`, and its 25 protected declarations are all `∀ S K tau r q sigma`
+   proved from mathlib; deleting `experiments/` and `tests/` leaves T1–T4
+   theorems of mathlib. The oracle is load-bearing in a different way: emptying
+   those directories turns `scripts/lean_lint.py` red, so the *gate* needs the
+   Python even though the *proofs* do not.
+   Notably, the thing a numeric oracle would otherwise be trusted to supply —
+   that `Φ` is normalized to integrate to 1 — stopped being a Python assumption
+   when BRIEF_003 landed: `integral_phi_Iic_zero` derives it from
+   `integral_gaussian_Ioi`, and halving `erf`'s `2/√π` prefactor now fails the
+   build instead of failing a comparison.
+2. **The linter was the unverified pillar.** `lean_lint.py` decides whether the
+   tree is honestly labelled and gates `lake build` via `needs:`, and nothing
+   tested it. `tests/test_lint.py` now does, with the repo's own discipline
+   (21 seeded cheats, each required to be killed by a named check; 5 legitimate
+   edits required to stay green; a baseline guard so "all mutants killed" cannot
+   be satisfied by an always-red lint).
+3. **The vacuity hole the repo's rule had not been applied to.** Replacing a
+   landed theorem's statement with `: True := trivial` was, before this change,
+   invisible to every lane: it builds, shows no `sorryAx`, keeps its name, and
+   the oracle suite stays 13/13. Conversely the parity guard was *too* strict —
+   reproving T2 with `simp only [bsPut, bsCall, Phi, erf_neg]`, i.e. odd
+   symmetry one step closer to its source, was a lint failure. Both directions
+   are now pinned: `[PINS]` (source text, everywhere) + the CI `elab` layer
+   (elaborated types), and `ODD_SYMMETRY_WITNESSES` accepting any real witness of
+   the symmetry. `tests/test_mutants.py`'s positive-anchor trick was also missing
+   from `[ORACLE SYNC]`, whose checks were all prohibitions — a hollowed-out
+   oracle satisfied it. `ORACLE_ANCHORS` fixes that, and the mutant
+   "M-oracle-3" proves the fix does the work.
+4. **Two defects found in the BRIEF_002 lane, deliberately not fixed here** (they
+   belong to guard (3), not to this change; recorded so they are not lost):
+   `ImprovedBS/Crosscheck.lean` defines `deltaIdentityRhs` and never prints it,
+   so the cross-verifier compares *LHS to LHS* and never checks T3's equation
+   across trees, while its module header claims both sides do; and
+   `tests/test_crosscheck.py --run-lean` is unreachable whenever stdin is not a
+   tty (`not sys.stdin.isatty()` claims the input first), so it prints
+   `4/4 crosscheck unit test(s) passed` without cross-verifying anything —
+   reproducible with `echo -n | python3 tests/test_crosscheck.py --run-lean`.
+   The deeper point about that lane, for a future brief: `Crosscheck.lean`
+   imports *nothing*, so guard (3) cross-checks the oracle against a hand-written
+   `Float` twin rather than against `BSM.*`, and the twin↔formal link is carried
+   by prose and by `[CROSSCHECK SYNC]`'s regexes. The chain
+   "published textbook values ≡ oracle ≡ Lean" is therefore only as strong as a
+   human reading that the twin matches the tree. A `BSM.*`-anchored version of
+   that guard (validated bounds on the real definitions via `norm_num`/`interval`
+   arithmetic, at a few grid points) is the fix, and it would retire the twin.
+
+5. **The bootstrap and the skew.** `elab` can only be produced by `lake env lean`,
+   so the artifact ships with an empty block and the build job prints the block to
+   commit — a red first run, by design, because a pin that was never produced is not
+   a passing pin. That red found a real bug: `#print axioms` quotes the constant name
+   (`'BSM.Phi' depends on axioms: [...]`) where `#check` does not (`BSM.Phi : ℝ → ℝ`),
+   and the parser had assumed symmetry between two commands that share no format. The
+   parser refused to pin a half-result (type recovered, axioms empty), which is the
+   behaviour that made this a fixable log line rather than a corrupt artifact. It is
+   now a pure function tested against recorded CI output in `tests/test_pins.py`, so
+   the assumption is exercised where it can be iterated on. Committing a real `elab`
+   block then enabled a check the empty artifact could not have: `cross_layer_check()`
+   compares which spec constants the pinned *statement* mentions against which the
+   pinned *type* mentions, catching the stale combination (`--write` preserves `elab`,
+   so a toolchain-less author can produce it by accident). The mutant that used to be
+   the harness's declared local gap is now killed by it, and the gap entry was
+   replaced by the deliberate self-consistent forgery — hollow the claim, re-run
+   `--write`, hand-edit `elab` — which no local lane can see and CI sees instantly,
+   because CI re-elaborates rather than re-reading. Attribution was checked, not
+   assumed: disabling only `cross_layer_check()` leaves exactly one survivor out of
+   22 mutants; deleting the whole `[PINS]` block leaves eight.
+
+**Generalizable:** a graded tree needs its *grader* graded. Every lane here had a
+falsifier except the one whose verdicts the others were written to satisfy, and
+the class of cheat that slips through a name-and-marker check — keep the name,
+keep the absence of `sorry`, change what is claimed — is exactly the class that
+cannot be caught syntactically, which is why the answer is a pinned artifact plus
+an elaboration diff, not a stricter regex.

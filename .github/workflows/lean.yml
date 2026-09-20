@@ -4,11 +4,13 @@ name: lean
 #
 #   lint  -- needs NO Lean toolchain. Enforces the syntactic half of the
 #            grading rule: no `sorry` in the protected T1..T4 node, the sorry
-#            ratchet, no new axioms, every stack theorem still declared, and
-#            the anti-vacuity independence guard (d2 not defined from d1,
-#            bsPut not defined from bsCall). Runs in seconds, on any runner,
-#            and in any sandbox -- including ones where elan cannot be
-#            installed at all.
+#            ratchet, no new axioms, every stack theorem still declared, the
+#            anti-vacuity independence guard (d2 not defined from d1, bsPut not
+#            defined from bsCall), and the statement pins in
+#            tests/golden_statements.json -- which is what notices when a
+#            protected theorem is quietly restated as something provable and
+#            empty. Runs in seconds, on any runner, and in any sandbox --
+#            including ones where elan cannot be installed at all.
 #
 #   build -- the real thing. Installs elan, fetches the Mathlib olean cache,
 #            runs `lake build`. This is the authority on whether the proofs
@@ -18,6 +20,9 @@ name: lean
 #
 # A green `lint` with a red `build` means: the tree is honestly labelled but a
 # proof is wrong. A red `lint` means: do not trust anything the build says yet.
+# A green `lint` *and* a green `build` still leaves one question open -- whether
+# a landed theorem says what the ledger claims -- and that is what the pins are
+# for: `lake build` grades validity, the pins grade the claim.
 
 on:
   pull_request:
@@ -180,6 +185,24 @@ jobs:
           fi
           echo "OK: no protected theorem depends on sorryAx"
 
+      - name: Statement pins -- elaborated types and axioms (anti-hollowing)
+        # `lake build` is the authority on whether a proof is correct. It is not
+        # the authority on whether a theorem is still *the theorem*: a protected
+        # node restated as `theorem t4_call_bounds ... : True := trivial` builds,
+        # and has no sorryAx, because `True` is genuinely provable. The `lint` job
+        # catches that by comparing statements against tests/golden_statements.json;
+        # this step catches what a text comparison cannot, by re-elaborating the
+        # `#check` type and `#print axioms` output of every pinned constant and
+        # diffing them against the committed block. On a first run with no `elab`
+        # block committed, the block to commit is printed here -- and then published
+        # to the PR by the failure step below, since CI logs are the only channel a
+        # toolchain-less sandbox can read.
+        run: |
+          set -uo pipefail
+          touch lean-pins.log
+          python3 scripts/pin_statements.py --elab-check 2>&1 | tee lean-pins.log
+          exit ${PIPESTATUS[0]}
+
       - name: Oracle ↔ Lean pointwise cross-verifier (BRIEF_002)
         # Evaluates the golden parameter grid (tests/golden_grid.json) in both
         # the Lean Float evaluator and the Python numeric oracle, asserting
@@ -248,7 +271,7 @@ jobs:
             # is how the `#print axioms` step failed invisibly on run 35509168675:
             # `lake build` was GREEN, the audit was RED, and the comment showed
             # only three expected `sorry` warnings, which reads like success.
-            for log in lake-build.log lean-audit.log lean-crosscheck.log; do
+            for log in lake-build.log lean-audit.log lean-pins.log lean-crosscheck.log; do
               [ -s "$log" ] || continue
               echo "#### \`$log\` — error lines"
               echo
@@ -291,5 +314,6 @@ jobs:
           path: |
             lake-build.log
             lean-audit.log
+            lean-pins.log
             lean-crosscheck.log
           if-no-files-found: ignore

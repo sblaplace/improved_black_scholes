@@ -158,7 +158,7 @@ is actually needed, which is the information a narrowing PR requires.
 ## Oracle ↔ formal correspondence
 
 The Python oracle and the Lean tree share notation *and* arithmetic meaning,
-but they are still two hand-written sources, so they can drift. Three guards,
+but they are still two hand-written sources, so they can drift. Four guards,
 in increasing strength:
 
 1. **Structural** — `scripts/lean_lint.py` `[ORACLE SYNC]` checks that both
@@ -172,8 +172,77 @@ in increasing strength:
    `ImprovedBS/Crosscheck.lean` (`#eval`), `tests/test_crosscheck.py`, and wired into
    CI. Not a proof — a contradiction detector against code drift.
 
+4. **Pinned claims** — guards (1)–(3) can all be satisfied by a tree that proves
+   the *right equations about the wrong claim*, because none of them reads a
+   statement. `tests/golden_statements.json` pins every declaration in
+   `REQUIRED | PROTECTED` — a theorem by its statement (the text through the first
+   `:=`), a definition by its whole body, since a definition *is* the
+   specification. `scripts/pin_statements.py` extracts and compares;
+   `lean_lint.py` enforces the source-level half with no toolchain, and the build
+   job enforces the elaborated half (`#check` type + `#print axioms` per constant)
+   where a toolchain exists. `--write` refreshes layer 1 only, so an author
+   without a toolchain cannot silently drop layer 2.
+
+   Why two layers, and what each one is *not*: the source-level layer catches a
+   re-stated claim (`: True`, a dropped hypothesis, `theorem`→`def`, a duplicate
+   shadow declaration, a shrunk artifact) on any runner, and `cross_layer_check()`
+   also catches the *stale* combination — regenerate layer 1 after editing a
+   claim and leave the `elab` block behind, and the two layers disagree about which
+   spec constants the theorem mentions. That one is a common accident rather than
+   an attack: `--write` deliberately preserves `elab`, so an author without a
+   toolchain can produce it without meaning to.
+
+   What no local lane can catch is the deliberate, self-consistent version — hollow
+   the statement, re-run `--write`, and hand-edit `elab` to match. On disk that is
+   indistinguishable from an honest claim change, and this artifact exists to make
+   claim changes *loud and reviewable*, not impossible. What ends it is that CI
+   never reads the block, it re-elaborates it: `#check @BSM.t4_call_bounds` prints
+   the bound, so a committed `: True` is a diff against reality rather than against a
+   file. The residual gap is asserted mechanically, in
+   `tests/test_lint.py::test_known_local_gaps_stay_open`, rather than left as
+   folklore — and the mechanism has already paid for itself: the skew check above
+   started life as that test's single entry, and closing it moved the mutant into
+   `MUTANTS`, which is what the test tells you to do. A gap that closes without the
+   entry moving turns the suite red and says so out loud.
+   Note what this replaces. The audit that prompted these pins found the repo's own
+   rule — *a green check is only evidence if it could have been red* — applied to
+   the proofs (no `sorry`), to the tests (`test_mutants.py`), and to the
+   oracle↔Lean correspondence (guards 1–3), but not to `lean_lint.py` itself,
+   which is the artefact with actual authority over how the Lean tree is
+   labelled: 20 KB of regexes over a proof assistant's source, gating `lake build`
+   via `needs:`. That is the "unverified second pillar" this repository is
+   exposed to — not the numeric oracle, which no theorem imports and whose removal
+   would leave T1–T4 standing (it would leave the *gate* unable to run, which is a
+   different and fixable problem). `tests/test_lint.py` seeds 22 cheats into
+   throwaway copies of the tree and requires each to be killed by a named check —
+   the 11-mutant discipline, turned on the grader — while 5 controls (a marker word
+   inside a comment, a re-wrapped statement, parity reproved from `erf_neg`
+   directly) must stay green, since a guard that rejects legitimate work is a guard
+   that gets disabled. Three of its results are worth quoting: with `[PINS]` removed
+   from the lint, 8 of the 22 mutants survive (P1–P8); with ONLY
+   `cross_layer_check()` switched off, exactly one survives, which is how a check's
+   contribution is attributed rather than assumed; and with the odd-symmetry guard
+   narrowed back to a single preferred lemma name, a correct proof of T2 goes red.
+
 Until (3) existed, the correspondence rested on (1) and (2) plus human reading of
-docs/01 §4. All three guards are now active.
+docs/01 §4. All four guards are now active; guard (4)'s elaborated layer is
+CI-only, like `lake build` itself, and its `elab` block is produced by the first
+build run and committed from that run's published log.
+
+That sentence earned itself. The first build run (35519747870) went red — `lake
+build` green, `#print axioms` green, the pin step failing with
+`could not recover both a type and an axiom line for BSM.Phi (type='BSM.Phi : ℝ →
+ℝ', axioms='')`. `#print axioms` quotes the constant name where `#check` does not,
+and the parser had assumed symmetry between two Lean commands whose output formats
+are not shared. The refusal was correct — a partial pin would have looked like
+coverage — but the bug was only visible in CI, which is the one place this
+repository cannot iterate cheaply. `tests/test_pins.py` fixes that properly:
+`parse_audit` is now a pure function over recorded output, both message shapes and
+a wrapped type are replayed in-sandbox, and `test_generator_and_parser_agree_on_the_protocol`
+asserts that the emitter and the reader still agree on the sentinel protocol. Two
+lessons generalize: *a format assumption about a tool you cannot run is a bug
+with a delay*, and *a CI-only check must fail loudly where it cannot run* — the
+local `--elab-check` is a red with a message, never a skip.
 
 ## The brief queue
 
