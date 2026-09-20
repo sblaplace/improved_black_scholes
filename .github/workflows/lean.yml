@@ -38,7 +38,8 @@ permissions:
   # working a brief there can see that the build is red but not *why*, and
   # cannot iterate at all. Posting the log to the PR makes it readable through
   # api.github.com, which is reachable. Without this the CI-only acceptance bar
-  # is unusable in exactly the venue BRIEF_001 says it will be handed out in.
+  # is unusable precisely where the toolchain CDN is unreachable (see BRIEF_001's
+  # correction record).
   pull-requests: write
 
 jobs:
