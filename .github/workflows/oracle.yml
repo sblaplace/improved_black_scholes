@@ -1,8 +1,24 @@
 name: oracle
+
+# The numeric handrail. Dependency-free Python, so this lane runs everywhere --
+# including environments with no Lean toolchain and no network.
+#
+# Two suites, both load-bearing:
+#   test_bs.py        the oracle satisfies the identities the Lean stack claims
+#   test_mutants.py   the oracle tests can actually FAIL: seeded bugs are each
+#                     caught by the test meant to catch them, and the two
+#                     vacuity canaries (Phi losing odd symmetry; the independent
+#                     d2 being corrupted) prove parity and d1-d2 are checked
+#                     between independently derived expressions.
+
 on:
   pull_request:
   push:
     branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   oracle:
@@ -12,5 +28,23 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+
       - name: Run numeric oracle tests (no deps)
         run: python3 tests/test_bs.py
+
+      - name: Run mutation harness (proves the oracle tests are falsifiers)
+        run: python3 tests/test_mutants.py
+
+      - name: Cross-check oracle against the published textbook values
+        # Independent of the test suite: recompute the reference case and print
+        # it, so a regression shows up in the log even if a tolerance was loosened.
+        run: |
+          python3 - <<'PY'
+          from experiments.black_scholes import bs_price, bs_call, bs_put, bs_put_by_parity
+          c = bs_price(100., 100., 1., 0., .05, .20)
+          p = bs_price(100., 100., 1., 0., .05, .20, option="put")
+          print(f"call = {c:.4f}  (textbook 10.4506)")
+          print(f"put  = {p:.4f}  (textbook  5.5735)")
+          print(f"independent put vs parity put: {abs(bs_put(100.,100.,1.,.05,0.,.20) - bs_put_by_parity(100.,100.,1.,.05,0.,.20)):.3e}")
+          assert abs(c - 10.4506) < 5e-4 and abs(p - 5.5735) < 5e-4
+          PY

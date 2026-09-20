@@ -1,81 +1,208 @@
 # 03 — Research directions: improving the increment law
 
-The improvement is a **wider increment law that keeps the skeleton.**  Each
-direction below names the exact claim, the parameter it would add relative to
-GBM's single (σ), and a **falsifier** that would separate it from the 
-alternatives. Directions are ordered by (formal tractability ∘ evidence).
+The improvement is a **wider increment law that keeps the skeleton.** Each
+direction below names the exact claim, the parameters it adds relative to GBM's
+single σ, and a **falsifier** that would separate it from the alternatives.
+Directions are ordered by (formal tractability × strength of evidence).
 
-## D1. Lévy / α-stable increment (heavy tails, the "hard" direction)
+Every direction is graded against docs/02 §5: **(a)** explanatory power per
+parameter, and **(b)** out-of-sample prediction, not in-sample fit.
 
-**Claim:** replace the Gaussian log-increment with a stable, 0-median,
-scale-statistically constraint-driven dispersion that is *martingale*,
-self-similar (1/α self-scaling), with tail exponent α < 2.  BS is the α = 2
-limit; the smile is the counter of lower α on put options.
+---
 
-**What extends:** σ (single) → α and σ_α (two parameters).  Bootstrap:
+## D1. Tempered-stable increment (heavy tails, the hard direction)
 
-    X_{t+dt} − X_t ~ Stα(µ·dt, σ_α·dt^{1/α}, β=0),   α ∈ (1,2].
+### The claim, and the obstruction that shapes it
 
-The European-payoff risk-neutral value becomes an α-indexed Tikhonov
-(Fourier/MP-6) integral — real analysis, still a *transport* kernel.
+**Claim:** replace the Gaussian log-increment by a Lévy increment with
+*algebraic* rather than exponential tails, self-similar at index 1/α with
+α < 2, that is nonetheless a martingale. BS is the α = 2 corner; the smile is
+the shadow of lower α on the put side.
 
-**Falsifier (must show):** the fitted (α,σ_α) surface for the S&P 500 / FX
-panel:
-  (a) explains at-least as much out-of-sample *hedging* variance per
-      parameter as a GBM + smile conditional fit (ratio test on held-out tenors);
-  (b) the α posterior concentrates between 1.3 and 1.9 *and* the fitted α is
-      materially **less** a function of moneyness than the GBM σ is — i.e.
-      moving the vol *functional dependence* into the increment itself.
+**Obstruction — read this before proposing anything.** The naive version of
+this claim is *false*, and it is worth being explicit, because it is the
+attractive version. Let `X_τ` be a pure symmetric α-stable law, α < 2. Its
+tails satisfy `P(X_τ > x) ~ c·x^{−α}`, so
 
-**Why worth it:** puts the tail in the *increment*, not in an elastic vol,
-so hedging is a single-martingale principle, and maturity- vs moneyness
-mispecification are the same instability, not two hiddens.
+    E[e^{X_τ}] = ∫ e^x · c·x^{−α} dx = ∞.
 
-## D2. Volatility-of-volatility extension (skeleton-preserving)
+Therefore `S_T = S_0·e^{X_τ}` has **infinite first moment** and cannot satisfy
+the risk-neutral condition `E[S_T] = S_0·e^{(r−q)τ}` (docs/01 §3, Fact B). There
+is no equivalent martingale measure inside the exponential-Lévy ansatz. The
+consequence is not a technicality downstream — it is immediate: the
+Carr–Madan / Lewis Fourier pricing integral requires a *moment strip*
+`{u : E[e^{u·X_τ}] < ∞}` containing the pricing contour, and for a pure
+α-stable that strip is empty on the side that matters. There is no contour to
+place.
 
-**Claim:** keep brownian log increments but let σ *itself* diffuse (a second,
-independent factor).  BS is σ̇=0.  This preserves the ℚ-martingale and a
-Fourier/kernel solution (this is the "stochastic-volatility family" — Heston
-is the affine case).  Closed-form-kernel price, more honest tails than GBM.
+So the failure is at the **moment** step, not the **kernel** step. Any brief
+that asks for "the transport kernel survives α-stable increments" is asking for
+a theorem about an object that does not exist.
 
-**Falsifier:** a 2-factor model must beat a single-σ GBM by:
-  (a) matching the smile *and* the term *structure* together (the smile's SLOPE
-      changing sign along tenor is the fact GBM cannot),
-  (b) out-of-sample hedge errors a forecast low-vs-high-vol regime that the
-      single-martingale loses (the vol-of-vol is *calibrated*, not haunted).
+**The repair.** Temper the Lévy measure. In the CGMY family
+(Carr–Geman–Madan–Yor) and the Boyarchenko–Levendorskii family, the Lévy density
+carries an `e^{−λ|x|}` damping:
 
-## D4. Regime / me-memory increment (the "no-memory" falsifier)
+    ν(dx) = C · e^{−G|x|} / |x|^{1+Y} dx      (x < 0)
+    ν(dx) = C · e^{−M|x|} / |x|^{1+Y} dx      (x > 0)
 
-A - memory / -persistence (rate + vol-clustering) increment.  The minimal
-danger? claim: realized vol is **temporally persistent** (GARCH-like), so the
-statement "increment is Sharpe martingale" is over wording.
+with `Y = α ∈ (0,2)` the tail index and `G, M > 0` the two tempering rates.
+Tempering restores every exponential moment on the interior of the strip, so an
+equivalent martingale measure exists once the drift is fixed by the usual
+exponent condition; algebraic tails survive at the scale that matters for
+option tenors; and the α-stable law is recovered as `G, M → 0`, GBM as `Y → 2`.
+The price paid is parameters: GBM has one (σ), CGMY has four (C, G, M, Y).
+That is exactly what falsifier (a) below is for.
 
-**Falsifier:** the ACF/Hurst of |log-return| over 1d..4w decades LF ≠ 0
-(statistically, not a point estimate) — and *any* price which prices a string
-of one spot (Markov) cannot produce the observed *cluster* of extremes,
-period. The model then MUST matter not measured by the price of a given spot
-but the *distribution* over paths — no single-spot contract can be the whole
-claim.
+### What extends
 
-## Anti-directions (things that "improve BS" usually want to do and we should
-   prove are traps — see 02):**
+    σ (one parameter)  →  C, G, M, Y (four)
+    X_{t+dt} − X_t     ~  tempered stable, drift fixed by the martingale condition
 
-- **Recalibrate σ per manual / "the day vol":** parameter-per-print is not
-  improvement; it is overfitting the surface. GBM *can* fit (a shifted smile)
-  with a strike-dependent σ; that destroys the single-martingale and buys
-  nothing predictive.
-- **"Just add a jump term":** any number of translates of the Gaussian still
-  leave the central mass-to-tail ratio near-Gaussian absent evidence the jumps
-  are *independent informed* events (they aren't; jumps are informed, pricing
-  the jump must price its cause, not a translate).
+The European risk-neutral value becomes a Fourier integral over a contour
+inside the moment strip — real analysis, still a transport kernel, and still a
+convolution of the payoff with a transition density. The skeleton of docs/01 §3
+is untouched. That is the whole point: **the tail moves into the increment
+rather than into an elastic volatility**, so hedging stays a single-martingale
+principle, and maturity-mispecification and moneyness-mispecification become
+one instability instead of two hidden ones.
+
+### Falsifier (must show both)
+
+Fit `(C, G, M, Y)` — or the reparametrized `(α, σ_α, λ)` — on an S&P 500 / FX
+implied-vol panel, then:
+
+- **(a)** it explains at least as much *out-of-sample hedging* variance per
+  parameter as a GBM fitted conditionally to the smile, on held-out tenors
+  (a ratio test, not a fit comparison); **and**
+- **(b)** the posterior on α concentrates inside `(1.3, 1.9)`, **and** the
+  fitted α is materially *less* dependent on moneyness than the GBM σ it
+  replaces.
+
+(b) is the real claim. If α has to vary with moneyness to fit, the model has
+reintroduced an elastic volatility by another name and bought nothing — that is
+anti-direction 1 below wearing a Lévy costume.
+
+### Formal target (this is T6)
+
+Stated in `ImprovedBS/Core.lean` as a comment block; the theorem to aim at is:
+
+> **T6.** Let `X` be a Lévy process with characteristic exponent `ψ` affine in
+> `τ`, and suppose the damping strip `{u : E[e^{u·X_τ}] < ∞}` contains both the
+> pricing contour and `−1` (the numéraire point, i.e. the drift is fixed so that
+> `E[e^{X_τ}] = e^{rτ}`). Then the Carr–Madan integral
+>
+>     V = e^{−rτ}/(2π) · ∫ e^{−i·u·τ} · f̂(u + iα) · e^{τ·ψ(u + iα)} du
+>
+> converges absolutely, is real-valued for real payoffs, and equals
+> `e^{−rτ}·E[(S_T − K)⁺]`. GBM is the case `ψ(u) = i·u·(r−q) − σ²u²/2`.
+
+Provable sub-goals, in increasing order of commitment:
+
+1. **The obstruction as a theorem.** For a pure α-stable exponent with α < 2,
+   `E[e^{X_τ}] = ∞`, hence the moment strip excludes the pricing contour. This
+   is a concrete improper-integral divergence — no finance in it — and proving
+   it *earns* the tempering hypothesis instead of assuming it. It is the highest
+   value-per-effort item in the whole research tier and it should be a brief on
+   its own.
+2. **Absolute convergence** of the Carr–Madan integrand on a contour strictly
+   inside the strip, for a tempered-stable exponent.
+3. **Agreement** with the risk-neutral expectation, i.e. Fourier inversion
+   against the payoff transform.
+
+---
+
+## D2. Volatility-of-volatility (skeleton-preserving, second factor)
+
+**Claim:** keep Brownian log-increments but let σ itself diffuse, driven by a
+second (correlated or independent) factor. BS is the zero-vol-of-vol corner.
+This preserves the ℚ-martingale property and admits a Fourier/kernel solution —
+the stochastic-volatility family, of which Heston is the affine case, i.e. the
+case where the characteristic function is exponential-affine in the state and
+therefore available in closed form.
+
+**What it fixes and what it doesn't:** it produces a genuine smile and a genuine
+term structure from two parameters of dynamics rather than one parameter per
+strike. It does *not* produce algebraic tails — the increment stays Gaussian
+conditional on the vol path, so extreme moves are still exponentially rare
+conditional on the (now random) variance. If the evidence in docs/02 A2 is
+taken seriously, D2 alone is incomplete; D1 and D2 are complements, not rivals,
+and a combined tempered-stable-with-stochastic-volatility model is where the
+literature actually lands.
+
+**Falsifier:** a two-factor model must beat single-σ GBM by
+
+- **(a)** matching the smile *and* the term structure *simultaneously* — in
+  particular the fact that the smile's slope can change sign along tenor, which
+  a single constant σ cannot express at any value of σ; and
+- **(b)** producing out-of-sample hedging errors that forecast low- versus
+  high-vol regimes, where the vol-of-vol is *calibrated once* rather than
+  re-fitted per horizon.
+
+---
+
+## D3. Persistence / regime increment (the no-memory falsifier)
+
+**Claim:** realized volatility is *temporally persistent* — GARCH-like
+clustering — so the description "the increment is a Sharpe-optimal martingale
+diffusion" is incomplete as a statement about a *process*: it constrains the
+one-step law and says nothing about the dependence across steps.
+
+This is the weakest of the three as a pricing direction and the strongest as a
+*falsification* direction, because its test is cheap and its conclusion is
+unambiguous: a Markov model of the spot cannot generate observed vol clustering,
+period. Whatever replaces it must be a model of paths, not of a marginal.
+
+**Falsifier:** the autocorrelation function of |log-return| over 1d..4w is
+non-zero with statistical significance (not a point estimate — a confidence
+statement), while the geometric random walk's ACF is zero by construction. Any
+model that prices from the single-spot marginal alone is then ruled out as a
+complete account, independent of how well it fits the surface.
+
+**Interaction with D1/D2:** persistence is what makes the *fitted* parameters of
+either model time-varying. A direction that reports a point estimate of α or of
+vol-of-vol without reporting its persistence is reporting a sample statistic as
+if it were a structural constant.
+
+---
+
+## Anti-directions
+
+Things that "improve BS" proposals usually reach for, and why they are traps
+(see docs/02):
+
+- **Recalibrate σ per quote** ("use today's vol for today's option"). One
+  parameter per print is not improvement; it is transcription of the surface.
+  GBM *can* fit any smile with a strike-dependent σ — that is Dupire's local
+  volatility, which is a perfectly good *calibration* and a perfectly useless
+  *prediction*, because it destroys the single-martingale structure and buys no
+  out-of-sample content. Fails (a) and (b) both, by construction.
+- **"Just add a jump term."** A finite number of Gaussian translates still
+  leaves the central-mass-to-tail ratio near Gaussian. Jumps help only if the
+  jump arrivals and sizes are modelled as *informed events* with their own
+  dynamics — and then you are pricing the cause of the jump, which is D2/D3
+  territory, not a compound-Poisson afterthought.
+- **Fit the surface and call the fit a model.** Any direction whose evidence is
+  in-sample R² on the same panel it was calibrated to is disqualified on
+  arrival (docs/02 §5). This is the single most common way a plausible-looking
+  improvement turns out to be an expensive interpolation.
+
+---
 
 ## The falsification loop (how a direction graduates)
 
 For a direction → candidate → result:
 
-1. **State** the increment-law replacement in one line (family, parameters).
-2. **Fit** on (expiry × moneyness) surface, in history.
-3. **Predict** out-of-sample (one tenor forward) hedged-error vs the GBM hedge.
-4. **Compete** on explained-variance-per-parameter, not on fit.
-5. Any model whose "improvement" shows up only by adding a constant per
-   option is *disqualified on arrival* (02 §5).
+1. **State** the increment-law replacement in one line: family, parameters, and
+   the martingale condition that fixes its drift. A direction that cannot state
+   its moment condition has not met Fact B and stops here.
+2. **Fit** on an (expiry × moneyness) surface over history.
+3. **Predict** out-of-sample — one tenor forward — and compare hedging error
+   against the GBM hedge.
+4. **Compete** on explained variance *per parameter*, not on fit.
+5. **Formalize** whichever structural claim survived: the surviving identity
+   becomes a node in the theorem stack, and `briefs/` gets a work order with a
+   machine-graded acceptance bar.
+
+A model whose "improvement" appears only by adding a constant per option is
+disqualified at step 1.

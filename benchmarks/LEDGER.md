@@ -14,11 +14,173 @@ Verdict discipline:
 
 | # | brief | contributor | PR | verdict |
 |---|-------|-------------|----|---------|
-| 1 | BRIEF_001 (T1+T2, Lean lane) | — | — | pending |
+| 1 | BRIEF_001 (T1+T2, Lean lane) | arena-ai-coding-agent | [#1](https://github.com/sblaplace/improved_black_scholes/pull/1) | **GREEN** @ `638c66e`, run 35509578689 — `lake build` + `#print axioms` audit + `lint` + `oracle` all pass. Reached on the 8th run; see the CI history. |
+| 2 | BRIEF_002 (oracle ↔ Lean cross-verifier) | — | — | OPEN — not started |
+| 3 | BRIEF_003 (T3 delta identity + T4 bounds) | — | — | OPEN — not started, blocked on #1 |
+| 4 | BRIEF_004 (α-stable moment obstruction) | — | — | OPEN — not started, independent of #1–#3 |
 
-## Note on brief archival
+## Corrections and co-recorded changes to the ask
 
-Briefs are committed in-repo up front: the ask and the acceptance bar are
-publicly inspectable before any PR exists, and the ledger carries the live
-outcome. If a brief is later corrected, the correction is co-recorded here —
-never a silent rewrite of the ask.
+Briefs are committed in-repo up front, so a correction is recorded here rather
+than edited silently into the original text.
+
+### C1 — BRIEF_001, corrected before any PR existed
+
+**Date:** 2026-09-20. **Trigger:** an audit of the tree, not a contributor's
+PR. Full detail is in the correction record at the top of
+`briefs/BRIEF_001_parity_and_lean_lane.md`.
+
+Four defects made the brief as issued either unachievable or — worse —
+*achievable without meaning anything*:
+
+1. **T1 and T2 were tautologies.** `d2 := d1 − σ√τ` and
+   `bsPut := bsCall − S e^{−qτ} + K e^{−rτ}` made both theorems true by
+   construction (`unfold; ring`). T2 in particular never touched
+   `Φ(x) + Φ(−x) = 1`, which the brief's own scope item 3 required be cited. A
+   contributor could have shipped a green build certifying nothing and been
+   graded GREEN. The same circularity was mirrored in the oracle: the put was
+   *computed* via parity, so `test_put_call_parity` could not fail. Demonstrated
+   by mutation: a Φ perturbed to lose odd symmetry passed that test.
+2. **`t3_delta_identity` was false as stated** — missing `σ ≠ 0` and `0 < τ`.
+   At σ = 0, Lean's `a / 0 = 0` collapses it to `S e^{−qτ} φ(0) = K e^{−rτ} φ(0)`;
+   S=2, K=1, r=q=0 gives 0.797885 ≠ 0.398942. A contributor would have hit a
+   red build caused by the statement and spent their budget on the wrong problem.
+3. **The Lean lane could not start.** Invalid `lakefile.toml` (mathlib
+   requirement commented out; `[lake] binary` / `precompiled` are not Lake
+   keys), no `lean-toolchain`, no `lake-manifest.json`, no root module, no
+   `lean.yml`. `Lean/core/bsm_theorems.lean` also made the module
+   `Lean.core.*`, squatting the elaborator's namespace.
+4. **The acceptance bar was unenforceable in the named venue.** The brief
+   budgeted ≤60 minutes of sandbox compute against a bar of "`lake build`
+   green". Sandboxes without a route to `elan.lean-lang.org` and the Mathlib
+   olean cache cannot install a toolchain at any budget.
+
+**Changes landed with this correction:**
+
+- `d2`, `bsPut` given independent explicit closed forms in both trees; values
+  unchanged to 3.6e-15 across a 6-point grid, so the frozen numeric contract
+  holds. Oracle tests 10 → 13.
+- `tests/test_mutants.py` added: 11 seeded bugs, each required to be killed by
+  its targeted test, including two *vacuity canaries* (M7 breaks Φ's odd
+  symmetry, M8a/M8b corrupt the independent `d2`). Baseline before the fix: M7
+  and M8 survived their targeted tests.
+- `test_pde_residual_refines_with_h` (`r2 <= r1 + 1e-4`, satisfiable even when
+  the residual got worse) replaced by `test_pde_residual_is_second_order`,
+  asserting the measured O(h²) shrink inside a documented h-window. Measured:
+  100× per decade from h=1e-2 to 1e-3, then divergence below 1e-3 as round-off
+  dominates — the window is a fact about finite differences, recorded in
+  `experiments/black_scholes.py` so nobody "improves" the test by shrinking h.
+- Lean tree moved to `ImprovedBS/`; pinned to mathlib v4.34.0 /
+  Lean v4.34.0 across `lakefile.toml`, `lean-toolchain`, `lake-manifest.json`.
+- `.github/workflows/lean.yml` added: a toolchain-free `lint` job and a
+  `build` job (`leanprover/lean-action@v1`) that tees `lake build` to an
+  artifact and audits `#print axioms` for `sorryAx`.
+- `scripts/lean_lint.py` added. No toolchain required. Enforces: no `sorry` in
+  the protected T1/T2 node; a ratchet on total deferred markers; no new axioms;
+  every stack theorem still declared; and the independence guard (`d2` not from
+  `d1`, `bsPut` not from `bsCall`, T2 citing `Phi_add_Phi_neg`). Verified to
+  catch all 8 seeded regressions of those properties.
+- T3 hypotheses corrected; T4 stated for the first time (it had no Lean
+  declaration despite being listed "stated" in two tables); T5's proof route
+  recorded (via T3, in `x = log S` coordinates); T6 restated around the
+  tempered-stable repair.
+- `docs/01` §2a, §4, §5 and `docs/04` rewritten to state the independence rule
+  and the domain hypotheses; `docs/02` and `docs/03` repaired (duplicate `## 4.`
+  heading, a D4 with no D3, and several unparseable sentences); `docs/03` §D1
+  rewritten around the exponential-moment obstruction, which is now BRIEF_004.
+- BRIEF_002, BRIEF_003, BRIEF_004 authored.
+
+**Honest status of what landed:** the Lean definitions, the `Phi_add_Phi_neg`,
+T1, T2 and T2′ proof scripts, and all Lean-side scaffolding were written and
+reviewed by hand in an environment with **no Lean toolchain and no route to
+install one**. They have never been compiled. They are best-effort, not
+verified, and row 1 is PENDING precisely because of that. The Python half —
+oracle, tests, mutation harness, lint — has been executed and is green.
+
+### C2 — `docs/04` status table, corrected
+
+The table previously read "T1 done, T2+T3 done in-code" in one cell while the
+adjacent rows and the `.lean` file both said `stated` / `sorry`. Nothing was
+done. Status in that table is now derived from `scripts/lean_lint.py` output
+rather than typed, so the two cannot disagree.
+
+## CI history for row 1 (PR #1)
+
+Recorded because a verdict without its history is not reproducible, and because
+the failures produced findings that changed the plan and two brief budgets.
+Eight runs, one of which was an *incident* rather than a verdict.
+
+| # | head | `lake build` | cause |
+|---|---|---|---|
+| 1 | `fbbc6d8` | fail 3m49s | `ImprovedBS.lean:21:0: invalid 'import' command` — a module doc-comment is a *command*, so placing it above the `import` makes the import illegal |
+| 2 | `e806581` | fail 3m38s | same |
+| 3 | `07f5aa8` | fail | `bad import 'Mathlib.Analysis.SpecialFunctions.Erf'`, `bad import 'Mathlib.Data.Real.Pi'` — neither path exists in v4.34.0, and `Real.erf` does not exist at all (correction C3) |
+| 4 | `b1084d3` | fail | six × `failed to compile definition, consider marking it as 'noncomputable'`; `integral_comp_neg` applied to explicit args it takes implicitly; T1's `simp` left the fractions uncombined and used `eq_div_iff_mul_eq` where the division is on the left; T2's `linarith` on a goal containing a *product* of atoms |
+| 5 | `a47b029` | **INCIDENT** | runner died: `System.IO.IOException: No space left on device`. No verdict — nothing after the cache step ran, including the log publisher |
+| 6 | `9d6dd16` | fail | one error: `sub_div` in v4.34.0 is `(a - b) / c = a / c - b / c`, i.e. it *splits* a fraction; combining two fractions needs `← sub_div` |
+| 7 | `b96d61a` | **build GREEN**, audit fail | `#print axioms ImprovedBS.t1_d1_minus_d2` — module name is not namespace; with no `namespace` command the theorems were in the root namespace |
+| 8 | `638c66e` | **GREEN** 5m32s | all steps pass |
+
+What the runs established, beyond the verdict:
+
+- **The scaffolding was correct from run 1.** `Set up Lean + Mathlib cache`
+  succeeded every time: elan installed, the v4.34.0 olean cache fetched, and
+  `lakefile.toml` / `lean-toolchain` / `lake-manifest.json` resolved and agreed.
+  A build is ~5m30s end to end, not the hours a from-source mathlib build would
+  take. So correction C1 item 3 is genuinely fixed.
+- **`Real.erf` is not in mathlib v4.34.0** (correction C3). Run 3 forced this
+  out and it re-budgets T4 and T5.
+- **Two reporting gaps hid real results, and both are now closed.** Run 5 died of
+  ENOSPC before any step could report, so the failure was invisible except in a
+  check-run annotation. Run 7 had a *green build and a red audit*, and the
+  publisher shipped only `lake-build.log`, so the PR comment showed three
+  expected `sorry` warnings and nothing else — which reads like success. The job
+  now measures disk before spending it, and publishes every log it produces.
+
+  Generalizable: a CI lane that cannot report its own failure is worse than no
+  lane, because it produces a red X with no diagnosis and invites a contributor
+  to guess. Reporting is part of the grader, not a convenience.
+
+### Machine-checked as of run 8
+
+`lake build` green **and** the `#print axioms` audit green, which is the
+distinction this repository cares about — a `sorry` still builds, it just
+elaborates to `sorryAx`. Verified free of `sorryAx`:
+
+    BSM.exp_neg_sq_even   BSM.erf_neg   BSM.Phi_add_Phi_neg   BSM.Phi_neg
+    BSM.t1_d1_minus_d2    BSM.t2_put_call_parity   BSM.t2_put_call_parity_spread
+
+So T1 and T2 — and the odd-symmetry identity T2 actually rests on — are
+machine-checked results, not prose. Still deferred, and ratcheted at 3 markers:
+`BSM.t3_delta_identity`, `BSM.t4_call_bounds`, `BSM.t4_put_bounds`.
+
+### C3 — `docs/04` claimed a mathlib dependency that does not exist
+
+`docs/04_formal_plan.md` listed "`Real.erf` (already in Mathlib:
+`Mathlib.Analysis.SpecialFunctions.Erf`)" and "`Real.hasDerivAt_erf`" as
+available dependencies. **Neither exists in v4.34.0.** Verified against the
+release tag: no file named `Erf.lean` among the tree's 9112 `.lean` files, and
+GitHub code search over `leanprover-community/mathlib4` returns 0 hits for
+`Real.erf`, `def erf` and `erf_neg` — against 107 for `Real.sqrt` and 57 for
+`Real.pi`, so the search itself was working.
+
+`ImprovedBS/Core.lean` now defines `erf` itself as
+`(2 / Real.sqrt Real.pi) * ∫ t in 0..x, Real.exp (-(t^2))` and proves `erf_neg`
+by substitution in the interval integral. That supplies exactly the *oddness*
+T2 needs.
+
+It does **not** supply what T4 and T5 need, and this changes their budgets:
+bounds `0 ≤ Phi ≤ 1` require `|erf x| ≤ 1`, hence the *value* of the Gaussian
+integral `∫ x:ℝ, exp (-(x^2)) = sqrt pi` — measure theory
+(`Mathlib/Analysis/SpecialFunctions/Gaussian/GaussianIntegral.lean`), not
+interval integrals. T5 likewise needs `HasDerivAt erf`, now derived rather than
+imported. Both briefs should be re-budgeted before being handed out; BRIEF_003
+already carries the warning in T4's doc-comment.
+
+**Generalizable lesson, and the reason this is in the ledger rather than a
+commit message:** a mathlib dependency is a claim about a *specific version* and
+must be checked against that version. Two plausible-looking import paths,
+guessed without a toolchain, cost three red runs. Any brief that adds a mathlib
+dependency should require the author to verify the path against the pinned tag —
+`gh api repos/leanprover-community/mathlib4/contents/<path>?ref=v4.34.0` is
+reachable even where the Lean toolchain is not.

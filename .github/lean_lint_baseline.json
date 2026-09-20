@@ -1,0 +1,10 @@
+{
+  "_read_this": "Ratchet ceiling for deferred-proof markers (sorry / admit / native_decide) in the Lean tree, enforced by scripts/lean_lint.py. A declaration may appear here only if its brief explicitly defers it. Lower a count when a proof lands; never raise one to make CI pass. The T1/T2 node (PROTECTED in lean_lint.py) may never appear here at all.",
+  "_generated_by": "python3 scripts/lean_lint.py --write-baseline",
+  "deferred": {
+    "t3_delta_identity": 1,
+    "t4_call_bounds": 1,
+    "t4_put_bounds": 1
+  },
+  "axioms": []
+}
