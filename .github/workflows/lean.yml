@@ -180,6 +180,19 @@ jobs:
           fi
           echo "OK: no protected theorem depends on sorryAx"
 
+      - name: Oracle ↔ Lean pointwise cross-verifier (BRIEF_002)
+        # Evaluates the golden parameter grid (tests/golden_grid.json) in both
+        # the Lean Float evaluator and the Python numeric oracle, asserting
+        # agreement across d1, d2, call, put, parity, and delta identity.
+        run: |
+          touch lean-crosscheck.log
+          if ! lake env lean ImprovedBS/Crosscheck.lean > lean-eval.log 2>&1; then
+            echo "FAIL: 'lake env lean ImprovedBS/Crosscheck.lean' failed:" | tee lean-crosscheck.log
+            cat lean-eval.log | tee -a lean-crosscheck.log
+            exit 1
+          fi
+          python3 tests/test_crosscheck.py --lean-output lean-eval.log 2>&1 | tee lean-crosscheck.log
+
       - name: Publish the axioms audit to the PR
         # The audit passing is the acceptance evidence for a landed node, and
         # the ledger quotes it. Artifacts and Actions logs live behind blob
@@ -235,7 +248,7 @@ jobs:
             # is how the `#print axioms` step failed invisibly on run 35509168675:
             # `lake build` was GREEN, the audit was RED, and the comment showed
             # only three expected `sorry` warnings, which reads like success.
-            for log in lake-build.log lean-audit.log; do
+            for log in lake-build.log lean-audit.log lean-crosscheck.log; do
               [ -s "$log" ] || continue
               echo "#### \`$log\` — error lines"
               echo
@@ -278,4 +291,5 @@ jobs:
           path: |
             lake-build.log
             lean-audit.log
+            lean-crosscheck.log
           if-no-files-found: ignore

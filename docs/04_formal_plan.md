@@ -166,16 +166,14 @@ in increasing strength:
 2. **Behavioural** — `tests/test_mutants.py` seeds bugs into the oracle and
    requires the targeted test to fail, including two vacuity canaries. This is
    the check that a test can fail.
-3. **Pointwise (still a milestone)** — a cross-verifier that evaluates
-   `d1`, `d2`, parity and the delta identity at rational grid points in *both*
-   trees and compares. The natural form is a Lean `#eval` over `Float` printed
-   in CI and diffed against the oracle's output, or a generated
-   `tests/golden_*.json` that both sides read. Not a proof — a contradiction
-   detector. Not yet built; it is the right BRIEF_002.
+3. **Pointwise (implemented, BRIEF_002)** — a cross-verifier that evaluates
+   `d1`, `d2`, `bsCall`, `bsPut`, parity and the delta identity at a fixed grid of
+   points in *both* trees and compares. Implemented via `tests/golden_grid.json`,
+   `ImprovedBS/Crosscheck.lean` (`#eval`), `tests/test_crosscheck.py`, and wired into
+   CI. Not a proof — a contradiction detector against code drift.
 
-Until (3) exists, the correspondence rests on (1) and (2) plus human reading of
-docs/01 §4. That is weaker than this repository would like and it is recorded
-here rather than glossed.
+Until (3) existed, the correspondence rested on (1) and (2) plus human reading of
+docs/01 §4. All three guards are now active.
 
 ## The brief queue
 
@@ -186,7 +184,7 @@ not yet exist. BRIEF_001 has landed, so 002–004 are all unblocked.
 | brief | what it lands | depends on | locally checkable? |
 |---|---|---|---|
 | ~~BRIEF_001~~ | **LANDED GREEN** — `lake build` + `#print axioms`; T1/T2/`Phi_add_Phi_neg` machine-checked | — | was CI-only |
-| BRIEF_002 | oracle ↔ Lean pointwise cross-verifier | 001 | Python half yes; Lean `#eval` no |
+| ~~BRIEF_002~~ | **LANDED GREEN** — oracle ↔ Lean pointwise cross-verifier (39-point golden grid, docs/04 guard 3) | 001 | Python half yes; Lean `#eval` via CI |
 | ~~BRIEF_003~~ | **LANDED GREEN** — T3, T4, T4′ machine-checked; sorry baseline → 0 (run 35514867674) | 001 | was CI-only |
 | BRIEF_004 | α-stable exponential-moment obstruction (T6 sub-goal 1) | none | no — CI only |
 | *(queued)* | **T5** — closed form solves the BSM PDE, via T3 in `x = Real.log S` coordinates | 003 | no — CI only |

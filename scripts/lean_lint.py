@@ -247,34 +247,41 @@ def main() -> int:
 
     # 2. required declarations still present
     for name, rel in REQUIRED.items():
-        if name not in all_decls:
-            failures.append(
-                f"[REQUIRED] `{name}` is not declared anywhere (expected in {rel}). "
-                f"Deleting a theorem is not a way to make this lint pass."
-            )
-        elif rel not in all_decls[name][0]:
-            notes.append(f"[REQUIRED] `{name}` moved: expected {rel}, found {all_decls[name][0]}")
+        ds = decls_by_file.get(rel, [])
+        found_in_rel = any(n == name for _, n, _, _ in ds)
+        if not found_in_rel:
+            found_elsewhere = [
+                f for f, items in decls_by_file.items() if any(n == name for _, n, _, _ in items)
+            ]
+            if not found_elsewhere:
+                failures.append(
+                    f"[REQUIRED] `{name}` is not declared anywhere (expected in {rel}). "
+                    f"Deleting a theorem is not a way to make this lint pass."
+                )
+            else:
+                notes.append(f"[REQUIRED] `{name}` moved: expected {rel}, found {found_elsewhere}")
 
     # 3 + 4. deferred-proof markers
     found_deferred: dict[str, int] = {}
-    for name, (rel, kind, line, body) in sorted(all_decls.items()):
-        hits = []
-        for marker in MARKERS:
-            # word-boundary match, so `sorryAx`-free text like `nosorry` is not caught
-            hits += [m for m in re.finditer(rf"\b{marker}\b", body)]
-        if not hits:
-            continue
-        found_deferred[name] = len(hits)
-        where = ", ".join(
-            f"line {line + body[: h.start()].count(chr(10))}" for h in hits[:3]
-        )
-        if name in PROTECTED:
-            failures.append(
-                f"[PROTECTED] `{name}` ({rel}:{line}) contains "
-                f"{', '.join(sorted({h.group(0) for h in hits}))} at {where}. "
-                f"This is a landed node (T1/T2 per BRIEF_001, T3/T4 per BRIEF_003): "
-                f"an automatic reject."
+    for rel, ds in sorted(decls_by_file.items()):
+        for kind, name, line, body in ds:
+            hits = []
+            for marker in MARKERS:
+                # word-boundary match, so `sorryAx`-free text like `nosorry` is not caught
+                hits += [m for m in re.finditer(rf"\b{marker}\b", body)]
+            if not hits:
+                continue
+            found_deferred[name] = found_deferred.get(name, 0) + len(hits)
+            where = ", ".join(
+                f"line {line + body[: h.start()].count(chr(10))}" for h in hits[:3]
             )
+            if name in PROTECTED:
+                failures.append(
+                    f"[PROTECTED] `{name}` ({rel}:{line}) contains "
+                    f"{', '.join(sorted({h.group(0) for h in hits}))} at {where}. "
+                    f"This is a landed node (T1/T2 per BRIEF_001, T3/T4 per BRIEF_003): "
+                    f"an automatic reject."
+                )
 
     base_deferred = baseline.get("deferred", {})
     new_names = sorted(set(found_deferred) - set(base_deferred))
@@ -375,6 +382,50 @@ def main() -> int:
         notes.append("[ORACLE SYNC] oracle and Lean tree agree on independent derivations")
     else:
         failures.append(f"[ORACLE SYNC] {ORACLE_PATH} not found")
+
+    # 8. crosscheck sync (BRIEF_002)
+    crosscheck_path = os.path.join(ROOT, "ImprovedBS", "Crosscheck.lean")
+    if os.path.exists(crosscheck_path):
+        cc_decls = decls_by_file.get("ImprovedBS/Crosscheck.lean", [])
+        cc_bodies = {name: body for _, name, _, body in cc_decls}
+
+        def cc_def_body(name: str) -> str:
+            b = cc_bodies.get(name)
+            if b is None:
+                failures.append(f"[CROSSCHECK SYNC] `def {name}` not found in ImprovedBS/Crosscheck.lean")
+                return ""
+            return b.split(":=", 1)[1] if ":=" in b else ""
+
+        cc_d2_rhs = cc_def_body("d2")
+        if re.search(r"\bd1\b", cc_d2_rhs):
+            failures.append(
+                "[CROSSCHECK SYNC] ImprovedBS/Crosscheck.lean defines `d2` via `d1` (tautological)"
+            )
+        cc_put_rhs = cc_def_body("bsPut")
+        if re.search(r"\bbsCall\b|\bbsPutByParity\b", cc_put_rhs):
+            failures.append(
+                "[CROSSCHECK SYNC] ImprovedBS/Crosscheck.lean defines `bsPut` via `bsCall` or `bsPutByParity`"
+            )
+
+        # Check that d1 and d2 have matching signs for volatility term
+        if "+" not in cc_def_body("d1"):
+            failures.append("[CROSSCHECK SYNC] ImprovedBS/Crosscheck.lean `d1` missing `+` in volatility term")
+        if "-" not in cc_def_body("d2"):
+            failures.append("[CROSSCHECK SYNC] ImprovedBS/Crosscheck.lean `d2` missing `-` in volatility term")
+
+        # Check grid consistency against tests/golden_grid.json
+        sys.path.insert(0, os.path.join(ROOT, "scripts"))
+        try:
+            import gen_grid
+            pts = gen_grid.load_and_validate_grid()
+            if not gen_grid.check_crosscheck_file(pts):
+                failures.append(
+                    "[CROSSCHECK SYNC] ImprovedBS/Crosscheck.lean embedded grid does not match tests/golden_grid.json"
+                )
+        except Exception as e:
+            failures.append(f"[CROSSCHECK SYNC] grid check failed: {e}")
+
+        notes.append("[CROSSCHECK SYNC] Crosscheck.lean independent derivations & golden grid verified")
 
     if "--write-baseline" in sys.argv:
         protected_hits = sorted(set(found_deferred) & PROTECTED)

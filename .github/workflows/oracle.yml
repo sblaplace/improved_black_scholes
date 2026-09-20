@@ -35,6 +35,9 @@ jobs:
       - name: Run mutation harness (proves the oracle tests are falsifiers)
         run: python3 tests/test_mutants.py
 
+      - name: Run crosscheck grid & mutant tests
+        run: python3 tests/test_crosscheck.py
+
       - name: Cross-check oracle against the published textbook values
         # Independent of the test suite: recompute the reference case and print
         # it, so a regression shows up in the log even if a tolerance was loosened.

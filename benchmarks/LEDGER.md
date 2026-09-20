@@ -15,7 +15,7 @@ Verdict discipline:
 | # | brief | contributor | PR | verdict |
 |---|-------|-------------|----|---------|
 | 1 | BRIEF_001 (T1+T2, Lean lane) | arena-ai-coding-agent | [#1](https://github.com/sblaplace/improved_black_scholes/pull/1) | **GREEN** @ `638c66e`, run 35509578689 — `lake build` + `#print axioms` audit + `lint` + `oracle` all pass. Reached on the 8th run; see the CI history. |
-| 2 | BRIEF_002 (oracle ↔ Lean cross-verifier) | — | — | OPEN — not started |
+| 2 | BRIEF_002 (oracle ↔ Lean cross-verifier) | arena-ai-coding-agent | [#3](https://github.com/sblaplace/improved_black_scholes/pull/3) | **GREEN** @ `2a7bacb`, run 35517328856 — 39-point golden grid, docs/04 guard (3) active: `ImprovedBS/Crosscheck.lean` (#eval) cross-verified against `experiments/black_scholes.py` with max price diff 1.6e-14 (tol 1e-12) and 4/4 mutants caught. |
 | 3 | BRIEF_003 (T3 delta identity + T4 bounds) | arena-ai-coding-agent | [#2](https://github.com/sblaplace/improved_black_scholes/pull/2) | **GREEN** @ `726325d`, run 35514867674 (first green: run 35514609619 @ `2273461`) — `lake build` + `#print axioms` audit + `lint` + `oracle` all pass; ratchet 3 → 0. Reached on the 1st run; see the CI history and correction C4. |
 | 4 | BRIEF_004 (α-stable moment obstruction) | — | — | OPEN — not started, independent of #1–#3 |
 
@@ -270,4 +270,31 @@ formalising. Ten seconds with the oracle (`bsCall(100,120,1,0,0,0.2)` against
 *statement* numerically (`test_value_bounds`) but not the *route*. The T4
 doc-comment now records the failed route and the counterexample next to the
 proof, so the next reader does not have to rediscover it.
+
+### C5 — BRIEF_002: Oracle ↔ Lean pointwise cross-verifier (guard 3)
+
+**Date:** 2026-09-20. **Landed:** PR #3, run 35517328856.
+
+**Summary:**
+Stands up guard (3) from `docs/04` §"Oracle ↔ formal correspondence":
+- **Golden grid:** `tests/golden_grid.json` commits 39 parameter points covering
+  moneyness $S/K \in \{0.5, 0.8, 1.0, 1.2, 2.0\}$, tenors $\tau \in \{1/12, 0.25, 1.0, 3.0\}$,
+  vols $\sigma \in \{0.05, 0.2, 0.6\}$, non-zero dividend yield $q$, and negative rates $r$.
+  Inputs only are committed; single source of truth managed via `scripts/gen_grid.py`.
+- **Lean side:** `ImprovedBS/Crosscheck.lean` implements independent closed forms in IEEE-754
+  double precision (`Float`) and evaluates them via `#eval runCrosscheck`, emitting greppable
+  `CK` records with high-precision Cody (1969) rational Chebyshev approximation for `erf`
+  (accuracy $\sim 1.1\times 10^{-16}$).
+- **Oracle side:** `tests/test_crosscheck.py` cross-verifies all six quantities
+  ($d_1, d_2$, call, put, parity, delta identity) against `experiments/black_scholes.py`.
+- **Tolerance:** Double precision matches across all 39 points with worst-case differences:
+  $\Delta d_1, \Delta d_2 \le 1.1\times 10^{-16}$, $\Delta \text{call}, \Delta \text{put} \le 1.6\times 10^{-14}$.
+  Committed tolerances set to $10^{-12}$ (safety factor $> 50\times$).
+- **Anti-vacuity & non-tautology:** 4/4 mutation tests in `test_crosscheck.py` prove that
+  deliberately perturbing $d_2$ (e.g. flipping $-\sigma^2/2$ to $+\sigma^2/2$), call, put,
+  or parity immediately fails CI with the exact diverging points named. Structural guards
+  in `scripts/lean_lint.py` enforce derivation independence and grid synchronization.
+- **CI integration:** Wired into `.github/workflows/lean.yml` (`lake env lean ... | python3 tests/test_crosscheck.py`)
+  and `.github/workflows/oracle.yml`. Failure logs and divergence reports are automatically
+  published back to the PR if triggered.
 

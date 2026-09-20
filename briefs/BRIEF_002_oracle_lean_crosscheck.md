@@ -1,6 +1,6 @@
 # BRIEF_002 — Oracle ↔ Lean pointwise cross-verifier
 
-- **Status:** OPEN
+- **Status:** LANDED (docs/04 guard 3)
 - **Prerequisite PRs:** BRIEF_001 merged and green (this brief edits the same
   Lean file, and needs a working `lake build` to produce its Lean-side output)
 - **Skills:** Lean 4 `#eval` / `Float`; a little Python. No new mathematics.
