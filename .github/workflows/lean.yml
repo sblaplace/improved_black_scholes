@@ -84,10 +84,42 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # The Mathlib olean cache is multi-gigabyte and the ubuntu-latest image
+      # arrives with several gigabytes of toolchains this job will never touch.
+      # Run 35508440392 died with
+      #   System.IO.IOException: No space left on device
+      # inside the cache step, which killed the runner worker outright -- so no
+      # step after it could report anything, including the log-publishing step
+      # below. That is an *incident*, not a *verdict* (see benchmarks/LEDGER.md),
+      # and it is invisible unless disk is measured explicitly. Hence this step.
+      - name: Free runner disk and report it
+        run: |
+          set -uo pipefail
+          df -h /home/runner || true
+          # Large, unused by a Lean build. Guarded so a missing path is not fatal.
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/lib/android \
+                      /usr/share/swift /opt/hostedtoolcache/CodeQL 2>/dev/null || true
+          sudo apt-get clean 2>/dev/null || true
+          echo "--- after ---"
+          df -h /home/runner || true
+          avail_kb=$(df -Pk /home/runner | awk 'NR==2 {print $4}')
+          echo "available: $((avail_kb / 1024 / 1024)) GiB"
+          if [ "$avail_kb" -lt 8388608 ]; then
+            echo "::error::less than 8 GiB free after cleanup -- the Mathlib cache will not fit"
+            exit 1
+          fi
+
       # lean-action installs elan and fetches the Mathlib olean cache. We run
       # `lake build` ourselves in the next step so the output can be tee'd into
       # an artifact -- BRIEF_001 requires a fail artifact on a non-clean exit,
       # and the runner log is not downloadable by the grader.
+      #
+      # `use-github-cache: "false"` deliberately. lean-action's actions/cache of
+      # `.lake` is redundant with the Mathlib olean cache and roughly doubles
+      # peak disk, which is what run 35508440392 ran out of. lean-action's own
+      # README points at this input when caching causes problems. The build here
+      # is one small file on top of a cached mathlib, so there is nothing worth
+      # caching that the oleans do not already provide.
       - name: Set up Lean + Mathlib cache
         uses: leanprover/lean-action@v1
         with:
@@ -95,6 +127,7 @@ jobs:
           build: "false"
           test: "false"
           use-mathlib-cache: "true"
+          use-github-cache: "false"
 
       - name: lake build
         run: |
