@@ -1,7 +1,16 @@
 # BRIEF_005 — T6 sub-goal 2: absolute convergence of the tempered Carr–Madan contour
 
-- **Status:** ready to work (queue order per docs/04 §"The brief queue";
-  BRIEF_004 landed GREEN, so the dependency is satisfied)
+- **Status:** **LANDED GREEN** @ `386a331` — PR #6, lean run
+  [35536031936](https://github.com/sblaplace/improved_black_scholes/actions/runs/35536031936)
+  (oracle lane
+  [35536031949](https://github.com/sblaplace/improved_black_scholes/actions/runs/35536031949)):
+  `lake build` + `#print axioms` audit (all seven Fourier.lean constants on
+  `[propext, Classical.choice, Quot.sound]`, no sorryAx) + statement pins
+  (all 49, source and elaborated layers) + lint + oracle all pass. Reached on
+  the eighth lean run of the arc — three elaboration rounds for the proof
+  script, then a two-commit parser repair for the `#check` `@`-echo shape the
+  first elaborated binder-telescope brought in; full chain in
+  `benchmarks/LEDGER.md` row 5 and docs/04's queue.
 - **Prerequisite PRs:** BRIEF_004 (PR #5) merged — sub-goal 2 stands on the
   same Lévy footing, not on its theorems. No edits to `Core.lean`/`Levy.lean`.
 - **Skills:** real/complex analysis in Lean 4 (measure theory: `Integrable`,

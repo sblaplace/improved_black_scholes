@@ -256,16 +256,17 @@ local `--elab-check` is a red with a message, never a skip.
 
 Order is chosen so that each brief's acceptance bar is checkable by the time it
 is worked on, and so that no brief depends on a machine-checked result that does
-not yet exist. BRIEF_001 has landed, so 002–004 are all unblocked.
+not yet exist. BRIEF_001–005 have landed, in this order.
 
 | brief | what it lands | depends on | locally checkable? |
 |---|---|---|---|
 | ~~BRIEF_001~~ | **LANDED GREEN** — `lake build` + `#print axioms`; T1/T2/`Phi_add_Phi_neg` machine-checked | — | was CI-only |
 | ~~BRIEF_002~~ | **LANDED GREEN** — oracle ↔ Lean pointwise cross-verifier (39-point golden grid, docs/04 guard 3) | 001 | Python half yes; Lean `#eval` via CI |
 | ~~BRIEF_003~~ | **LANDED GREEN** — T3, T4, T4′ machine-checked; sorry baseline → 0 (run 35514867674) | 001 | was CI-only |
-| BRIEF_004 | α-stable exponential-moment obstruction (T6 sub-goal 1) | none | no — CI only |
+| ~~BRIEF_004~~ | **LANDED GREEN** — α-stable exponential-moment obstruction (T6 sub-goal 1; PR #5, run 35523250105) | none | no — CI only |
+| ~~BRIEF_005~~ | **LANDED GREEN** — T6 sub-goal 2: Carr–Madan absolute convergence on the tempered contour, GBM instance machine-checked (`ImprovedBS/Fourier.lean`; PR #6, run 35536031936) | 004 | no — CI only |
 | *(queued)* | **T5** — closed form solves the BSM PDE, via T3 in `x = Real.log S` coordinates | 003 | no — CI only |
-| *(queued)* | **T6** sub-goals 2–3 — Carr–Madan absolute convergence and agreement with the risk-neutral expectation, for a tempered-stable exponent | 004 | no — CI only |
+| *(queued)* | **T6** sub-goal 3 — Fourier inversion: agreement with the risk-neutral expectation, for a tempered-stable exponent | 005 | no — CI only |
 
 BRIEF_004 is deliberately listed as depending on nothing: it is pure analysis
 (a divergent improper integral), needs none of the BS machinery, and it is the

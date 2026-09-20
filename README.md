@@ -243,9 +243,9 @@ All three are dependency-free Python; none needs a Lean toolchain.
 python3 tests/test_bs.py          # 13/13 — the oracle satisfies the claimed identities
 python3 tests/test_mutants.py     #  4/4  — and those tests can actually fail (11 mutants)
 python3 tests/test_lint.py        #  7/7  — the linter can fail too (24 cheats, 5 controls)
-python3 tests/test_pins.py        #  8/8  — and the pins that back it parse real CI output
+python3 tests/test_pins.py        # 10/10 — and the pins that back it parse real CI output
 python3 scripts/lean_lint.py      #  OK   — no sorry in the protected node, ratchet, independence, pins
-python3 scripts/pin_statements.py --check   # 38 statements match tests/golden_statements.json
+python3 scripts/pin_statements.py --check   # 49 statements match tests/golden_statements.json
 python3 tests/test_crosscheck.py    #  6/6  — grid + oracle self-consistency, both T3 sides, input-source routing (the cross-check itself needs lake)
 # or, with pytest installed:
 pytest tests/

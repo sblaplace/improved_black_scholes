@@ -684,8 +684,10 @@ belongs in the brief, not in a comment.
 
 /-!
 --------------------------------------------------------------------------
-T6  [OPEN — research]  the Fourier pricing kernel survives a wider
-                       increment law
+T6  [IN PROGRESS — research]  the Fourier pricing kernel survives a wider
+                       increment law — sub-goal (b) below LANDED GREEN as
+                       BRIEF_005 (PR #6, run 35536031936): see
+                       ImprovedBS/Fourier.lean
 --------------------------------------------------------------------------
 
 RESTATED. The previous formulation ("transport (Fourier) kernel survives
@@ -732,7 +734,11 @@ Provable sub-goals, in increasing order of commitment:
       above gets *proved* rather than asserted, and it is a theorem about a
       concrete integral, not about finance;
   (b) absolute convergence of the Carr–Madan integrand on a contour strictly
-      inside the strip;
+      inside the strip — **LANDED GREEN** as BRIEF_005 (PR #6, run
+      35536031936): `integrable_exp_neg_abs_rpow`,
+      `carrMadanKernel_integrable`, `carrMadan_price_integrable` and the
+      two GBM instances in ImprovedBS/Fourier.lean, with the CGMY-decay
+      hypothesis appearing only as a hypothesis;
   (c) agreement with the risk-neutral expectation, i.e. Fourier inversion
       against the payoff transform.
 
