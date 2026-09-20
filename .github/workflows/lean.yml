@@ -27,6 +27,14 @@ on:
 
 permissions:
   contents: read
+  # needed so a failed `lake build` can publish its own log back to the PR.
+  # Actions logs live on Azure blob / *.githubusercontent.com hosts, which are
+  # unreachable from a restricted sandbox -- so a contributor (human or agent)
+  # working a brief there can see that the build is red but not *why*, and
+  # cannot iterate at all. Posting the log to the PR makes it readable through
+  # api.github.com, which is reachable. Without this the CI-only acceptance bar
+  # is unusable in exactly the venue BRIEF_001 says it will be handed out in.
+  pull-requests: write
 
 jobs:
   lint:
@@ -90,6 +98,7 @@ jobs:
 
       - name: lake build
         run: |
+          touch lake-build.log lean-audit.log
           set -o pipefail
           lake build 2>&1 | tee lake-build.log
 
@@ -116,6 +125,48 @@ jobs:
             exit 1
           fi
           echo "OK: no protected theorem depends on sorryAx"
+
+      - name: Publish the failure log back to the PR
+        if: failure() && github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -uo pipefail
+          {
+            echo "### \`lake build\` failed on ${GITHUB_SHA::7}"
+            echo
+            echo "**Error lines**"
+            echo
+            echo '```'
+            grep -nE "error:|error \[|sorry|unknown identifier|no such|Core\.lean" lake-build.log \
+              | head -60 || echo "(no lines matched; see the full tail below)"
+            echo '```'
+            echo
+            echo "<details><summary>full log tail (last 40k characters)</summary>"
+            echo
+            echo '```'
+            tail -c 40000 lake-build.log
+            echo '```'
+            echo
+            echo "</details>"
+            echo
+            echo "_Posted by .github/workflows/lean.yml because Actions logs are not_"
+            echo "_reachable from a restricted sandbox. Do not delete this step._"
+          } > /tmp/body.md
+          python3 - <<'PY'
+          import json, os, urllib.request
+          body = open('/tmp/body.md').read()
+          req = urllib.request.Request(
+              f"https://api.github.com/repos/{os.environ['REPO']}/issues/{os.environ['PR_NUMBER']}/comments",
+              data=json.dumps({"body": body}).encode(),
+              headers={"Authorization": f"Bearer {os.environ['GH_TOKEN']}",
+                       "Accept": "application/vnd.github+json"},
+              method="POST")
+          urllib.request.urlopen(req)
+          print(f"posted build log to PR #{os.environ['PR_NUMBER']}")
+          PY
 
       - name: Upload build artifacts
         if: always()
