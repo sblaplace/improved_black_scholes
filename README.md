@@ -98,13 +98,6 @@ the outcome is recorded in `benchmarks/LEDGER.md` — GREEN/RED/PENDING from the
 harness, never a human "looks good", and a RED verdict on an approach is a
 result, not an incident.
 
-Part of the motivation for this packaging: some briefs get handed to coding
-agents (Arena among other venues), which is a live way to see what new
-models can do on a hard, sharply-specified open problem — a real PR against
-a real proof checker, not a chat answer. But the point of the repo is the
-mathematics, and the bar lives in the repository, identical for whoever —
-or whatever — lands the PR.
-
 **A constraint worth stating plainly, because briefs are graded against it:**
 a Lean deliverable can only be *built* where there is network access to the
 Lean toolchain CDN and the Mathlib olean cache. A sandbox without that access
