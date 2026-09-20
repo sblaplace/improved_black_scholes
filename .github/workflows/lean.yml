@@ -153,6 +153,25 @@ jobs:
           #print axioms BSM.t1_d1_minus_d2
           #print axioms BSM.t2_put_call_parity
           #print axioms BSM.t2_put_call_parity_spread
+          -- BRIEF_003: T3, T4 and the infrastructure they rest on
+          #print axioms BSM.phi_neg
+          #print axioms BSM.phi_nonneg
+          #print axioms BSM.phi_integrable
+          #print axioms BSM.phi_add
+          #print axioms BSM.integral_phi_Iic_zero
+          #print axioms BSM.Phi_eq_integral_Iic
+          #print axioms BSM.Phi_nonneg
+          #print axioms BSM.Phi_le_one
+          #print axioms BSM.integral_comp_add_right_Iic
+          #print axioms BSM.Phi_le_exp_mul_Phi_add
+          #print axioms BSM.d1_exponent
+          #print axioms BSM.d2_exponent
+          #print axioms BSM.forward_eq
+          #print axioms BSM.bsCall_nonneg
+          #print axioms BSM.bsPut_nonneg
+          #print axioms BSM.t3_delta_identity
+          #print axioms BSM.t4_call_bounds
+          #print axioms BSM.t4_put_bounds
           LEAN
           lake env lean /tmp/Audit.lean 2>&1 | tee lean-audit.log
           if grep -q sorryAx lean-audit.log; then
