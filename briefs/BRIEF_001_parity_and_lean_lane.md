@@ -1,7 +1,20 @@
 # BRIEF_001 — Put–call parity (T1 + T2) and the Lean grading lane
 
-- **Status:** CORRECTED AND PARTIALLY LANDED — see the correction record below.
-  The remaining ask is verification, not authorship.
+- **Status: LANDED — GREEN.** PR [#1](https://github.com/sblaplace/improved_black_scholes/pull/1),
+  run 35509578689, commit `638c66e`. `lake build` green against mathlib
+  v4.34.0 and the `#print axioms` audit green for `BSM.Phi_add_Phi_neg`,
+  `BSM.Phi_neg`, `BSM.erf_neg`, `BSM.exp_neg_sq_even`, `BSM.t1_d1_minus_d2`,
+  `BSM.t2_put_call_parity`, `BSM.t2_put_call_parity_spread`. T1 and T2 are
+  machine-checked results. The correction record below is retained as the
+  history of what was wrong and what it took; the eight CI runs are in
+  `benchmarks/LEDGER.md`.
+
+  **Everything below the line is now historical.** It is kept because the
+  failure modes it lists are the ones the next briefs will hit, and because
+  two of them (`Real.erf` does not exist; the runner can die of ENOSPC before
+  reporting anything) changed the scope of later work.
+
+  ---
 - **Prerequisite PRs:** none (this is the bootstrap brief; base on current `main`)
 - **Skills:** Lean 4 + mathlib basics; this brief is the on-ramp
 - **Budget:** see "Budget and what is locally checkable" — the original figure

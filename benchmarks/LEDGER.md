@@ -14,7 +14,7 @@ Verdict discipline:
 
 | # | brief | contributor | PR | verdict |
 |---|-------|-------------|----|---------|
-| 1 | BRIEF_001 (T1+T2, Lean lane) | arena-ai-coding-agent | [#1](https://github.com/sblaplace/improved_black_scholes/pull/1) | **RED ×3, then unknown** — see the CI history below. `oracle` and `lint` lanes GREEN on every observed run. |
+| 1 | BRIEF_001 (T1+T2, Lean lane) | arena-ai-coding-agent | [#1](https://github.com/sblaplace/improved_black_scholes/pull/1) | **GREEN** @ `638c66e`, run 35509578689 — `lake build` + `#print axioms` audit + `lint` + `oracle` all pass. Reached on the 8th run; see the CI history. |
 | 2 | BRIEF_002 (oracle ↔ Lean cross-verifier) | — | — | OPEN — not started |
 | 3 | BRIEF_003 (T3 delta identity + T4 bounds) | — | — | OPEN — not started, blocked on #1 |
 | 4 | BRIEF_004 (α-stable moment obstruction) | — | — | OPEN — not started, independent of #1–#3 |
@@ -107,37 +107,52 @@ rather than typed, so the two cannot disagree.
 ## CI history for row 1 (PR #1)
 
 Recorded because a verdict without its history is not reproducible, and because
-three of these runs produced findings that changed the plan.
+the failures produced findings that changed the plan and two brief budgets.
+Eight runs, one of which was an *incident* rather than a verdict.
 
-| run | commit | `oracle` | `lint` | `lake build` | cause |
-|---|---|---|---|---|---|
-| 1 | `fbbc6d8` | pass 8s | pass 7s | **fail** 3m49s | `ImprovedBS.lean:21:0: invalid 'import' command, it must be used in the beginning of the file` — a module doc-comment is a command, so placing it above the `import` makes the import illegal |
-| 2 | `0e99556` | pass 6s | pass 6s | **fail** 3m38s | same |
-| 3 | `449a086` | — | — | **fail** | `bad import 'Mathlib.Analysis.SpecialFunctions.Erf'`, `bad import 'Mathlib.Data.Real.Pi'` — neither path exists in mathlib v4.34.0 |
-| 4 | `b1084d3` | not observed | not observed | **UNKNOWN** | the GitHub token expired mid-run; the result was never read |
+| # | head | `lake build` | cause |
+|---|---|---|---|
+| 1 | `fbbc6d8` | fail 3m49s | `ImprovedBS.lean:21:0: invalid 'import' command` — a module doc-comment is a *command*, so placing it above the `import` makes the import illegal |
+| 2 | `e806581` | fail 3m38s | same |
+| 3 | `07f5aa8` | fail | `bad import 'Mathlib.Analysis.SpecialFunctions.Erf'`, `bad import 'Mathlib.Data.Real.Pi'` — neither path exists in v4.34.0, and `Real.erf` does not exist at all (correction C3) |
+| 4 | `b1084d3` | fail | six × `failed to compile definition, consider marking it as 'noncomputable'`; `integral_comp_neg` applied to explicit args it takes implicitly; T1's `simp` left the fractions uncombined and used `eq_div_iff_mul_eq` where the division is on the left; T2's `linarith` on a goal containing a *product* of atoms |
+| 5 | `a47b029` | **INCIDENT** | runner died: `System.IO.IOException: No space left on device`. No verdict — nothing after the cache step ran, including the log publisher |
+| 6 | `9d6dd16` | fail | one error: `sub_div` in v4.34.0 is `(a - b) / c = a / c - b / c`, i.e. it *splits* a fraction; combining two fractions needs `← sub_div` |
+| 7 | `b96d61a` | **build GREEN**, audit fail | `#print axioms ImprovedBS.t1_d1_minus_d2` — module name is not namespace; with no `namespace` command the theorems were in the root namespace |
+| 8 | `638c66e` | **GREEN** 5m32s | all steps pass |
 
-What the first three runs established:
+What the runs established, beyond the verdict:
 
-- **The scaffolding is correct.** Step `Set up Lean + Mathlib cache` succeeded on
-  every run: elan installed, the mathlib v4.34.0 olean cache was fetched, and
-  `lakefile.toml` / `lean-toolchain` / `lake-manifest.json` resolved. The pin
-  consistency check in the `lint` job passed. So the invalid-lakefile defect from
-  correction C1 item 3 is genuinely fixed, and a build takes ~4 minutes, not the
-  hours a from-source mathlib build would take.
-- **`Real.erf` does not exist in mathlib v4.34.0.** Run 3 forced this out. See
-  correction C3.
-- **The log-publishing step works**, and it is load-bearing rather than a
-  convenience. Actions logs are served from `*.actions.githubusercontent.com`
-  and Azure blob storage, both unreachable from a restricted sandbox; only
-  `api.github.com` answers. Without the PR comment added in `0e99556`, runs 3
-  and 4 would have been undiagnosable from here — a contributor could see red
-  but never learn why, and could not iterate. That is the same defect as C1
-  item 4, one layer deeper, and it would have made the CI-only acceptance bar
-  unusable in the venue the brief names.
+- **The scaffolding was correct from run 1.** `Set up Lean + Mathlib cache`
+  succeeded every time: elan installed, the v4.34.0 olean cache fetched, and
+  `lakefile.toml` / `lean-toolchain` / `lake-manifest.json` resolved and agreed.
+  A build is ~5m30s end to end, not the hours a from-source mathlib build would
+  take. So correction C1 item 3 is genuinely fixed.
+- **`Real.erf` is not in mathlib v4.34.0** (correction C3). Run 3 forced this
+  out and it re-budgets T4 and T5.
+- **Two reporting gaps hid real results, and both are now closed.** Run 5 died of
+  ENOSPC before any step could report, so the failure was invisible except in a
+  check-run annotation. Run 7 had a *green build and a red audit*, and the
+  publisher shipped only `lake-build.log`, so the PR comment showed three
+  expected `sorry` warnings and nothing else — which reads like success. The job
+  now measures disk before spending it, and publishes every log it produces.
 
-**Open item:** run 4's verdict must be read and recorded here. Re-run with
-`gh run list --branch arena/01a0be4c-improved-black-scholes`, or read the PR
-comment the workflow posts on failure.
+  Generalizable: a CI lane that cannot report its own failure is worse than no
+  lane, because it produces a red X with no diagnosis and invites a contributor
+  to guess. Reporting is part of the grader, not a convenience.
+
+### Machine-checked as of run 8
+
+`lake build` green **and** the `#print axioms` audit green, which is the
+distinction this repository cares about — a `sorry` still builds, it just
+elaborates to `sorryAx`. Verified free of `sorryAx`:
+
+    BSM.exp_neg_sq_even   BSM.erf_neg   BSM.Phi_add_Phi_neg   BSM.Phi_neg
+    BSM.t1_d1_minus_d2    BSM.t2_put_call_parity   BSM.t2_put_call_parity_spread
+
+So T1 and T2 — and the odd-symmetry identity T2 actually rests on — are
+machine-checked results, not prose. Still deferred, and ratcheted at 3 markers:
+`BSM.t3_delta_identity`, `BSM.t4_call_bounds`, `BSM.t4_put_bounds`.
 
 ### C3 — `docs/04` claimed a mathlib dependency that does not exist
 

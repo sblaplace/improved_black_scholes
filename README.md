@@ -83,7 +83,7 @@ CI-only, so nobody spends a budget discovering this.
 ## Repository layout
 
 ```
-ImprovedBS/         # Lean 4 library: Core.lean carries the theorem stack T1..T6
+ImprovedBS/         # Lean 4 library: Core.lean, `namespace BSM`, stack T1..T6
 ImprovedBS.lean     # library root module
 lakefile.toml       # mathlib pinned by tag; leanOptions (autoImplicit off)
 lean-toolchain      # pinned toolchain — must match lake-manifest.json
@@ -105,9 +105,9 @@ against.
 
 | #  | Lean name | statement | difficulty | status |
 |----|-----------|-----------|-----------|--------|
-| —  | `Phi_add_Phi_neg` | `Φ(x) + Φ(−x) = 1` | trivial | proved |
-| T1 | `t1_d1_minus_d2` | `d1 − d2 = σ√τ` | easy | proved |
-| T2 | `t2_put_call_parity` | put-call parity | easy | proved |
+| —  | `Phi_add_Phi_neg` | `Φ(x) + Φ(−x) = 1` | trivial | **machine-checked** |
+| T1 | `t1_d1_minus_d2` | `d1 − d2 = σ√τ` | easy | **machine-checked** |
+| T2 | `t2_put_call_parity` | put-call parity | easy | **machine-checked** |
 | T3 | `t3_delta_identity` | `S e^{−qτ} φ(d1) = K e^{−rτ} φ(d2)` | medium | stated — proof route recorded |
 | T4 | `t4_call_bounds`, `t4_put_bounds` | no-arbitrage price bounds | medium | stated |
 | T5 | *(not declared)* | closed form solves the BSM PDE | heavy | deferred — provable *via* T3 |
@@ -139,18 +139,34 @@ cheapest high-value theorem in the research tier. Details in docs/03 §D1.
 | Numeric oracle | independent `d1`/`d2`, independent call and put closed forms, PDE residual, delta identity | verified — 13/13 tests |
 | Oracle is a falsifier | mutation harness: 11 seeded bugs, each killed by its targeted test, incl. 2 vacuity canaries | verified — 4/4 harness tests |
 | Failure modes + research dirs w/ falsifiers | docs/02, docs/03 | written |
-| Lean definitions | Φ, φ, d1, d2, bsCall, bsPut — independent, matching the oracle | written |
-| Lean theorems | `Phi_add_Phi_neg`, T1, T2, T2′ proved; T3, T4, T4′ stated with routes | lint-clean; `lake build` **pending a CI run** |
+| Lean definitions | `erf`, Φ, φ, d1, d2, bsCall, bsPut — independent, matching the oracle | machine-checked |
+| Lean theorems | `Phi_add_Phi_neg`, T1, T2, T2′ | **GREEN** — `lake build` + `#print axioms` audit, run 35509578689 |
+| Deferred | T3, T4, T4′ stated with proof routes | ratcheted at 3 `sorry`s |
 | Grading lane | briefs/ + benchmarks/ + 2 CI workflows + toolchain-free lint | standing |
 | First brief | BRIEF_001, re-scoped to what is actually checkable | see briefs/ |
 
-The Lean lane has never executed: the tree was pinned to an invalid
-`lakefile.toml` with no `lean-toolchain` and no manifest, so `lake build`
-could not have started, let alone succeeded. That scaffolding now exists and is
-pinned to mathlib v4.34.0 / Lean v4.34.0. **A first green `lake build` on a
-GitHub runner is the immediate next milestone**, and until it happens the T1/T2
-proofs are best-effort scripts reviewed by hand, not machine-checked results.
-The ledger says PENDING and means it.
+**T1 and T2 are machine-checked.** `lake build` is green against mathlib
+v4.34.0 / Lean v4.34.0 and the `#print axioms` audit confirms that
+`Phi_add_Phi_neg`, `Phi_neg`, `erf_neg`, `exp_neg_sq_even`, `t1_d1_minus_d2`,
+`t2_put_call_parity` and `t2_put_call_parity_spread` do not depend on `sorryAx`
+— which is the distinction that matters, since a `sorry` still builds. It took
+eight CI runs to get there; `benchmarks/LEDGER.md` records each failure and what
+it taught, including one runner incident (ENOSPC) that produced no verdict at
+all.
+
+Three things that green build cost, and that a reader should know:
+
+- **mathlib v4.34.0 has no `Real.erf`.** `docs/04` used to claim it did. `erf`
+  is now defined locally from the interval integral and its oddness proved by
+  substitution — enough for parity, *not* enough for T4's bounds, which need the
+  value of the Gaussian integral.
+- All declarations live in `namespace BSM`. A module name is not a namespace,
+  and a library that puts `Phi`, `d1` and `erf` in the root namespace is
+  claiming names far too generic to claim.
+- `import Mathlib` rather than narrow imports. Narrow imports are better
+  practice but can only be validated with a toolchain; two hand-guessed paths
+  cost three red runs. Narrowing the list is a legitimate follow-up for someone
+  who can build.
 
 ## License
 

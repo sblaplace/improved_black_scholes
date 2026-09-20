@@ -22,12 +22,21 @@ Status is machine-derived, not typed by hand: `python3 scripts/lean_lint.py`
 prints the live `[RATCHET]` line, and the baseline it ratchets against is
 `.github/lean_lint_baseline.json`.
 
+All names below are in `namespace BSM` (module `ImprovedBS.Core`), so the fully
+qualified name of T1 is `BSM.t1_d1_minus_d2`. **The module name is not a
+namespace** — CI run 7 failed on `#print axioms ImprovedBS.t1_d1_minus_d2`
+precisely because of that.
+
+As of run 35509578689 the marked rows are machine-checked: `lake build` green
+*and* the `#print axioms` audit green, i.e. no dependency on `sorryAx`. That
+distinction is the whole point of the audit step, since a `sorry` builds fine.
+
 | #  | Lean name | statement | difficulty | status |
 |----|-----------|-----------|-----------|--------|
-| —  | `Phi_add_Phi_neg` | `Φ(x) + Φ(−x) = 1` | trivial (given `Real.erf_neg`) | **proved, no `sorry`** |
-| T1 | `t1_d1_minus_d2` | `d1 − d2 = σ√τ` | easy (field algebra) | **proved, no `sorry`** |
-| T2 | `t2_put_call_parity` | `bsPut = bsCall − S e^{−qτ} + K e^{−rτ}` | easy (linear, given Φ symmetry) | **proved, no `sorry`** |
-| T2′| `t2_put_call_parity_spread` | `bsCall − bsPut = S e^{−qτ} − K e^{−rτ}` | corollary of T2 | **proved, no `sorry`** |
+| —  | `Phi_add_Phi_neg` | `Φ(x) + Φ(−x) = 1` | trivial given `erf_neg` — which mathlib does not have, so it is proved locally | **machine-checked** |
+| T1 | `t1_d1_minus_d2` | `d1 − d2 = σ√τ` | easy (field algebra) | **machine-checked** |
+| T2 | `t2_put_call_parity` | `bsPut = bsCall − S e^{−qτ} + K e^{−rτ}` | easy (linear, given Φ symmetry) | **machine-checked** |
+| T2′| `t2_put_call_parity_spread` | `bsCall − bsPut = S e^{−qτ} − K e^{−rτ}` | corollary of T2 | **machine-checked** |
 | T3 | `t3_delta_identity` | `S e^{−qτ} φ(d1) = K e^{−rτ} φ(d2)` | medium (exp/log algebra) | stated, `sorry` — route recorded below |
 | T4 | `t4_call_bounds` | `max(S e^{−qτ} − K e^{−rτ}, 0) ≤ bsCall ≤ S e^{−qτ}` | medium (Φ ∈ [0,1], monotone) | stated, `sorry` |
 | T4′| `t4_put_bounds` | mirrored put bounds | corollary of T4 + T2 | stated, `sorry` |
@@ -159,11 +168,11 @@ here rather than glossed.
 
 Order is chosen so that each brief's acceptance bar is checkable by the time it
 is worked on, and so that no brief depends on a machine-checked result that does
-not yet exist.
+not yet exist. BRIEF_001 has landed, so 002–004 are all unblocked.
 
 | brief | what it lands | depends on | locally checkable? |
 |---|---|---|---|
-| BRIEF_001 | `lake build` green; T1/T2/`Phi_add_Phi_neg` machine-checked | — | no — CI only |
+| ~~BRIEF_001~~ | **LANDED GREEN** — `lake build` + `#print axioms`; T1/T2/`Phi_add_Phi_neg` machine-checked | — | was CI-only |
 | BRIEF_002 | oracle ↔ Lean pointwise cross-verifier | 001 | Python half yes; Lean `#eval` no |
 | BRIEF_003 | T3 and T4 proved; sorry baseline → 0 | 001 | no — CI only |
 | BRIEF_004 | α-stable exponential-moment obstruction (T6 sub-goal 1) | none | no — CI only |
