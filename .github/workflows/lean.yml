@@ -113,6 +113,8 @@ jobs:
           cat > /tmp/Audit.lean <<'LEAN'
           import ImprovedBS
 
+          #print axioms ImprovedBS.exp_neg_sq_even
+          #print axioms ImprovedBS.erf_neg
           #print axioms ImprovedBS.Phi_add_Phi_neg
           #print axioms ImprovedBS.Phi_neg
           #print axioms ImprovedBS.t1_d1_minus_d2

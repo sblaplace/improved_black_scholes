@@ -67,6 +67,9 @@ REQUIRED = {
     "d2": "ImprovedBS/Core.lean",
     "bsCall": "ImprovedBS/Core.lean",
     "bsPut": "ImprovedBS/Core.lean",
+    "erf": "ImprovedBS/Core.lean",
+    "erf_neg": "ImprovedBS/Core.lean",
+    "exp_neg_sq_even": "ImprovedBS/Core.lean",
     "Phi_add_Phi_neg": "ImprovedBS/Core.lean",
     "Phi_neg": "ImprovedBS/Core.lean",
     "t1_d1_minus_d2": "ImprovedBS/Core.lean",
@@ -79,6 +82,9 @@ REQUIRED = {
 
 # The T1/T2 node: zero deferred-proof markers allowed, per BRIEF_001.
 PROTECTED = {
+    "erf",
+    "erf_neg",
+    "exp_neg_sq_even",
     "Phi_add_Phi_neg",
     "Phi_neg",
     "t1_d1_minus_d2",
@@ -91,8 +97,11 @@ AXIOM_ALLOWLIST: set[str] = set()
 
 MARKERS = ("sorry", "admit", "native_decide")
 
+# Optional modifiers: `noncomputable def erf ...` must be seen as a declaration,
+# otherwise a `sorry` hidden inside it escapes the ratchet entirely.
 DECL_RE = re.compile(
-    r"^(theorem|lemma|def|instance|example|axiom|structure|class|abbrev)\s+"
+    r"^(?:(?:noncomputable|unsafe|partial|private|protected|irreducible_def)\s+)*"
+    r"(theorem|lemma|def|instance|example|axiom|structure|class|abbrev)\s+"
     r"(?:\{[^}]*\}\s*)?([A-Za-z_][\w.']*)",
     re.MULTILINE,
 )

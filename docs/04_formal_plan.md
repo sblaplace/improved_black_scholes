@@ -78,13 +78,45 @@ Pinned: mathlib **v4.34.0**, toolchain **leanprover/lean4:v4.34.0** (see
 `lakefile.toml`, `lean-toolchain`, `lake-manifest.json` — all three must move
 together, and `.github/workflows/lean.yml` fails the run if they disagree).
 
-| need | mathlib | used by |
+| need | available in mathlib v4.34.0? | used by |
 |---|---|---|
-| `Real.erf`, odd symmetry | `Mathlib.Analysis.SpecialFunctions.Erf` (`Real.erf_neg`) | Φ, T2 |
-| derivative of `erf` | `Real.hasDerivAt_erf` | T5 |
-| `Real.log`, `Real.exp` algebra | `Mathlib.Analysis.SpecialFunctions.Log.Basic` | d1, d2, T3 |
-| `Real.sqrt`, `Real.mul_self_sqrt` | `Mathlib.Data.Real.Sqrt` | T1, T3 |
-| normal CDF/PDF as a distribution | `Mathlib.Probability.Distributions.Gaussian` | optional; T5, T6 |
+| `Real.log`, `Real.exp` algebra | **yes** — `Mathlib.Analysis.SpecialFunctions.Log.Basic`, `.../Exp.lean` | d1, d2, T3 |
+| `Real.sqrt`, `Real.mul_self_sqrt`, `Real.sqrt_pos` | **yes** — `Mathlib.Data.Real.Sqrt` | T1, T3 |
+| `Real.pi` | **yes** (57 references in the tree) | φ, erf |
+| interval integrals, `integral_comp_neg`, `integral_symm` | **yes** — `Mathlib.MeasureTheory.Integral.IntervalIntegral` | `erf_neg`, hence T2 |
+| **`Real.erf`** | **NO — it does not exist.** See below. | Φ, T2 |
+| `∫ x:ℝ, exp (-(x^2)) = sqrt pi` | **yes** — `Mathlib.Analysis.SpecialFunctions.Gaussian.GaussianIntegral` | T4 bounds, T5 |
+| normal CDF/PDF as a distribution | partial — `Mathlib.Probability.Distributions.Gaussian` has the *measure*, not a CDF function | optional; T5, T6 |
+
+### `Real.erf` is not in mathlib — corrected
+
+An earlier version of this table listed "`Real.erf` (already in Mathlib:
+`Mathlib.Analysis.SpecialFunctions.Erf`)" and "`Real.hasDerivAt_erf`" as
+available dependencies. **Neither exists in v4.34.0.** Verified against the
+release tag: there is no file named `Erf.lean` anywhere in the tree's 9112
+`.lean` files, and a GitHub code search of `leanprover-community/mathlib4`
+returns 0 hits for `Real.erf`, `def erf` and `erf_neg` — while returning 107
+for `Real.sqrt` and 57 for `Real.pi`, so the search itself is working.
+
+Guessing those two paths cost three consecutive red `lake build` runs
+(`bad import 'Mathlib.Analysis.SpecialFunctions.Erf'`,
+`bad import 'Mathlib.Data.Real.Pi'`). The lesson is recorded here rather than
+buried: **a mathlib dependency is a claim about a specific version, and it has
+to be checked against that version.** A path that looks canonical is not
+evidence.
+
+Consequence: `ImprovedBS/Core.lean` defines `erf` itself, as
+`(2 / sqrt pi) * ∫ t in 0..x, exp (-(t^2))`, and proves `erf_neg` by
+substitution in the interval integral. That is sufficient for T2, which needs
+only *oddness*. It is **not** sufficient for T4, which needs `|erf x| ≤ 1` and
+therefore the *value* of the Gaussian integral — measure theory rather than
+interval integrals, and the genuinely expensive part of that node. T5 likewise
+needs `HasDerivAt erf`, which now has to be derived rather than imported.
+
+If mathlib grows `Real.erf`, delete the local definition and re-point
+`Phi_add_Phi_neg` at `Real.erf_neg`. `scripts/lean_lint.py` has `erf`,
+`erf_neg` and `exp_neg_sq_even` in both `REQUIRED` and `PROTECTED`, so that
+migration cannot silently drop them.
 
 `Φ` and `φ` are currently defined directly from `Real.erf` and `Real.exp`
 rather than imported from mathlib's Gaussian machinery. That is deliberate for
@@ -93,9 +125,13 @@ should be revisited at T5/T6, where the measure-theoretic integral is the
 actual object. **Do not switch before then** — it would change what T1–T4 are
 about without changing what they say.
 
-Imports in `ImprovedBS/Core.lean` are specific rather than `import Mathlib`.
-The whole-library import costs a large fixed elaboration time on every CI run
-and hides which part of mathlib a theorem actually rests on.
+Imports in `ImprovedBS/Core.lean` are currently the whole library
+(`import Mathlib`). Narrow imports are better practice — they document what a
+theorem rests on and cost less elaboration — but they can only be validated by a
+toolchain, and two hand-guessed narrow paths cost three red CI runs. Narrowing
+the import list is a legitimate follow-up **for someone who can run
+`lake build`**; it should not be attempted blind. The table above records what
+is actually needed, which is the information a narrowing PR requires.
 
 ## Oracle ↔ formal correspondence
 

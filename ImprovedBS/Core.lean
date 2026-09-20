@@ -41,13 +41,14 @@
   is how a false statement gets committed.
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Erf
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Data.Real.Basic
-import Mathlib.Data.Real.Pi
-import Mathlib.Data.Real.Sqrt
-import Mathlib.Tactic
+-- `import Mathlib`, deliberately. Narrow imports are better practice -- they
+-- document what a theorem rests on and cost less elaboration time -- but they
+-- can only be verified by a toolchain, and this tree is authored in
+-- environments that have none. Two narrow paths guessed by hand
+-- (`Mathlib.Analysis.SpecialFunctions.Erf`, `Mathlib.Data.Real.Pi`) cost three
+-- consecutive red CI runs. Narrowing this list is a legitimate follow-up for
+-- someone who can run `lake build`; do not do it blind.
+import Mathlib
 
 -- --------------------------------------------------------------------------
 -- Notation (identical to docs/01_baseline.md and experiments/black_scholes.py)
@@ -56,7 +57,7 @@ import Mathlib.Tactic
 --   tau   : T - t,           tau > 0
 --   r, q  : risk-free rate and dividend yield (annualized decimals)
 --   sigma : volatility,      sigma > 0
---   Phi   : standard normal CDF via Real.erf
+--   Phi   : standard normal CDF, via the `erf` defined below
 --   phi   : standard normal PDF
 --
 -- Argument order is (S K tau r q sigma) throughout, and
@@ -65,8 +66,59 @@ import Mathlib.Tactic
 -- that boundary is pinned by tests/test_bs.py::test_public_api_argument_order.
 -- --------------------------------------------------------------------------
 
+/-!
+### The error function
+
+**Mathlib v4.34.0 has no `Real.erf`.** There is no
+`Mathlib/Analysis/SpecialFunctions/Erf.lean` in the v4.34.0 tree (checked
+against all 9112 `.lean` files), and `erf_neg` does not exist. `docs/04`
+previously asserted both as available dependencies; that was wrong, and it is
+corrected there.
+
+So `erf` is defined here, from the interval integral of the Gaussian. That is
+enough for everything T1 and T2 need: the *oddness* of `erf`, which is what
+put-call parity actually rests on. What it is **not** enough for is T4, whose
+bounds `0 ≤ Phi ≤ 1` need the *value* of the Gaussian integral
+(`∫ x:ℝ, exp(-x^2) = sqrt pi`), i.e. real measure theory rather than interval
+integrals. That is recorded in the T4 doc-comment.
+
+If mathlib ever grows `Real.erf`, this section should be deleted in favour of
+it and `Phi_add_Phi_neg` re-pointed at `Real.erf_neg`.
+-/
+
+/-- The error function, `erf x = (2/sqrt pi) * ∫ t in 0..x, exp (-(t^2))`. -/
+noncomputable def erf (x : ℝ) : ℝ :=
+  (2 / Real.sqrt Real.pi) * ∫ t in (0:ℝ)..x, Real.exp (-(t ^ 2))
+
+/-- The Gaussian `t ↦ exp (-(t^2))` is even. Everything about the symmetry of
+the normal distribution in this file reduces to this one line. -/
+theorem exp_neg_sq_even (t : ℝ) : Real.exp (-((-t) ^ 2)) = Real.exp (-(t ^ 2)) := by
+  congr 1
+  ring
+
+/-- **Oddness of `erf`**: `erf (-x) = -erf (x)`.
+
+Proved by the substitution `t ↦ -t` on the interval integral
+(`intervalIntegral.integral_comp_neg`), the evenness of the integrand, and the
+orientation flip `intervalIntegral.integral_symm`. -/
+theorem erf_neg (x : ℝ) : erf (-x) = -erf x := by
+  have hcomp : ∫ t in (-x)..(0:ℝ), Real.exp (-(t ^ 2))
+      = ∫ t in (0:ℝ)..x, Real.exp (-((-t) ^ 2)) := by
+    have h :=
+      intervalIntegral.integral_comp_neg (f := fun u : ℝ => Real.exp (-(u ^ 2))) (0:ℝ) x
+    simpa using h.symm
+  have hkey : ∫ t in (0:ℝ)..(-x), Real.exp (-(t ^ 2))
+      = -∫ t in (0:ℝ)..x, Real.exp (-(t ^ 2)) := by
+    calc ∫ t in (0:ℝ)..(-x), Real.exp (-(t ^ 2))
+        = -∫ t in (-x)..(0:ℝ), Real.exp (-(t ^ 2)) := by
+            rw [intervalIntegral.integral_symm]
+      _ = -∫ t in (0:ℝ)..x, Real.exp (-((-t) ^ 2)) := by rw [hcomp]
+      _ = -∫ t in (0:ℝ)..x, Real.exp (-(t ^ 2)) := by simp_rw [exp_neg_sq_even]
+  simp only [erf, hkey]
+  ring
+
 /-- Standard normal CDF. `Phi x = (1 + erf (x / sqrt 2)) / 2`. -/
-def Phi (x : ℝ) : ℝ := (1 + Real.erf (x / Real.sqrt 2)) / 2
+def Phi (x : ℝ) : ℝ := (1 + erf (x / Real.sqrt 2)) / 2
 
 /-- Standard normal PDF. `phi x = exp (-(x^2)/2) / sqrt (2 pi)`. -/
 def phi (x : ℝ) : ℝ := Real.exp (-(x ^ 2) / 2) / Real.sqrt (2 * Real.pi)
@@ -109,7 +161,7 @@ guaranteed by the algebra of `Phi` alone — it follows from `Φ(x) + Φ(−x) =
 Unconditional: it is a statement about `erf` alone. -/
 theorem Phi_add_Phi_neg (x : ℝ) : Phi x + Phi (-x) = 1 := by
   have hneg : (-x) / Real.sqrt 2 = -(x / Real.sqrt 2) := by ring
-  simp only [Phi, hneg, Real.erf_neg]
+  simp only [Phi, hneg, erf_neg]
   ring
 
 /-- `Phi` is complementary under negation, in the form `ring`/`linarith` want. -/
@@ -218,8 +270,16 @@ Proof route: both bounds follow from `0 ≤ Phi` and `Phi ≤ 1` (the upper boun
 by dropping the non-negative `K e^{-r*tau} Phi(d2)` term; the lower by
 `bsCall ≥ S e^{-q*tau} Phi(d1) - K e^{-r*tau} Phi(d1)` once `Phi` is shown
 monotone, then `Phi(d1) ≥ Phi(d2)` from `d1 ≥ d2`, i.e. T1 plus
-`0 ≤ sigma * Real.sqrt tau`). Requires `Real.erf` bounds from mathlib — check
-`Real.abs_erf_le_one` / the integral definition before assuming they exist.
+`0 ≤ sigma * Real.sqrt tau`).
+
+**This is the node that the missing `Real.erf` actually bites.** Oddness (all
+T2 needs) comes from a substitution in an interval integral. *Bounds* are
+different: `0 ≤ Phi x` and `Phi x ≤ 1` need `|erf x| ≤ 1`, which needs the
+**value** of the Gaussian integral, `∫ x:ℝ, Real.exp (-(x^2)) = Real.sqrt
+Real.pi` — real measure theory, not interval integrals. Mathlib has this in
+`Mathlib/Analysis/SpecialFunctions/Gaussian/GaussianIntegral.lean`; start there
+rather than trying to squeeze it out of the `erf` definition above. Budget
+accordingly: this is the expensive part of T4, not the monotonicity.
 
 The numeric shadow of this theorem is
 `tests/test_bs.py::test_value_bounds`, which checks it on a 6-point grid. -/
