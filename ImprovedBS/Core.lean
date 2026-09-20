@@ -50,6 +50,12 @@
 -- someone who can run `lake build`; do not do it blind.
 import Mathlib
 
+-- `Real.exp`, `Real.log`, `Real.sqrt` and division on `Real` are all
+-- noncomputable, and `lake build` emits C, so every definition in this file
+-- that touches them has to be marked. Rather than annotate six defs (and miss
+-- the seventh), the whole file is a noncomputable section.
+noncomputable section
+
 -- --------------------------------------------------------------------------
 -- Notation (identical to docs/01_baseline.md and experiments/black_scholes.py)
 --
@@ -102,18 +108,18 @@ Proved by the substitution `t ↦ -t` on the interval integral
 (`intervalIntegral.integral_comp_neg`), the evenness of the integrand, and the
 orientation flip `intervalIntegral.integral_symm`. -/
 theorem erf_neg (x : ℝ) : erf (-x) = -erf x := by
-  have hcomp : ∫ t in (-x)..(0:ℝ), Real.exp (-(t ^ 2))
-      = ∫ t in (0:ℝ)..x, Real.exp (-((-t) ^ 2)) := by
-    have h :=
-      intervalIntegral.integral_comp_neg (f := fun u : ℝ => Real.exp (-(u ^ 2))) (0:ℝ) x
-    simpa using h.symm
+  -- `integral_comp_neg` takes `a` and `b` IMPLICITLY; passing them positionally
+  -- gives "Function expected at ... but this term has type ... = ...".
+  have hcomp : ∫ t in (0:ℝ)..x, Real.exp (-(t ^ 2))
+      = ∫ t in (-x)..(0:ℝ), Real.exp (-(t ^ 2)) := by
+    have h := intervalIntegral.integral_comp_neg
+      (f := fun u : ℝ => Real.exp (-(u ^ 2))) (a := (0:ℝ)) (b := x)
+    -- h : ∫ t in 0..x, exp(-((-t)^2)) = ∫ t in -x..-0, exp(-(t^2))
+    -- simp discharges the evenness of the integrand and `-0 = 0` at once.
+    simpa [exp_neg_sq_even] using h
   have hkey : ∫ t in (0:ℝ)..(-x), Real.exp (-(t ^ 2))
       = -∫ t in (0:ℝ)..x, Real.exp (-(t ^ 2)) := by
-    calc ∫ t in (0:ℝ)..(-x), Real.exp (-(t ^ 2))
-        = -∫ t in (-x)..(0:ℝ), Real.exp (-(t ^ 2)) := by
-            rw [intervalIntegral.integral_symm]
-      _ = -∫ t in (0:ℝ)..x, Real.exp (-((-t) ^ 2)) := by rw [hcomp]
-      _ = -∫ t in (0:ℝ)..x, Real.exp (-(t ^ 2)) := by simp_rw [exp_neg_sq_even]
+    rw [intervalIntegral.integral_symm, hcomp]
   simp only [erf, hkey]
   ring
 
@@ -185,11 +191,21 @@ theorem t1_d1_minus_d2 (S K tau r q sigma : ℝ) (htau : 0 < tau) (hsigma : sigm
   have hsqrt : Real.sqrt tau ≠ 0 := ne_of_gt (Real.sqrt_pos.mpr htau)
   have hD : sigma * Real.sqrt tau ≠ 0 := mul_ne_zero hsigma hsqrt
   have hsq : Real.sqrt tau * Real.sqrt tau = tau := Real.mul_self_sqrt (le_of_lt htau)
+  have hsq' : sigma * Real.sqrt tau * (sigma * Real.sqrt tau) = sigma ^ 2 * tau :=
+    calc sigma * Real.sqrt tau * (sigma * Real.sqrt tau)
+        = (sigma * sigma) * (Real.sqrt tau * Real.sqrt tau) := by ring
+      _ = sigma ^ 2 * tau := by rw [hsq, ← pow_two]
   have key : (Real.log (S / K) + (r - q + sigma ^ 2 / 2) * tau)
       - (Real.log (S / K) + (r - q - sigma ^ 2 / 2) * tau) = sigma ^ 2 * tau := by ring
-  simp only [d1, d2, sub_div, key]
-  rw [eq_div_iff_mul_eq hD]
-  nlinarith [hsq]
+  -- `show` rather than `simp only [d1, d2, ...]`: simp left the two fractions
+  -- uncombined (CI reported `sub_div` and `key` as unused simp arguments), and
+  -- `rw` is deterministic where `simp` normalizes behind our back.
+  show (Real.log (S / K) + (r - q + sigma ^ 2 / 2) * tau) / (sigma * Real.sqrt tau)
+      - (Real.log (S / K) + (r - q - sigma ^ 2 / 2) * tau) / (sigma * Real.sqrt tau)
+      = sigma * Real.sqrt tau
+  -- `div_eq_iff`, not `eq_div_iff_mul_eq`: the division is on the LEFT here.
+  rw [sub_div, key, div_eq_iff hD]
+  exact hsq'.symm
 
 -- --------------------------------------------------------------------------
 -- T2  [BUILT]  put-call parity
@@ -205,10 +221,13 @@ symmetry lemma at both `d1` and `d2`, as the brief requires. -/
 theorem t2_put_call_parity (S K tau r q sigma : ℝ) :
     bsPut S K tau r q sigma
       = bsCall S K tau r q sigma - S * Real.exp (-q * tau) + K * Real.exp (-r * tau) := by
-  have h1 := Phi_add_Phi_neg (d1 S K tau r q sigma)
-  have h2 := Phi_add_Phi_neg (d2 S K tau r q sigma)
-  simp only [bsPut, bsCall]
-  linarith
+  -- `linarith` FAILS here, and it is worth recording why: the goal contains
+  -- `K * exp(-r*tau) * Phi(-(d2 ...))`, a *product* of two atoms, so the goal is
+  -- not linear in them. Rewriting `Phi (-x)` to `1 - Phi x` first makes it a
+  -- ring identity in the atoms S, K, exp(-q*tau), exp(-r*tau), Phi(d1), Phi(d2).
+  -- The odd-symmetry content still comes from `Phi_add_Phi_neg`, via `Phi_neg`.
+  simp only [bsPut, bsCall, Phi_neg]
+  ring
 
 /-- Parity in the traded form: the call minus the put is the discounted
 forward-spread. Restated from `t2_put_call_parity` so the ledger can point at

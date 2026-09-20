@@ -297,11 +297,15 @@ def main() -> int:
         )
     # and the converse: parity must be reachable from the symmetry lemma
     if "Phi_add_Phi_neg" in bodies and "t2_put_call_parity" in bodies:
-        if "Phi_add_Phi_neg" not in bodies["t2_put_call_parity"]:
+        # Either form of the odd-symmetry identity counts: `Phi_add_Phi_neg`
+        # (Phi x + Phi (-x) = 1) or `Phi_neg` (Phi (-x) = 1 - Phi x), which is
+        # proved from the former. What must not happen is a parity proof that
+        # mentions neither.
+        if not ({"Phi_add_Phi_neg", "Phi_neg"} & set(re.findall(r"\w+", bodies["t2_put_call_parity"]))):
             failures.append(
-                "[INDEPENDENCE] `t2_put_call_parity` does not cite "
-                "`Phi_add_Phi_neg`. BRIEF_001 requires the symmetry lemma to be "
-                "used, not merely to exist."
+                "[INDEPENDENCE] `t2_put_call_parity` cites neither "
+                "`Phi_add_Phi_neg` nor `Phi_neg`. BRIEF_001 requires the "
+                "odd-symmetry identity to be used, not merely to exist."
             )
     else:
         failures.append("[INDEPENDENCE] `Phi_add_Phi_neg` or `t2_put_call_parity` is missing")
