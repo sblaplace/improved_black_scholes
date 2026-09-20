@@ -2,9 +2,10 @@
 # ImprovedBS.Crosscheck — Oracle ↔ Lean pointwise cross-verifier (BRIEF_002)
 
 Builds guard (3) from `docs/04` §"Oracle ↔ formal correspondence": evaluates
-`d1`, `d2`, `bsCall`, `bsPut`, parity, and the delta identity at a fixed grid of
-points in `Float` (IEEE-754 double precision) and emits machine-parseable lines
-for pointwise cross-verification against `experiments/black_scholes.py`.
+`d1`, `d2`, `bsCall`, `bsPut`, parity, and BOTH sides of the delta identity at a
+fixed grid of points in `Float` (IEEE-754 double precision) and emits
+machine-parseable lines for pointwise cross-verification against
+`experiments/black_scholes.py`.
 
 This is a **cross-verifier, not a proof.** It cannot show that the Lean theorem
 statements in `ImprovedBS.Core` are mathematically true — that is what `lake build`
@@ -17,7 +18,14 @@ Following the repo's frozen contract:
 * `d2` is evaluated from its OWN closed formula, NOT as `d1 - sigma * sqrt tau`.
 * `bsPut` is evaluated from its OWN closed formula, NOT via parity.
 * `bsPutByParity` is evaluated separately to verify put-call parity numerically (T2).
-* `deltaIdentityLhs` and `deltaIdentityRhs` verify the delta identity numerically (T3).
+* `deltaIdentityLhs` and `deltaIdentityRhs` are BOTH evaluated and printed per grid
+  point, so the delta identity `S e^{-qτ} φ(d1) = K e^{-rτ} φ(d2)` (T3) is verified
+  numerically — each side against the oracle's independently computed side, and the
+  two sides against each other. (An earlier revision defined `deltaIdentityRhs` but
+  never printed it, so the comparator cross-checked the LHS against the oracle's
+  LHS and T3's equation itself was never tested: ledger C6 item 4. `[CROSSCHECK
+  SYNC]` in `scripts/lean_lint.py` now requires `runCrosscheck` to reference both
+  sides, so the defect cannot return structurally.)
 -/
 
 namespace ImprovedBS.Crosscheck
@@ -148,7 +156,18 @@ def goldenGrid : List GridPoint := [
 ]
 -- END GENERATED GOLDEN GRID
 
-/-- Evaluate all points on the golden grid and print fixed greppable output lines. -/
+/-- Evaluate all points on the golden grid and print fixed greppable output lines.
+
+Each `CK` line carries the six parameters followed by seven evaluated
+quantities, in the fixed order the Python comparator expects:
+
+`CK S K tau r q sigma d1 d2 call put putByParity deltaLhs deltaRhs`
+
+`deltaRhs` MUST stay an evaluation of `deltaIdentityRhs`, never a second copy of
+`deltaLhsVal`: within the oracle the two sides agree to ~7e-15 on this grid, far
+inside the 1e-12 comparator tolerance, so printing the LHS twice is invisible to
+the Python side. It is visible to `[CROSSCHECK SYNC]`, which insists on the
+reference (see the module header and ledger C6 item 4). -/
 def runCrosscheck : IO Unit := do
   for pt in goldenGrid do
     let d1Val := d1 pt.S pt.K pt.tau pt.r pt.q pt.sigma
@@ -156,8 +175,9 @@ def runCrosscheck : IO Unit := do
     let callVal := bsCall pt.S pt.K pt.tau pt.r pt.q pt.sigma
     let putVal := bsPut pt.S pt.K pt.tau pt.r pt.q pt.sigma
     let parityVal := bsPutByParity pt.S pt.K pt.tau pt.r pt.q pt.sigma
-    let deltaVal := deltaIdentityLhs pt.S pt.K pt.tau pt.r pt.q pt.sigma
-    IO.println s!"CK {pt.S} {pt.K} {pt.tau} {pt.r} {pt.q} {pt.sigma} {d1Val} {d2Val} {callVal} {putVal} {parityVal} {deltaVal}"
+    let deltaLhsVal := deltaIdentityLhs pt.S pt.K pt.tau pt.r pt.q pt.sigma
+    let deltaRhsVal := deltaIdentityRhs pt.S pt.K pt.tau pt.r pt.q pt.sigma
+    IO.println s!"CK {pt.S} {pt.K} {pt.tau} {pt.r} {pt.q} {pt.sigma} {d1Val} {d2Val} {callVal} {putVal} {parityVal} {deltaLhsVal} {deltaRhsVal}"
 
 #eval runCrosscheck
 

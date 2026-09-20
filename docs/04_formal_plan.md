@@ -166,11 +166,19 @@ in increasing strength:
 2. **Behavioural** — `tests/test_mutants.py` seeds bugs into the oracle and
    requires the targeted test to fail, including two vacuity canaries. This is
    the check that a test can fail.
-3. **Pointwise (implemented, BRIEF_002)** — a cross-verifier that evaluates
-   `d1`, `d2`, `bsCall`, `bsPut`, parity and the delta identity at a fixed grid of
-   points in *both* trees and compares. Implemented via `tests/golden_grid.json`,
+3. **Pointwise (implemented, BRIEF_002; both T3 sides since C8)** — a cross-verifier
+   that evaluates
+   `d1`, `d2`, `bsCall`, `bsPut`, parity and *both sides* of the delta identity at a
+   fixed grid of points in *both* trees and compares: each quantity against the
+   oracle's independently computed counterpart, plus the two T3 sides against each
+   other. Implemented via `tests/golden_grid.json`,
    `ImprovedBS/Crosscheck.lean` (`#eval`), `tests/test_crosscheck.py`, and wired into
-   CI. Not a proof — a contradiction detector against code drift.
+   CI. Not a proof — a contradiction detector against code drift. (`runCrosscheck`
+   must *reference* `deltaIdentityRhs`, not merely define it — the twin
+   once shipped the RHS unused, so the comparator cross-checked LHS against the
+   oracle's LHS and T3's equation itself was never tested: ledger C6 item 4,
+   fixed in C8. The requirement is structural in `[CROSSCHECK SYNC]` because the
+   1e-12 numeric tolerance cannot see the two sides' ~7e-15 internal gap.)
 
 4. **Pinned claims** — guards (1)–(3) can all be satisfied by a tree that proves
    the *right equations about the wrong claim*, because none of them reads a
@@ -213,7 +221,7 @@ in increasing strength:
    via `needs:`. That is the "unverified second pillar" this repository is
    exposed to — not the numeric oracle, which no theorem imports and whose removal
    would leave T1–T4 standing (it would leave the *gate* unable to run, which is a
-   different and fixable problem). `tests/test_lint.py` seeds 22 cheats into
+   different and fixable problem). `tests/test_lint.py` seeds 24 cheats into
    throwaway copies of the tree and requires each to be killed by a named check —
    the 11-mutant discipline, turned on the grader — while 5 controls (a marker word
    inside a comment, a re-wrapped statement, parity reproved from `erf_neg`

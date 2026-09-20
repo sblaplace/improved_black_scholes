@@ -37,8 +37,12 @@ Checks
                   both puts from an independent closed form. Guards against the
                   two trees drifting into proving different mathematics.
 8. CROSSCHECK SYNC the Float twin in ImprovedBS/Crosscheck.lean keeps its own
-                  independent derivations and its embedded golden grid stays in
-                  sync with tests/golden_grid.json.
+                  independent derivations, its embedded golden grid stays in
+                  sync with tests/golden_grid.json, and `runCrosscheck` actually
+                  emits BOTH sides of T3's delta identity: the twin once defined
+                  `deltaIdentityRhs` and never printed it, so guard (3)
+                  cross-checked the LHS against the oracle's LHS and never
+                  tested T3's equation (benchmarks/LEDGER.md, C6 item 4).
 9. PINS           every protected declaration still *says* what
                   tests/golden_statements.json says it says (see
                   scripts/pin_statements.py). This is the anti-hollowing guard:
@@ -492,6 +496,27 @@ def main() -> int:
             failures.append("[CROSSCHECK SYNC] ImprovedBS/Crosscheck.lean `d1` missing `+` in volatility term")
         if "-" not in cc_def_body("d2"):
             failures.append("[CROSSCHECK SYNC] ImprovedBS/Crosscheck.lean `d2` missing `-` in volatility term")
+
+        # Both sides of T3's delta identity must actually be emitted by the
+        # twin. Numerically this is NOT the Python comparator's job to catch:
+        # the two sides agree within the oracle to ~7e-15 on the grid, far
+        # inside the 1e-12 tolerance, so a twin that printed the LHS twice
+        # would pass the numeric comparison. What sees the difference is the
+        # source: does `runCrosscheck` reference `deltaIdentityRhs` at all
+        # (defining it without printing it was ledger C6 item 4)?
+        for side in ("deltaIdentityLhs", "deltaIdentityRhs"):
+            cc_def_body(side)  # records a `[CROSSCHECK SYNC]` failure if the def is missing
+        cc_run_body = cc_def_body("runCrosscheck")
+        if cc_run_body != "":
+            for side in ("deltaIdentityLhs", "deltaIdentityRhs"):
+                if side not in cc_run_body:
+                    failures.append(
+                        f"[CROSSCHECK SYNC] ImprovedBS/Crosscheck.lean `runCrosscheck` never references "
+                        f"`{side}` -- `{side}` can be defined without ever being emitted, in which "
+                        "case the cross-verifier compares the delta identity's LHS against the "
+                        "oracle's LHS and never checks T3's equation across trees "
+                        "(benchmarks/LEDGER.md, C6 item 4)"
+                    )
 
         # Check grid consistency against tests/golden_grid.json
         sys.path.insert(0, os.path.join(ROOT, "scripts"))

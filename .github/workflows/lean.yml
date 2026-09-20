@@ -214,7 +214,9 @@ jobs:
       - name: Oracle ↔ Lean pointwise cross-verifier (BRIEF_002)
         # Evaluates the golden parameter grid (tests/golden_grid.json) in both
         # the Lean Float evaluator and the Python numeric oracle, asserting
-        # agreement across d1, d2, call, put, parity, and delta identity.
+        # agreement across d1, d2, call, put, parity, and BOTH sides of the
+        # delta identity (each side vs the oracle, and lhs vs rhs internally —
+        # the twin once emitted only the LHS: benchmarks/LEDGER.md C6 item 4).
         run: |
           touch lean-crosscheck.log
           if ! lake env lean ImprovedBS/Crosscheck.lean > lean-eval.log 2>&1; then
