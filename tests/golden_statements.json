@@ -212,6 +212,41 @@
       "kind": "theorem",
       "pin": "theorem bsPut_nonneg (S K tau r q sigma : ℝ) (hS : 0 < S) (hK : 0 < K) (htau : 0 < tau) (hsigma : 0 < sigma) : 0 ≤ bsPut S K tau r q sigma"
     },
+    "BSM.carrMadanKernel": {
+      "file": "ImprovedBS/Fourier.lean",
+      "kind": "def",
+      "pin": "def carrMadanKernel (φ : ℂ → ℂ) (α : ℝ) (u : ℝ) : ℂ := φ (↑u + ↑α * Complex.I) * (cmDenom α u)⁻¹"
+    },
+    "BSM.carrMadanKernel_integrable": {
+      "file": "ImprovedBS/Fourier.lean",
+      "kind": "theorem",
+      "pin": "theorem carrMadanKernel_integrable {φ : ℂ → ℂ} {α : ℝ} (hα : 0 < α) (hcont : Continuous fun u : ℝ => φ (↑u + ↑α * Complex.I)) {c D Y : ℝ} (hc : 0 < c) (hD : 0 ≤ D) (hY : 0 < Y) {u₀ : ℝ} (hdecay : ∀ u : ℝ, u₀ ≤ |u| → ‖φ (↑u + ↑α * Complex.I)‖ ≤ D * Real.exp (-c * |u| ^ Y)) : Integrable (carrMadanKernel φ α) volume"
+    },
+    "BSM.carrMadanPhase": {
+      "file": "ImprovedBS/Fourier.lean",
+      "kind": "def",
+      "pin": "def carrMadanPhase (tau u : ℝ) : ℂ := Complex.exp (Complex.I * ↑(u * tau))"
+    },
+    "BSM.carrMadan_price_integrable": {
+      "file": "ImprovedBS/Fourier.lean",
+      "kind": "theorem",
+      "pin": "theorem carrMadan_price_integrable {φ : ℂ → ℂ} {α : ℝ} (hα : 0 < α) (hcont : Continuous fun u : ℝ => φ (↑u + ↑α * Complex.I)) {c D Y : ℝ} (hc : 0 < c) (hD : 0 ≤ D) (hY : 0 < Y) {u₀ : ℝ} (hdecay : ∀ u : ℝ, u₀ ≤ |u| → ‖φ (↑u + ↑α * Complex.I)‖ ≤ D * Real.exp (-c * |u| ^ Y)) (r tau : ℝ) : Integrable (fun u : ℝ => ((Real.exp (-r * tau) / (2 * Real.pi) : ℝ) : ℂ) • (carrMadanPhase tau u * carrMadanKernel φ α u)) volume"
+    },
+    "BSM.cmDenom": {
+      "file": "ImprovedBS/Fourier.lean",
+      "kind": "def",
+      "pin": "def cmDenom (α u : ℝ) : ℂ := ↑(α ^ 2 + α - u ^ 2) + ↑((2 * α + 1) * u) * Complex.I"
+    },
+    "BSM.cmDenom_ne_zero": {
+      "file": "ImprovedBS/Fourier.lean",
+      "kind": "theorem",
+      "pin": "theorem cmDenom_ne_zero (hα : 0 < α) (u : ℝ) : cmDenom α u ≠ 0"
+    },
+    "BSM.cmDenom_u4_le": {
+      "file": "ImprovedBS/Fourier.lean",
+      "kind": "theorem",
+      "pin": "theorem cmDenom_u4_le (α u : ℝ) : u ^ 4 ≤ (α ^ 2 + α - u ^ 2) ^ 2 + ((2 * α + 1) * u) ^ 2"
+    },
     "BSM.d1": {
       "file": "ImprovedBS/Core.lean",
       "kind": "def",
@@ -261,6 +296,26 @@
       "file": "ImprovedBS/Core.lean",
       "kind": "theorem",
       "pin": "theorem forward_eq (S K tau r q : ℝ) (hS : 0 < S) (hK : 0 < K) : K * Real.exp (-r * tau) * Real.exp (Real.log (S / K) + (r - q) * tau) = S * Real.exp (-q * tau)"
+    },
+    "BSM.gbmCharFactor": {
+      "file": "ImprovedBS/Fourier.lean",
+      "kind": "def",
+      "pin": "def gbmCharFactor (m s : ℝ) (v : ℂ) : ℂ := Complex.exp (Complex.I * ↑m * v - ↑s * v ^ 2)"
+    },
+    "BSM.gbm_carrMadanKernel_integrable": {
+      "file": "ImprovedBS/Fourier.lean",
+      "kind": "theorem",
+      "pin": "theorem gbm_carrMadanKernel_integrable (m s : ℝ) (hs : 0 < s) {α : ℝ} (hα : 0 < α) : Integrable (carrMadanKernel (gbmCharFactor m s) α) volume"
+    },
+    "BSM.gbm_carrMadan_price_integrable": {
+      "file": "ImprovedBS/Fourier.lean",
+      "kind": "theorem",
+      "pin": "theorem gbm_carrMadan_price_integrable (m s : ℝ) (hs : 0 < s) {α : ℝ} (hα : 0 < α) (r tau : ℝ) : Integrable (fun u : ℝ => ((Real.exp (-r * tau) / (2 * Real.pi) : ℝ) : ℂ) • (carrMadanPhase tau u * carrMadanKernel (gbmCharFactor m s) α u)) volume"
+    },
+    "BSM.integrable_exp_neg_abs_rpow": {
+      "file": "ImprovedBS/Fourier.lean",
+      "kind": "theorem",
+      "pin": "theorem integrable_exp_neg_abs_rpow {c Y : ℝ} (hc : 0 < c) (hY : 0 < Y) : Integrable fun u : ℝ => Real.exp (-c * |u| ^ Y)"
     },
     "BSM.integral_phi_Iic_zero": {
       "file": "ImprovedBS/Core.lean",

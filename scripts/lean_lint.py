@@ -122,6 +122,28 @@ REQUIRED = {
     "exp_moment_infinite_of_tail_lower_bound": "ImprovedBS/Levy.lean",
     "spot_not_integrable_of_tail_lower_bound": "ImprovedBS/Levy.lean",
     "no_drift_makes_spot_integrable": "ImprovedBS/Levy.lean",
+    # BRIEF_005 (T6, sub-goal 2): absolute convergence of the tempered
+    # Carr–Madan contour. The two halves that make up the result plus the join:
+    # `integrable_exp_neg_abs_rpow` is the model side (the two-sided tempered
+    # tail integrates), `cmDenom_u4_le`/`cmDenom_ne_zero` the payoff side (the
+    # denominator's modulus has an exact quartic lower bound and no zero on the
+    # real contour), `carrMadanKernel_integrable`/`carrMadan_price_integrable`
+    # the joining domination, and the two `gbm_*` theorems the fully
+    # machine-checked instance through which classical Fourier pricing enters
+    # this repository. The four `def`s are listed too: a definition is the
+    # specification, and hollowing one changes every statement above it. Listed
+    # so that "prove integrability by deleting the theorem" is not an option.
+    "cmDenom": "ImprovedBS/Fourier.lean",
+    "carrMadanKernel": "ImprovedBS/Fourier.lean",
+    "carrMadanPhase": "ImprovedBS/Fourier.lean",
+    "gbmCharFactor": "ImprovedBS/Fourier.lean",
+    "integrable_exp_neg_abs_rpow": "ImprovedBS/Fourier.lean",
+    "cmDenom_u4_le": "ImprovedBS/Fourier.lean",
+    "cmDenom_ne_zero": "ImprovedBS/Fourier.lean",
+    "carrMadanKernel_integrable": "ImprovedBS/Fourier.lean",
+    "carrMadan_price_integrable": "ImprovedBS/Fourier.lean",
+    "gbm_carrMadanKernel_integrable": "ImprovedBS/Fourier.lean",
+    "gbm_carrMadan_price_integrable": "ImprovedBS/Fourier.lean",
 }
 
 # Zero deferred-proof markers allowed. The T1/T2 node per BRIEF_001; the T3/T4
@@ -165,6 +187,16 @@ PROTECTED = {
     "exp_moment_infinite_of_tail_lower_bound",
     "spot_not_integrable_of_tail_lower_bound",
     "no_drift_makes_spot_integrable",
+    # T6 sub-goal 2 (BRIEF_005): absolute convergence of the tempered contour.
+    # The same ratchet posture: the integrability theorems below are the result
+    # this node landed, so a `sorry` in any of them reverts the node outright.
+    "integrable_exp_neg_abs_rpow",
+    "cmDenom_u4_le",
+    "cmDenom_ne_zero",
+    "carrMadanKernel_integrable",
+    "carrMadan_price_integrable",
+    "gbm_carrMadanKernel_integrable",
+    "gbm_carrMadan_price_integrable",
 }
 
 # A `sorry` that survives `lake build` is an axiom. Allow none by default.
