@@ -389,11 +389,20 @@ def parse_audit(stdout: str, qualified: list[str]) -> dict:
         ty = _block_text(blocks[2 * i], q)
         ax = _block_text(blocks[2 * i + 1], q)
         if not ty or not ax:
+            # The sandbox that authors this tree cannot reach Actions logs, so a
+            # bare "could not recover" is a dead end for anyone debugging from
+            # the PR comment. Echo the raw offending blocks (bounded): the next
+            # shape change in `#check`/`#print axioms` output is then diagnosed
+            # from the same message that reported it.
+            raw_ty = " ⏎ ".join(blocks[2 * i])[:600]
+            raw_ax = " ⏎ ".join(blocks[2 * i + 1])[:600]
             raise RuntimeError(
                 f"could not recover both a type and an axiom line for `{q}` "
-                f"(type={ty!r}, axioms={ax!r}). The `#check`/`#print axioms` output "
-                "format is an assumption; repair the parser explicitly rather than "
-                "committing a half-pin."
+                f"(type={ty!r}, axioms={ax!r}). Raw blocks (⏎ = line break, "
+                f"first 600 chars each): type-block={raw_ty!r} "
+                f"axiom-block={raw_ax!r}. The `#check`/`#print axioms` output "
+                "format is an assumption; repair the parser explicitly rather "
+                "than committing a half-pin."
             )
         out[q] = {"type": ty, "axioms": ax}
     return out
