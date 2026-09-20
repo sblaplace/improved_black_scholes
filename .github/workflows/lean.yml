@@ -146,13 +146,13 @@ jobs:
           cat > /tmp/Audit.lean <<'LEAN'
           import ImprovedBS
 
-          #print axioms ImprovedBS.exp_neg_sq_even
-          #print axioms ImprovedBS.erf_neg
-          #print axioms ImprovedBS.Phi_add_Phi_neg
-          #print axioms ImprovedBS.Phi_neg
-          #print axioms ImprovedBS.t1_d1_minus_d2
-          #print axioms ImprovedBS.t2_put_call_parity
-          #print axioms ImprovedBS.t2_put_call_parity_spread
+          #print axioms BSM.exp_neg_sq_even
+          #print axioms BSM.erf_neg
+          #print axioms BSM.Phi_add_Phi_neg
+          #print axioms BSM.Phi_neg
+          #print axioms BSM.t1_d1_minus_d2
+          #print axioms BSM.t2_put_call_parity
+          #print axioms BSM.t2_put_call_parity_spread
           LEAN
           lake env lean /tmp/Audit.lean 2>&1 | tee lean-audit.log
           if grep -q sorryAx lean-audit.log; then
@@ -170,22 +170,30 @@ jobs:
         run: |
           set -uo pipefail
           {
-            echo "### \`lake build\` failed on ${GITHUB_SHA::7}"
+            echo "### Lean CI failed on ${GITHUB_SHA::7}"
             echo
-            echo "**Error lines**"
-            echo
-            echo '```'
-            grep -nE "error:|error \[|sorry|unknown identifier|no such|Core\.lean" lake-build.log \
-              | head -60 || echo "(no lines matched; see the full tail below)"
-            echo '```'
-            echo
-            echo "<details><summary>full log tail (last 40k characters)</summary>"
-            echo
-            echo '```'
-            tail -c 40000 lake-build.log
-            echo '```'
-            echo
-            echo "</details>"
+            # Every log this job produces, labelled. Publishing only the build log
+            # is how the `#print axioms` step failed invisibly on run 35509168675:
+            # `lake build` was GREEN, the audit was RED, and the comment showed
+            # only three expected `sorry` warnings, which reads like success.
+            for log in lake-build.log lean-audit.log; do
+              [ -s "$log" ] || continue
+              echo "#### \`$log\` — error lines"
+              echo
+              echo '```'
+              grep -nE "error|sorryAx|unknown identifier|no such|Core\.lean" "$log" \
+                | head -60 || echo "(no lines matched; see the tail below)"
+              echo '```'
+              echo
+              echo "<details><summary>\`$log\` tail (last 25k characters)</summary>"
+              echo
+              echo '```'
+              tail -c 25000 "$log"
+              echo '```'
+              echo
+              echo "</details>"
+              echo
+            done
             echo
             echo "_Posted by .github/workflows/lean.yml because Actions logs are not_"
             echo "_reachable from a restricted sandbox. Do not delete this step._"

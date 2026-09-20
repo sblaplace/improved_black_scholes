@@ -82,7 +82,9 @@ Writing A = S e^{−qτ}, B = K e^{−rτ}, x = d1, y = d2:
                 = −A·Φ(−x) + B·Φ(−y)
                 = V_P                                        ∎
 
-In Lean this is `ImprovedBS.Phi_add_Phi_neg` (mathlib: `Real.erf_neg`), and a
+In Lean this is `BSM.Phi_add_Phi_neg`, which rests on `BSM.erf_neg` — a local
+lemma, because **mathlib v4.34.0 has no `Real.erf`** (docs/04 §"`Real.erf` is
+not in mathlib"). And a
 proof of T2 that does not cite it is incomplete regardless of whether it
 elaborates. `scripts/lean_lint.py` fails CI if `t2_put_call_parity` stops
 mentioning `Phi_add_Phi_neg`.

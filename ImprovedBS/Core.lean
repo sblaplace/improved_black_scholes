@@ -56,6 +56,17 @@ import Mathlib
 -- the seventh), the whole file is a noncomputable section.
 noncomputable section
 
+-- Everything below lives in `namespace BSM`. Without it the declarations land
+-- in the ROOT namespace, which for a library is not acceptable: `Phi`, `phi`,
+-- `d1`, `d2` and `erf` are far too generic to claim globally, and any
+-- downstream file importing this one would collide with them. Note that the
+-- module name (`ImprovedBS.Core`) is NOT a namespace -- the fully qualified
+-- name of a declaration is determined by the enclosing `namespace` command,
+-- so `#print axioms ImprovedBS.t1_d1_minus_d2` does not resolve. The first
+-- green `lake build` of this repository was followed by exactly that failure in
+-- the CI audit step.
+namespace BSM
+
 -- --------------------------------------------------------------------------
 -- Notation (identical to docs/01_baseline.md and experiments/black_scholes.py)
 --
@@ -419,3 +430,5 @@ See docs/03_research.md D1, which carries the falsifier (fitted `alpha`
 concentrating in `(1.3, 1.9)` and being materially *less* moneyness-dependent
 than the GBM `sigma` it replaces).
 -/
+
+end BSM
