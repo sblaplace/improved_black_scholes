@@ -180,6 +180,42 @@ jobs:
           fi
           echo "OK: no protected theorem depends on sorryAx"
 
+      - name: Publish the axioms audit to the PR
+        # The audit passing is the acceptance evidence for a landed node, and
+        # the ledger quotes it. Artifacts and Actions logs live behind blob
+        # storage that a restricted sandbox cannot reach, so put the ~2 KB of
+        # `#print axioms` output where `gh api .../comments` can read it.
+        if: success() && github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -uo pipefail
+          {
+            echo "### Lean CI green on ${GITHUB_SHA::7} — \`#print axioms\` audit"
+            echo
+            echo "run: ${GITHUB_SERVER_URL}/${REPO}/actions/runs/${GITHUB_RUN_ID}"
+            echo
+            echo '```'
+            cat lean-audit.log
+            echo '```'
+            echo
+            echo "_Posted by .github/workflows/lean.yml. \`sorryAx\` anywhere above would have failed the job._"
+          } > /tmp/audit_body.md
+          python3 - <<'PY'
+          import json, os, urllib.request
+          body = open('/tmp/audit_body.md').read()
+          req = urllib.request.Request(
+              f"https://api.github.com/repos/{os.environ['REPO']}/issues/{os.environ['PR_NUMBER']}/comments",
+              data=json.dumps({"body": body}).encode(),
+              headers={"Authorization": f"Bearer {os.environ['GH_TOKEN']}",
+                       "Accept": "application/vnd.github+json"},
+              method="POST")
+          urllib.request.urlopen(req)
+          print(f"posted axioms audit to PR #{os.environ['PR_NUMBER']}")
+          PY
+
       - name: Publish the failure log back to the PR
         if: failure() && github.event_name == 'pull_request'
         env:
