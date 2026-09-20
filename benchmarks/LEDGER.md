@@ -14,7 +14,7 @@ Verdict discipline:
 
 | # | brief | contributor | PR | verdict |
 |---|-------|-------------|----|---------|
-| 1 | BRIEF_001 (T1+T2, Lean lane) | — | — | **PENDING — never built.** Lane scaffolding landed; no `lake build` has ever executed. See correction C1. |
+| 1 | BRIEF_001 (T1+T2, Lean lane) | arena-ai-coding-agent | [#1](https://github.com/sblaplace/improved_black_scholes/pull/1) | **RED ×3, then unknown** — see the CI history below. `oracle` and `lint` lanes GREEN on every observed run. |
 | 2 | BRIEF_002 (oracle ↔ Lean cross-verifier) | — | — | OPEN — not started |
 | 3 | BRIEF_003 (T3 delta identity + T4 bounds) | — | — | OPEN — not started, blocked on #1 |
 | 4 | BRIEF_004 (α-stable moment obstruction) | — | — | OPEN — not started, independent of #1–#3 |
@@ -103,3 +103,69 @@ The table previously read "T1 done, T2+T3 done in-code" in one cell while the
 adjacent rows and the `.lean` file both said `stated` / `sorry`. Nothing was
 done. Status in that table is now derived from `scripts/lean_lint.py` output
 rather than typed, so the two cannot disagree.
+
+## CI history for row 1 (PR #1)
+
+Recorded because a verdict without its history is not reproducible, and because
+three of these runs produced findings that changed the plan.
+
+| run | commit | `oracle` | `lint` | `lake build` | cause |
+|---|---|---|---|---|---|
+| 1 | `fbbc6d8` | pass 8s | pass 7s | **fail** 3m49s | `ImprovedBS.lean:21:0: invalid 'import' command, it must be used in the beginning of the file` — a module doc-comment is a command, so placing it above the `import` makes the import illegal |
+| 2 | `0e99556` | pass 6s | pass 6s | **fail** 3m38s | same |
+| 3 | `449a086` | — | — | **fail** | `bad import 'Mathlib.Analysis.SpecialFunctions.Erf'`, `bad import 'Mathlib.Data.Real.Pi'` — neither path exists in mathlib v4.34.0 |
+| 4 | `b1084d3` | not observed | not observed | **UNKNOWN** | the GitHub token expired mid-run; the result was never read |
+
+What the first three runs established:
+
+- **The scaffolding is correct.** Step `Set up Lean + Mathlib cache` succeeded on
+  every run: elan installed, the mathlib v4.34.0 olean cache was fetched, and
+  `lakefile.toml` / `lean-toolchain` / `lake-manifest.json` resolved. The pin
+  consistency check in the `lint` job passed. So the invalid-lakefile defect from
+  correction C1 item 3 is genuinely fixed, and a build takes ~4 minutes, not the
+  hours a from-source mathlib build would take.
+- **`Real.erf` does not exist in mathlib v4.34.0.** Run 3 forced this out. See
+  correction C3.
+- **The log-publishing step works**, and it is load-bearing rather than a
+  convenience. Actions logs are served from `*.actions.githubusercontent.com`
+  and Azure blob storage, both unreachable from a restricted sandbox; only
+  `api.github.com` answers. Without the PR comment added in `0e99556`, runs 3
+  and 4 would have been undiagnosable from here — a contributor could see red
+  but never learn why, and could not iterate. That is the same defect as C1
+  item 4, one layer deeper, and it would have made the CI-only acceptance bar
+  unusable in the venue the brief names.
+
+**Open item:** run 4's verdict must be read and recorded here. Re-run with
+`gh run list --branch arena/01a0be4c-improved-black-scholes`, or read the PR
+comment the workflow posts on failure.
+
+### C3 — `docs/04` claimed a mathlib dependency that does not exist
+
+`docs/04_formal_plan.md` listed "`Real.erf` (already in Mathlib:
+`Mathlib.Analysis.SpecialFunctions.Erf`)" and "`Real.hasDerivAt_erf`" as
+available dependencies. **Neither exists in v4.34.0.** Verified against the
+release tag: no file named `Erf.lean` among the tree's 9112 `.lean` files, and
+GitHub code search over `leanprover-community/mathlib4` returns 0 hits for
+`Real.erf`, `def erf` and `erf_neg` — against 107 for `Real.sqrt` and 57 for
+`Real.pi`, so the search itself was working.
+
+`ImprovedBS/Core.lean` now defines `erf` itself as
+`(2 / Real.sqrt Real.pi) * ∫ t in 0..x, Real.exp (-(t^2))` and proves `erf_neg`
+by substitution in the interval integral. That supplies exactly the *oddness*
+T2 needs.
+
+It does **not** supply what T4 and T5 need, and this changes their budgets:
+bounds `0 ≤ Phi ≤ 1` require `|erf x| ≤ 1`, hence the *value* of the Gaussian
+integral `∫ x:ℝ, exp (-(x^2)) = sqrt pi` — measure theory
+(`Mathlib/Analysis/SpecialFunctions/Gaussian/GaussianIntegral.lean`), not
+interval integrals. T5 likewise needs `HasDerivAt erf`, now derived rather than
+imported. Both briefs should be re-budgeted before being handed out; BRIEF_003
+already carries the warning in T4's doc-comment.
+
+**Generalizable lesson, and the reason this is in the ledger rather than a
+commit message:** a mathlib dependency is a claim about a *specific version* and
+must be checked against that version. Two plausible-looking import paths,
+guessed without a toolchain, cost three red runs. Any brief that adds a mathlib
+dependency should require the author to verify the path against the pinned tag —
+`gh api repos/leanprover-community/mathlib4/contents/<path>?ref=v4.34.0` is
+reachable even where the Lean toolchain is not.
