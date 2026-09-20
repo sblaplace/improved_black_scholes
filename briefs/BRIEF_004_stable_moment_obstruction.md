@@ -1,8 +1,65 @@
 # BRIEF_004 — The α-stable moment obstruction (T6, sub-goal 1)
 
-- **Status:** OPEN — research tier, but the *cheapest* item in it
+- **Status: LANDED — GREEN.** PR
+  [#5](https://github.com/sblaplace/improved_black_scholes/pull/5), run
+  35523250105, commit `d61c874`. `lake build` green against mathlib v4.34.0 and
+  the `#print axioms` audit green for all seven new constants in
+  `ImprovedBS/Levy.lean` (on `[propext, Classical.choice, Quot.sound]` only).
+  The theorem is proved for **every real `α`**, not for `α < 2`: acceptance item
+  4 is superseded by correction C7 below, with the two corrections recorded
+  rather than edited in silently. The specialization to the symmetric
+  α-stable law is *not* machine-checked and is declared as such in the module,
+  the PR and the ledger, per scope item 3.
 - **Prerequisite PRs:** none in the Lean tree. This brief is deliberately
   independent of BRIEF_001–003: it needs no BS machinery at all.
+
+---
+
+## Correction record
+
+Recorded here and in `benchmarks/LEDGER.md` (row **C7**) rather than silently
+rewritten, per the ledger's archival rule. The brief as issued asked for a
+theorem stated for `α ∈ (0, 2)` and made "the hypotheses are *used*: `0 < α`,
+`α < 2`, …" an acceptance item, with a sanity check meant to force it. Two
+things are wrong, and both make the *stated target* wrong rather than making the
+proof harder. **Everything from `## Goal` down is the brief as issued**; where
+it conflicts with this record, the record wins.
+
+1. **`α < 2` is not needed, and the sanity check that demanded it is false.**
+   The acceptance item reads: "with `α ≥ 2`-like Gaussian tails the exponential
+   moment is finite, so a proof that never uses `α < 2` has proved something
+   false". The fear is legitimate — a proof that ignores a hypothesis might be a
+   proof of a false statement — but the premise is not: a Gaussian tail
+   `e^{−x²/2}` is not an `α ≥ 2` power law. It is eventually *below*
+   `c·x^(−α)` for **every** `α`, so it never satisfies the hypothesis
+   `μ([x, ∞)) ≥ c·x^(−α)` at any index, and it cannot be the counterexample the
+   item claims it is. For a genuine power tail the conclusion holds at every
+   index — a `x^(−3)` tail still has infinite exponential moment, because
+   `∫ e^x x^(−3) dx` diverges. The dichotomy the obstruction turns on is
+   **polynomial versus exponential decay**, not `α < 2` versus `α ≥ 2`.
+   The correction therefore *strengthens* the result: the theorem is stated for
+   every real `α`, and the machine-checked statement of "the proof does not
+   secretly need `α < 2`" is that `α < 2` does not appear in it. This also makes
+   the obstruction more useful to T6 than the brief's version: `α ∈ (0, 2)` is
+   not where it lives, so no amount of parameter-range argument inside that
+   interval can escape it.
+2. **`0 < α` is a regime hypothesis, not a proof step.** It is likewise never
+   used: the divergence is `exp` against `rpow`, and the index does not enter
+   the estimate. What `α > 0` actually does is make the hypothesis
+   *satisfiable*: for `α ≤ 0` the bound `μ([x, ∞)) ≥ c·x^(−α)` forces
+   `c ≤ μ([x, ∞))` for all large `x`, impossible for a probability measure as
+   `x → ∞`. So `α > 0` is exactly the range in which the hypothesis is about
+   something, and it is recorded as a statement note in the module doc-comment,
+   in `docs/03` §D1 and in ledger row C7 — not kept as a binder the proof never
+   touches, which is the vacuity shape this repository rejects everywhere else.
+
+**Scope item 3 is honoured as the exception it allows:** mathlib v4.34.0 has no
+symmetric α-stable law, so the specialization is *not* machine-checked. The tail
+bound is the hypothesis of the theorem, and the `c = F(−α)` citation for the
+Zolotarev `S1` parametrization stays in `docs/03` §D1. The PR says so in those
+words.
+
+---
 - **Skills:** Lean 4 + mathlib measure theory and improper integrals
   (`MeasureTheory.Integral`, tail estimates, `Real.rpow`). The finance content
   is one sentence; the analysis is the whole brief.

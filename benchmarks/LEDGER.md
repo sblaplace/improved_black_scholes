@@ -18,7 +18,7 @@ Verdict discipline:
 | 2 | BRIEF_002 (oracle ↔ Lean cross-verifier) | arena-ai-coding-agent | [#3](https://github.com/sblaplace/improved_black_scholes/pull/3) | **GREEN** @ `2a7bacb`, run 35517328856 — 39-point golden grid, docs/04 guard (3) active: `ImprovedBS/Crosscheck.lean` (#eval) cross-verified against `experiments/black_scholes.py` with max price diff 1.6e-14 (tol 1e-12) and 4/4 mutants caught. |
 | 3 | BRIEF_003 (T3 delta identity + T4 bounds) | arena-ai-coding-agent | [#2](https://github.com/sblaplace/improved_black_scholes/pull/2) | **GREEN** @ `726325d`, run 35514867674 (first green: run 35514609619 @ `2273461`) — `lake build` + `#print axioms` audit + `lint` + `oracle` all pass; ratchet 3 → 0. Reached on the 1st run; see the CI history and correction C4. |
 | — | *(tooling, no brief)* statement pins + the lint's own falsifiers | arena-ai-coding-agent | [#4](https://github.com/sblaplace/improved_black_scholes/pull/4) | **GREEN** @ `341b9f4`, run 35520713909 (tip re-graded green: run 35521215779 @ `0785e90`) — `lake build` + `#print axioms` audit + **Statement pins (elab)** + `lint` + `oracle` all pass. Three-run arc, which is the informative part: run 35519747870 red on an empty `elab` block (by design — a pin that was never produced is not a passing pin) → run 35520154876 red on a parser format bug (`#print axioms` quotes the constant, `#check` does not; the parser refused to half-pin and printed the block instead) → block committed verbatim → run 35520713909 green, the 31 elaborated pairs reproducing identically across two independent checkouts, which is what makes them a pin rather than a transcription. Locally: `test_lint.py` 7/7 (22 cheats killed by named checks, 5 controls green, 1 residual gap asserted open), `test_pins.py` 8/8, `lean_lint` OK (43 decls, 31 pins + 31 elab, cross-layer skew clean), oracle 13/13, mutants 4/4, crosscheck 4/4. No `.lean` file changed; sorry baseline untouched. |
-| 4 | BRIEF_004 (α-stable moment obstruction) | — | — | OPEN — not started, independent of #1–#3 |
+| 4 | BRIEF_004 (α-stable moment obstruction) | arena-ai-coding-agent | [#5](https://github.com/sblaplace/improved_black_scholes/pull/5) | **GREEN** @ `d61c874`, run 35523250105 — `lake build` + `#print axioms` audit + **Statement pins (elab)** + `lint` + `oracle` all pass. Module authored without a toolchain (four-run arc: two one-line build errors, then build+audit green with an empty `elab` block by design, then the block committed verbatim). The seven new constants are on `[propext, Classical.choice, Quot.sound]` only. Statement strengthened: the theorem holds for **every real α**, superseding the `α < 2` acceptance item (correction C7). The documentation commits that record this row re-grade green as well (run 35523462850 @ `28dda5b`). |
 
 ## Corrections and co-recorded changes to the ask
 
@@ -380,3 +380,85 @@ the class of cheat that slips through a name-and-marker check — keep the name,
 keep the absence of `sorry`, change what is claimed — is exactly the class that
 cannot be caught syntactically, which is why the answer is a pinned artifact plus
 an elaboration diff, not a stricter regex.
+
+### C7 — BRIEF_004: the `α < 2` acceptance item was false; the theorem is stated for every real `α`
+
+**Date:** 2026-09-20. **Trigger:** *proving* the brief, not running the grader.
+**Found by:** the author, while choosing the half-line levels `x = 2^k`: the
+lower bound `e^{2^k} · (2^k)^(−α) → ∞` never consults `α`, which forced the
+question of whether `α < 2` was load-bearing at all.
+
+1. **`α < 2` dropped from the statement.** BRIEF_004's acceptance item 4
+   demanded the hypothesis be *used*, with the argument: "with `α ≥ 2`-like
+   Gaussian tails the exponential moment is finite, so a proof that never uses
+   `α < 2` has proved something false". The instinct is right — a proof that
+   ignores a hypothesis can be a proof of a false statement — but the argument
+   is invalid. A Gaussian tail is not a power law with `α ≥ 2`: `e^{−x²/2}` is
+   eventually *below* `c·x^(−α)` for **every** `α`, so it satisfies no such
+   hypothesis at any index and cannot be the counterexample the item claims.
+   For a genuine power tail the conclusion holds at every index —
+   `∫ e^x x^(−3) dx` diverges exactly as `∫ e^x x^(−1) dx` does. The dichotomy
+   the obstruction turns on is **polynomial versus exponential decay**, not
+   `α < 2` versus `α ≥ 2`.
+   The machine-checked form of the correction is the absence of `α < 2` from
+   the theorem, and the pins record it: `tests/golden_statements.json` stores
+   the statement as it is. The result is strictly stronger, and it *widens* the
+   obstruction inside T6 — `α ∈ (0, 2)`, the whole interval the resolution
+   cares about, is inside it, so the tempered (CGMY) repair is not an artifact
+   of having restricted the index.
+2. **`0 < α` dropped as a binder, kept as a statement note.** It too is never
+   used in the proof: the divergence is `exp` versus `rpow` and the index does
+   not enter the estimate. Its content is a domain fact — for `α ≤ 0` the lower
+   bound `μ([x, ∞)) ≥ c·x^(−α)` is *unsatisfiable* for a probability measure,
+   since it forces `c ≤ μ([x, ∞))` for all large `x` — so `α > 0` is exactly
+   the range in which the hypothesis says anything. Recorded in the module
+   doc-comment and `docs/03` §D1 rather than kept as an unused hypothesis.
+3. **Not machine-checked, and said so:** the specialization to a symmetric
+   α-stable law. mathlib v4.34.0 has no such law, so the tail bound enters as
+   the hypothesis; the `c = F(−α)` constant of the Zolotarev `S1` tail stays a
+   citation in `docs/03` §D1, per the brief's scope item 3. No definition-free
+   fake and no prose posing as a theorem.
+
+**What this says about "use your hypotheses" as an acceptance bar.** It is the
+right instinct — it is what kills vacuous proofs — but it cannot be written as
+a *syntactic* requirement, because the honest answer to "does this proof need
+`α < 2`?" can be "no, and the hypothesis should not have been there". The bar
+that survives is the one the repository already uses: pin the statement,
+audit the axioms, and record the correction when the *brief's* statement, not
+the proof, was the thing that was wrong.
+
+## CI history for row 4 (PR #5)
+
+Four runs, three of them informative, and the whole module was written in a
+sandbox with no Lean toolchain — the CI lane was the first thing that ever
+compiled it.
+
+| # | head | what the run decided | outcome |
+|---|------|----------------------|---------|
+| 1 | `54a0ff6` | first push of `ImprovedBS/Levy.lean` | build fail, two one-line errors: `add_le_add_right` in v4.34.0 adds on the **left** (`h : x ≤ y` gives `d + x ≤ d + y`), so the term fed to `Real.exp_le_exp.mpr` had the wrong sum for the goal; and `ENNReal.ofReal_coe_nnreal` is stated with an implicit variable, so it is not a function of `r` and `(lemma r).ge` does not elaborate. Everything else in the module — `setLIntegral_mono'`, the half-line bound, `Real.tendsto_exp_div_rpow_atTop`, `Tendsto.const_mul_atTop`, both §2 scaling lemmas — elaborated on the first try. |
+| 2 | `edfafc4` | `add_le_add_right` → explicit `hxy := hy` + `linarith`; `(lemma r).ge` → a typed `have` with `ENNReal.ofReal_coe_nnreal.symm` | build fail, one step further: `(r : ℝ≥0)` is scoped notation under `NNReal`, which the module does not open, so it parsed as the *comparison* `ℝ ≥ 0` and the elaborator asked for `LE Type` / `OfNat Type 0`. A notation-scope error, not a mathematical one. |
+| 3 | `99db114` | spell `NNReal`/`ENNReal` explicitly in the coe step | **build GREEN + audit GREEN**: all 32 constants (25 existing + 7 new) report `[propext, Classical.choice, Quot.sound]`, none `sorryAx`. Pins RED *by design*: seven declarations with no `elab` block, and the block to commit was printed paste-ready by the failing step. |
+| 4 | `d61c874` | commit the printed block verbatim | **GREEN** — `lint` + `lake build` + sorryAx audit + **Statement pins (elab)** + `Oracle ↔ Lean` crosscheck all pass. 38 pins, 38 elaborated pairs. |
+
+**Machine-checked as of run 35523250105.** `BSM.ofReal_mul_tail_le_lintegral_exp_add`,
+`BSM.lintegral_exp_add_eq_top_of_tail_lower_bound`,
+`BSM.lintegral_exp_eq_top_of_tail_lower_bound`,
+`BSM.exp_moment_infinite_add_of_tail_lower_bound`,
+`BSM.exp_moment_infinite_of_tail_lower_bound`,
+`BSM.spot_not_integrable_of_tail_lower_bound`,
+`BSM.no_drift_makes_spot_integrable`. What is *not* machine-checked, and is
+declared as such in the module and the PR: the specialization to the symmetric
+α-stable law — mathlib v4.34.0 has no such law, so the power tail bound is the
+hypothesis and the `c = F(−α)` constant stays a citation in `docs/03` §D1.
+
+**Why this row is worth reading as a grading story.** The interesting part is
+not that two proofs had to be fixed; it is that the *statement* was wrong before
+the proof existed, and the fix was to prove more than the brief asked
+(correction C7). The acceptance item "the hypotheses are used: `0 < α`,
+`α < 2` …" would have rejected a correct, stronger theorem, and the sanity
+check offered for it was a false statement about Gaussian tails. The sequence
+that got the right answer was: prove it, notice the proof never touches `α < 2`,
+work out why the demanded hypothesis does not belong, and record the correction
+— which is the same sequence that produced C1 and C4. The pins then make the
+strengthened statement the *checked* one, so "the brief asked for `α < 2`" can
+never quietly re-enter the tree.

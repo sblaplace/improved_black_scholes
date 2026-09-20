@@ -106,6 +106,18 @@ REQUIRED = {
     "forward_eq": "ImprovedBS/Core.lean",
     "bsCall_nonneg": "ImprovedBS/Core.lean",
     "bsPut_nonneg": "ImprovedBS/Core.lean",
+    # BRIEF_004 (T6, sub-goal 1): the moment obstruction. §1 of Levy.lean is the
+    # analysis (a power tail lower bound forces an infinite exponential moment),
+    # §2 is the modelling claim that consumes it. Listed so that "prove the
+    # obstruction by deleting the theorem" is not an option, and so the pins
+    # cover the statements that carry the result.
+    "ofReal_mul_tail_le_lintegral_exp_add": "ImprovedBS/Levy.lean",
+    "lintegral_exp_add_eq_top_of_tail_lower_bound": "ImprovedBS/Levy.lean",
+    "lintegral_exp_eq_top_of_tail_lower_bound": "ImprovedBS/Levy.lean",
+    "exp_moment_infinite_add_of_tail_lower_bound": "ImprovedBS/Levy.lean",
+    "exp_moment_infinite_of_tail_lower_bound": "ImprovedBS/Levy.lean",
+    "spot_not_integrable_of_tail_lower_bound": "ImprovedBS/Levy.lean",
+    "no_drift_makes_spot_integrable": "ImprovedBS/Levy.lean",
 }
 
 # Zero deferred-proof markers allowed. The T1/T2 node per BRIEF_001; the T3/T4
@@ -139,6 +151,16 @@ PROTECTED = {
     "t3_delta_identity",
     "t4_call_bounds",
     "t4_put_bounds",
+    # T6 sub-goal 1 (BRIEF_004): the moment obstruction. Landed, so a `sorry`
+    # here is an automatic reject -- and the pins cover the seven statements, so
+    # hollowing one is a diff too.
+    "ofReal_mul_tail_le_lintegral_exp_add",
+    "lintegral_exp_add_eq_top_of_tail_lower_bound",
+    "lintegral_exp_eq_top_of_tail_lower_bound",
+    "exp_moment_infinite_add_of_tail_lower_bound",
+    "exp_moment_infinite_of_tail_lower_bound",
+    "spot_not_integrable_of_tail_lower_bound",
+    "no_drift_makes_spot_integrable",
 }
 
 # A `sorry` that survives `lake build` is an axiom. Allow none by default.

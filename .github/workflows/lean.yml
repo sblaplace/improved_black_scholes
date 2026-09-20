@@ -177,6 +177,14 @@ jobs:
           #print axioms BSM.t3_delta_identity
           #print axioms BSM.t4_call_bounds
           #print axioms BSM.t4_put_bounds
+          -- BRIEF_004: the moment obstruction (T6 sub-goal 1), ImprovedBS/Levy.lean
+          #print axioms BSM.ofReal_mul_tail_le_lintegral_exp_add
+          #print axioms BSM.lintegral_exp_add_eq_top_of_tail_lower_bound
+          #print axioms BSM.lintegral_exp_eq_top_of_tail_lower_bound
+          #print axioms BSM.exp_moment_infinite_add_of_tail_lower_bound
+          #print axioms BSM.exp_moment_infinite_of_tail_lower_bound
+          #print axioms BSM.spot_not_integrable_of_tail_lower_bound
+          #print axioms BSM.no_drift_makes_spot_integrable
           LEAN
           lake env lean /tmp/Audit.lean 2>&1 | tee lean-audit.log
           if grep -q sorryAx lean-audit.log; then

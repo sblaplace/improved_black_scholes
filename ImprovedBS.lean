@@ -1,4 +1,5 @@
 import ImprovedBS.Core
+import ImprovedBS.Levy
 
 /-!
 # ImprovedBS
@@ -7,6 +8,10 @@ Root module of the `ImprovedBS` library. Modules imported here are built by
 `lake build`.
 
 * `ImprovedBS.Core` — the BSM closed form and the theorem stack T1..T6.
+* `ImprovedBS.Levy` — BRIEF_004: the moment obstruction (T6 sub-goal 1). §1 is
+  analysis (a polynomial tail lower bound forces an infinite exponential
+  moment), §2 is the modelling claim that consumes it (`E[S_T] = ∞`, hence no
+  equivalent martingale measure in the exponential-Lévy ansatz).
 
 ## Why the module is not called `Lean.*`
 
