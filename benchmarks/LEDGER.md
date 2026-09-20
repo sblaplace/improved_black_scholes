@@ -16,7 +16,7 @@ Verdict discipline:
 |---|-------|-------------|----|---------|
 | 1 | BRIEF_001 (T1+T2, Lean lane) | arena-ai-coding-agent | [#1](https://github.com/sblaplace/improved_black_scholes/pull/1) | **GREEN** @ `638c66e`, run 35509578689 — `lake build` + `#print axioms` audit + `lint` + `oracle` all pass. Reached on the 8th run; see the CI history. |
 | 2 | BRIEF_002 (oracle ↔ Lean cross-verifier) | — | — | OPEN — not started |
-| 3 | BRIEF_003 (T3 delta identity + T4 bounds) | — | — | OPEN — not started, blocked on #1 |
+| 3 | BRIEF_003 (T3 delta identity + T4 bounds) | arena-ai-coding-agent | [#2](https://github.com/sblaplace/improved_black_scholes/pull/2) | **GREEN** @ `726325d`, run 35514867674 (first green: run 35514609619 @ `2273461`) — `lake build` + `#print axioms` audit + `lint` + `oracle` all pass; ratchet 3 → 0. Reached on the 1st run; see the CI history and correction C4. |
 | 4 | BRIEF_004 (α-stable moment obstruction) | — | — | OPEN — not started, independent of #1–#3 |
 
 ## Corrections and co-recorded changes to the ask
@@ -151,8 +151,9 @@ elaborates to `sorryAx`. Verified free of `sorryAx`:
     BSM.t1_d1_minus_d2    BSM.t2_put_call_parity   BSM.t2_put_call_parity_spread
 
 So T1 and T2 — and the odd-symmetry identity T2 actually rests on — are
-machine-checked results, not prose. Still deferred, and ratcheted at 3 markers:
-`BSM.t3_delta_identity`, `BSM.t4_call_bounds`, `BSM.t4_put_bounds`.
+machine-checked results, not prose. At that point `BSM.t3_delta_identity`,
+`BSM.t4_call_bounds`, `BSM.t4_put_bounds` were still deferred and ratcheted at
+3 markers; they landed in PR #2 (row 3, below).
 
 ### C3 — `docs/04` claimed a mathlib dependency that does not exist
 
@@ -177,6 +178,11 @@ interval integrals. T5 likewise needs `HasDerivAt erf`, now derived rather than
 imported. Both briefs should be re-budgeted before being handed out; BRIEF_003
 already carries the warning in T4's doc-comment.
 
+*(Outcome, PR #2: half right. The Gaussian integral's value was needed and it
+was measure theory — but it entered through `Φ(x) = ∫_{(−∞,x]} φ`, not through
+`|erf x| ≤ 1`, and the bounds `0 ≤ Φ ≤ 1` were the cheap part. The expensive
+part was the T4 *lower* bound, whose recorded route was wrong. See C4.)*
+
 **Generalizable lesson, and the reason this is in the ledger rather than a
 commit message:** a mathlib dependency is a claim about a *specific version* and
 must be checked against that version. Two plausible-looking import paths,
@@ -184,3 +190,84 @@ guessed without a toolchain, cost three red runs. Any brief that adds a mathlib
 dependency should require the author to verify the path against the pinned tag —
 `gh api repos/leanprover-community/mathlib4/contents/<path>?ref=v4.34.0` is
 reachable even where the Lean toolchain is not.
+
+## CI history for row 3 (PR #2)
+
+Two runs, both green. Recorded anyway, because the *reason* it was one run
+rather than eight is the transferable part.
+
+| # | head | `lake build` | notes |
+|---|---|---|---|
+| 1 | `2273461` | **GREEN** 3m54s | T3 + T4 + 18 helper lemmas, first push |
+| 2 | `726325d` | **GREEN** 3m10s | workflow-only change: post the `#print axioms` output as a PR comment on success, so the audit is quotable without artifact access |
+
+What made the difference from PR #1's eight runs: **every mathlib name was
+checked against the pinned tag before pushing**, via
+`gh api repos/leanprover-community/mathlib4/contents/<path>?ref=v4.34.0`, and
+that check caught one real error at the desk — `map_add_right_eq_self` is in
+namespace `MeasureTheory`, not `MeasureTheory.Measure` (its source file `open`s
+`MeasureTheory.Measure`, which is why the sibling `map_neg_eq_self` *looks*
+namespaced in mathlib's own proofs). Three stylistic rules also paid for
+themselves: fully qualified names and no `open`, so nothing resolves by
+accident; `mul_comm`/`mul_assoc` always with explicit arguments, because bare
+`mul_comm` will happily rewrite the `2 * π` inside `√(2π)`; and no `field_simp`,
+whose closes-or-doesn't behaviour cannot be predicted without a toolchain.
+
+### Machine-checked as of run 35514867674
+
+Quoted from the audit comment the workflow now posts on PR #2 — all 25
+declarations in the T1–T4 node depend on exactly
+`[propext, Classical.choice, Quot.sound]` and nothing else:
+
+    BSM.exp_neg_sq_even   BSM.erf_neg   BSM.Phi_add_Phi_neg   BSM.Phi_neg
+    BSM.t1_d1_minus_d2    BSM.t2_put_call_parity   BSM.t2_put_call_parity_spread
+    BSM.phi_neg   BSM.phi_nonneg   BSM.phi_integrable   BSM.phi_add
+    BSM.integral_phi_Iic_zero   BSM.Phi_eq_integral_Iic   BSM.Phi_nonneg   BSM.Phi_le_one
+    BSM.integral_comp_add_right_Iic   BSM.Phi_le_exp_mul_Phi_add
+    BSM.d1_exponent   BSM.d2_exponent   BSM.forward_eq
+    BSM.bsCall_nonneg   BSM.bsPut_nonneg
+    BSM.t3_delta_identity   BSM.t4_call_bounds   BSM.t4_put_bounds
+
+`.github/lean_lint_baseline.json` now reads `"deferred": {}`. The lint's
+`PROTECTED` set covers all of the above, so none of them can go back to `sorry`
+without an automatic reject; `REQUIRED` covers them so none can be deleted.
+
+### C4 — BRIEF_003's T4 route was wrong, and its budget was inverted
+
+**Date:** 2026-09-20. **Trigger:** analysis before writing any Lean, confirmed
+by the proof that landed. Full detail in the correction record at the top of
+`briefs/BRIEF_003_t3_t4_bounds.md` and in the T4 doc-comment in
+`ImprovedBS/Core.lean`.
+
+The brief (and the T4 doc-comment it pointed to) said the lower bound
+`max(F − D, 0) ≤ bsCall` follows from `0 ≤ Φ ≤ 1` plus monotonicity of `Φ` and
+`d2 ≤ d1`. It does not. Monotonicity gives `bsCall ≥ (F − D)·Φ(d1)`, and since
+`0 ≤ Φ(d1) ≤ 1` that is *weaker* than both `bsCall ≥ 0` and `bsCall ≥ F − D`
+in the regime where each is the binding one. Concretely, S=100, K=120, τ=1,
+r=q=0, σ=0.2: `bsCall ≈ 2.15` and `(F − D)·Φ(d1) ≈ −4.17`. A contributor
+following the brief would have proved `Phi_monotone` (real work — it needs
+`Φ′ = φ` or the integral representation) and then found that `linarith` cannot
+close T4 from it, with no explanation in the tree of why.
+
+What the lower bound actually is: the BSM price is the discounted expectation
+of a non-negative payoff, so `bsCall ≥ 0`, `bsPut ≥ 0`, and parity turns the
+second into `bsCall ≥ F − D`. That is a statement about `Φ` as an *integral*,
+and it landed as one inequality, `Phi_le_exp_mul_Phi_add`:
+`Φ(x) ≤ e^{a x + a²/2} Φ(x + a)` for `a ≥ 0`, which is the pointwise identity
+`e^{a u + a²/2} φ(u + a) = φ(u)` (complete the square) integrated over
+`(−∞, x]`. At `x = d2`, `a = σ√τ` it reads `D·Φ(d2) ≤ F·Φ(d1)`; at `x = −d1`
+it reads `F·Φ(−d1) ≤ D·Φ(−d2)`. The same pointwise identity, un-integrated, *is*
+T3. So the budget line was backwards: T3 is an eight-line corollary of the
+tilting identity, and T4 is where the analysis lives — sixteen infrastructure
+lemmas plus the two positivity lemmas, ~200 lines with their doc-comments,
+including a translation-invariance lemma for half-line integrals
+(`integral_comp_add_right_Iic`) that mathlib v4.34.0 has only in reflection form.
+
+**Generalizable:** a recorded proof route is a claim and should be checked the
+way a statement is — by trying to break it on a numeric example *before*
+formalising. Ten seconds with the oracle (`bsCall(100,120,1,0,0,0.2)` against
+`(F − D)·Φ(d1)`) falsified the route; the brief's author had checked the
+*statement* numerically (`test_value_bounds`) but not the *route*. The T4
+doc-comment now records the failed route and the counterexample next to the
+proof, so the next reader does not have to rediscover it.
+

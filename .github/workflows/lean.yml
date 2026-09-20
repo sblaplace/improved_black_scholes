@@ -3,7 +3,7 @@ name: lean
 # Two lanes, deliberately split:
 #
 #   lint  -- needs NO Lean toolchain. Enforces the syntactic half of the
-#            grading rule: no `sorry` in the protected T1/T2 node, the sorry
+#            grading rule: no `sorry` in the protected T1..T4 node, the sorry
 #            ratchet, no new axioms, every stack theorem still declared, and
 #            the anti-vacuity independence guard (d2 not defined from d1,
 #            bsPut not defined from bsCall). Runs in seconds, on any runner,
@@ -190,10 +190,13 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ github.event.number }}
           REPO: ${{ github.repository }}
+          # GITHUB_SHA is the synthetic merge commit on pull_request events;
+          # the head SHA is the one a reader can find in `git log`.
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           set -uo pipefail
           {
-            echo "### Lean CI green on ${GITHUB_SHA::7} — \`#print axioms\` audit"
+            echo "### Lean CI green on ${HEAD_SHA::7} — \`#print axioms\` audit"
             echo
             echo "run: ${GITHUB_SERVER_URL}/${REPO}/actions/runs/${GITHUB_RUN_ID}"
             echo
@@ -222,10 +225,11 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ github.event.number }}
           REPO: ${{ github.repository }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           set -uo pipefail
           {
-            echo "### Lean CI failed on ${GITHUB_SHA::7}"
+            echo "### Lean CI failed on ${HEAD_SHA::7}"
             echo
             # Every log this job produces, labelled. Publishing only the build log
             # is how the `#print axioms` step failed invisibly on run 35509168675:

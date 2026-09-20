@@ -108,13 +108,16 @@ against.
 | —  | `Phi_add_Phi_neg` | `Φ(x) + Φ(−x) = 1` | trivial | **machine-checked** |
 | T1 | `t1_d1_minus_d2` | `d1 − d2 = σ√τ` | easy | **machine-checked** |
 | T2 | `t2_put_call_parity` | put-call parity | easy | **machine-checked** |
-| T3 | `t3_delta_identity` | `S e^{−qτ} φ(d1) = K e^{−rτ} φ(d2)` | medium | stated — proof route recorded |
-| T4 | `t4_call_bounds`, `t4_put_bounds` | no-arbitrage price bounds | medium | stated |
+| T3 | `t3_delta_identity` | `S e^{−qτ} φ(d1) = K e^{−rτ} φ(d2)` | medium | **machine-checked** |
+| T4 | `t4_call_bounds`, `t4_put_bounds` | no-arbitrage price bounds | medium | **machine-checked** |
 | T5 | *(not declared)* | closed form solves the BSM PDE | heavy | deferred — provable *via* T3 |
 | T6 | *(not declared)* | Fourier kernel survives a tempered-stable increment | open | restated, see docs/03 D1 |
 
-T1–T4 are the warm-up tier: routine algebra and monotonicity once the
-toolchain is standing. T5 is the first heavy node, and the plan is to reach it
+T1–T4 are the warm-up tier, and all four are now machine-checked. T4 turned
+out to be less routine than "algebra and monotonicity": its lower bound is the
+positivity of the call and the put, which needs `Φ` as an *integral* of `φ`
+(`Phi_eq_integral_Iic`), not just `0 ≤ Φ ≤ 1` — see ledger correction C4. T5 is
+the first heavy node, and the plan is to reach it
 *through* T3 — the delta identity is exactly the cancellation that makes the
 PDE residual vanish, so T5 is T3 plus the chain rule plus `Φ′ = φ`, not an
 independent slog through `erf` derivatives. T6 is the research claim, and it is
@@ -141,25 +144,31 @@ cheapest high-value theorem in the research tier. Details in docs/03 §D1.
 | Failure modes + research dirs w/ falsifiers | docs/02, docs/03 | written |
 | Lean definitions | `erf`, Φ, φ, d1, d2, bsCall, bsPut — independent, matching the oracle | machine-checked |
 | Lean theorems | `Phi_add_Phi_neg`, T1, T2, T2′ | **GREEN** — `lake build` + `#print axioms` audit, run 35509578689 |
-| Deferred | T3, T4, T4′ stated with proof routes | ratcheted at 3 `sorry`s |
+| Lean theorems | T3, T4, T4′ + the `Φ = ∫ φ` infrastructure (18 lemmas) | **GREEN** — `lake build` + `#print axioms` audit, run 35514867674 |
+| Deferred | *(nothing)* | ratcheted at 0 `sorry`s — `deferred: {}` |
 | Grading lane | briefs/ + benchmarks/ + 2 CI workflows + toolchain-free lint | standing |
 | First brief | BRIEF_001, re-scoped to what is actually checkable | see briefs/ |
 
-**T1 and T2 are machine-checked.** `lake build` is green against mathlib
-v4.34.0 / Lean v4.34.0 and the `#print axioms` audit confirms that
-`Phi_add_Phi_neg`, `Phi_neg`, `erf_neg`, `exp_neg_sq_even`, `t1_d1_minus_d2`,
-`t2_put_call_parity` and `t2_put_call_parity_spread` do not depend on `sorryAx`
-— which is the distinction that matters, since a `sorry` still builds. It took
-eight CI runs to get there; `benchmarks/LEDGER.md` records each failure and what
-it taught, including one runner incident (ENOSPC) that produced no verdict at
-all.
+**T1 through T4 are machine-checked.** `lake build` is green against mathlib
+v4.34.0 / Lean v4.34.0 and the `#print axioms` audit confirms that all 25
+declarations in the T1–T4 node — `Phi_add_Phi_neg`, `Phi_neg`, `erf_neg`,
+`exp_neg_sq_even`, `t1_d1_minus_d2`, `t2_put_call_parity`,
+`t2_put_call_parity_spread`, `t3_delta_identity`, `t4_call_bounds`,
+`t4_put_bounds` and the sixteen lemmas they rest on — depend only on
+`[propext, Classical.choice, Quot.sound]`, never on `sorryAx`. That is the
+distinction that matters, since a `sorry` still builds. T1/T2 took eight CI
+runs (PR #1); T3/T4 landed green on the first run (PR #2) because every mathlib
+name was checked against the pinned tag before pushing. `benchmarks/LEDGER.md`
+records both histories, including one runner incident (ENOSPC) that produced no
+verdict at all.
 
 Three things that green build cost, and that a reader should know:
 
 - **mathlib v4.34.0 has no `Real.erf`.** `docs/04` used to claim it did. `erf`
   is now defined locally from the interval integral and its oddness proved by
-  substitution — enough for parity, *not* enough for T4's bounds, which need the
-  value of the Gaussian integral.
+  substitution — enough for parity. T3/T4 additionally needed
+  `Φ(x) = ∫_{(−∞,x]} φ`, which imports the *value* of the Gaussian integral
+  (`integral_gaussian_Ioi`) in exactly one lemma, `integral_phi_Iic_zero`.
 - All declarations live in `namespace BSM`. A module name is not a namespace,
   and a library that puts `Phi`, `d1` and `erf` in the root namespace is
   claiming names far too generic to claim.

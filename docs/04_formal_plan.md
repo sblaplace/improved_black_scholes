@@ -27,9 +27,11 @@ qualified name of T1 is `BSM.t1_d1_minus_d2`. **The module name is not a
 namespace** — CI run 7 failed on `#print axioms ImprovedBS.t1_d1_minus_d2`
 precisely because of that.
 
-As of run 35509578689 the marked rows are machine-checked: `lake build` green
-*and* the `#print axioms` audit green, i.e. no dependency on `sorryAx`. That
-distinction is the whole point of the audit step, since a `sorry` builds fine.
+As of run 35514867674 (PR #2; T1/T2 first at run 35509578689, PR #1) the
+marked rows are machine-checked: `lake build` green *and* the `#print axioms`
+audit green, i.e. no dependency on `sorryAx`. That distinction is the whole
+point of the audit step, since a `sorry` builds fine. The ratchet baseline is
+`deferred: {}` — nothing in the tree is `sorry`.
 
 | #  | Lean name | statement | difficulty | status |
 |----|-----------|-----------|-----------|--------|
@@ -37,9 +39,9 @@ distinction is the whole point of the audit step, since a `sorry` builds fine.
 | T1 | `t1_d1_minus_d2` | `d1 − d2 = σ√τ` | easy (field algebra) | **machine-checked** |
 | T2 | `t2_put_call_parity` | `bsPut = bsCall − S e^{−qτ} + K e^{−rτ}` | easy (linear, given Φ symmetry) | **machine-checked** |
 | T2′| `t2_put_call_parity_spread` | `bsCall − bsPut = S e^{−qτ} − K e^{−rτ}` | corollary of T2 | **machine-checked** |
-| T3 | `t3_delta_identity` | `S e^{−qτ} φ(d1) = K e^{−rτ} φ(d2)` | medium (exp/log algebra) | stated, `sorry` — route recorded below |
-| T4 | `t4_call_bounds` | `max(S e^{−qτ} − K e^{−rτ}, 0) ≤ bsCall ≤ S e^{−qτ}` | medium (Φ ∈ [0,1], monotone) | stated, `sorry` |
-| T4′| `t4_put_bounds` | mirrored put bounds | corollary of T4 + T2 | stated, `sorry` |
+| T3 | `t3_delta_identity` | `S e^{−qτ} φ(d1) = K e^{−rτ} φ(d2)` | easy, given the tilting identity `phi_add` | **machine-checked** |
+| T4 | `t4_call_bounds` | `max(S e^{−qτ} − K e^{−rτ}, 0) ≤ bsCall ≤ S e^{−qτ}` | medium — positivity via `Φ = ∫ φ`, *not* monotonicity (ledger C4) | **machine-checked** |
+| T4′| `t4_put_bounds` | mirrored put bounds | corollary of T4 + T2 (`linarith` only) | **machine-checked** |
 | T5 | *(not yet declared)* | `V_t + (r−q)S V_S + (σ²/2)S² V_SS = r V` | heavy | deferred — see the spine below |
 | T6 | *(not yet declared)* | Fourier pricing kernel survives a wider increment law | open — research | restated in docs/03 D1 |
 
@@ -61,10 +63,17 @@ Three honest corrections to earlier versions of this table:
 
 The stack is a spine, not six independent chores. Arrows mean "is used by":
 
-    Real.erf_neg ──► Phi_add_Phi_neg ──► T2 ──► T2′
-                                     └──► T4′
-    Real.mul_self_sqrt ──► T1 ──► T3 ──► T5
-                            └──► T4
+    erf_neg ──► Phi_add_Phi_neg ──► T2 ──► T2′
+                                └──► T4′
+    Real.sq_sqrt ──► T1 ──► T3 ──► T5
+                      └──► T4
+    integral_gaussian_Ioi ──► integral_phi_Iic_zero ──► Phi_eq_integral_Iic ──► Phi_nonneg, Phi_le_one
+    phi_add (tilting identity) ──► T3                                       └──► Phi_le_exp_mul_Phi_add ──► bsCall_nonneg, bsPut_nonneg ──► T4
+
+As landed, T3 and the T4 lower bound are the *same* identity —
+`e^{a u + a²/2} φ(u + a) = φ(u)` with `u = d2`, `a = σ√τ` — used pointwise
+(T3) and integrated over a half-line (T4). `d1_exponent` / `d2_exponent` /
+`forward_eq` are the shared exp/log/sqrt glue.
 
 **Prove T5 through T3.** Substituting the closed form into the BSM operator,
 the `S²V_SS` term produces `φ(d1)` and `φ(d2)` contributions whose *difference*
@@ -90,11 +99,12 @@ together, and `.github/workflows/lean.yml` fails the run if they disagree).
 | need | available in mathlib v4.34.0? | used by |
 |---|---|---|
 | `Real.log`, `Real.exp` algebra | **yes** — `Mathlib.Analysis.SpecialFunctions.Log.Basic`, `.../Exp.lean` | d1, d2, T3 |
-| `Real.sqrt`, `Real.mul_self_sqrt`, `Real.sqrt_pos` | **yes** — `Mathlib.Data.Real.Sqrt` | T1, T3 |
+| `Real.sqrt`, `Real.sq_sqrt`, `Real.sqrt_pos`, `Real.sqrt_mul` | **yes** — `Mathlib.Analysis.Real.Sqrt` (`Data.Real.Sqrt` is a deprecated shim as of 2026-05) | T1, T3, T4 |
 | `Real.pi` | **yes** (57 references in the tree) | φ, erf |
 | interval integrals, `integral_comp_neg`, `integral_symm` | **yes** — `Mathlib.MeasureTheory.Integral.IntervalIntegral` | `erf_neg`, hence T2 |
 | **`Real.erf`** | **NO — it does not exist.** See below. | Φ, T2 |
-| `∫ x:ℝ, exp (-(x^2)) = sqrt pi` | **yes** — `Mathlib.Analysis.SpecialFunctions.Gaussian.GaussianIntegral` | T4 bounds, T5 |
+| `integral_gaussian_Ioi : ∫ x in Ioi 0, exp (-b x²) = √(π/b) / 2`, `integrable_exp_neg_mul_sq` | **yes** — `Mathlib.Analysis.SpecialFunctions.Gaussian.GaussianIntegral` | `integral_phi_Iic_zero`, hence T3/T4; T5 |
+| set integrals: `setIntegral_mono_on`, `setIntegral_nonneg`, `integral_Iic_sub_Iic`, `integral_comp_neg_Ioi`, `MeasurableEmbedding.setIntegral_map`, `map_add_right_eq_self` (in `MeasureTheory`, *not* `MeasureTheory.Measure`) | **yes** — verified by name against the v4.34.0 tag before pushing | `Phi_eq_integral_Iic`, `Phi_le_exp_mul_Phi_add` |
 | normal CDF/PDF as a distribution | partial — `Mathlib.Probability.Distributions.Gaussian` has the *measure*, not a CDF function | optional; T5, T6 |
 
 ### `Real.erf` is not in mathlib — corrected
@@ -117,10 +127,13 @@ evidence.
 Consequence: `ImprovedBS/Core.lean` defines `erf` itself, as
 `(2 / sqrt pi) * ∫ t in 0..x, exp (-(t^2))`, and proves `erf_neg` by
 substitution in the interval integral. That is sufficient for T2, which needs
-only *oddness*. It is **not** sufficient for T4, which needs `|erf x| ≤ 1` and
-therefore the *value* of the Gaussian integral — measure theory rather than
-interval integrals, and the genuinely expensive part of that node. T5 likewise
-needs `HasDerivAt erf`, which now has to be derived rather than imported.
+only *oddness*. T3/T4 needed one more thing — `Φ(x) = ∫_{(−∞,x]} φ`
+(`Phi_eq_integral_Iic`), which imports the *value* of the Gaussian integral via
+`integral_gaussian_Ioi` in exactly one lemma (`integral_phi_Iic_zero`) and then
+gives `0 ≤ Φ ≤ 1` and the positivity inequality for free. Note the bounds did
+**not** go through `|erf x| ≤ 1` as previously predicted; `Φ ≥ 0` is
+`setIntegral_nonneg` and `Φ ≤ 1` is `Φ ≥ 0` at `−x` plus `Phi_neg`. T5 still
+needs `HasDerivAt erf`, which has to be derived rather than imported.
 
 If mathlib grows `Real.erf`, delete the local definition and re-point
 `Phi_add_Phi_neg` at `Real.erf_neg`. `scripts/lean_lint.py` has `erf`,
@@ -174,7 +187,7 @@ not yet exist. BRIEF_001 has landed, so 002–004 are all unblocked.
 |---|---|---|---|
 | ~~BRIEF_001~~ | **LANDED GREEN** — `lake build` + `#print axioms`; T1/T2/`Phi_add_Phi_neg` machine-checked | — | was CI-only |
 | BRIEF_002 | oracle ↔ Lean pointwise cross-verifier | 001 | Python half yes; Lean `#eval` no |
-| BRIEF_003 | T3 and T4 proved; sorry baseline → 0 | 001 | no — CI only |
+| ~~BRIEF_003~~ | **LANDED GREEN** — T3, T4, T4′ machine-checked; sorry baseline → 0 (run 35514867674) | 001 | was CI-only |
 | BRIEF_004 | α-stable exponential-moment obstruction (T6 sub-goal 1) | none | no — CI only |
 | *(queued)* | **T5** — closed form solves the BSM PDE, via T3 in `x = Real.log S` coordinates | 003 | no — CI only |
 | *(queued)* | **T6** sub-goals 2–3 — Carr–Madan absolute convergence and agreement with the risk-neutral expectation, for a tempered-stable exponent | 004 | no — CI only |
