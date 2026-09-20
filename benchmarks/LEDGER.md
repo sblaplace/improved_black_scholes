@@ -1,26 +1,24 @@
-# Arena benchmark ledger
+# Ledger
 
-This is the corpus: every model-brief-PR-verdict row this program has
-produced. The table IS the deliverable — "see what new models can do" shows
-up here, accumulating over time.
+Every PR landed against a brief gets a row here. The deliverable is the
+verified theorem stack; this table is the record of how it was reached —
+including the approaches that failed the grader.
 
 Verdict discipline:
 - Only CI-graded verdicts count. A row is `PENDING` until the harness says
   GREEN/RED. No human "looks good".
-- A brief whose proof-assumption is prose-only is RED, by definition of the
-  grader (see ARENA_BRIEF_001).
-- Separate *incident* (harness broke, runner lost) from *verdict* (the model's
-  approach failed the grader). A RED verdict is a research result, not a bug.
+- A brief whose proof is asserted but not checker-backed (a stray `sorry`)
+  is RED, by definition of the grader (see BRIEF_001).
+- Separate *incident* (harness broke, runner lost) from *verdict* (the
+  approach failed the grader). A RED verdict is a result, not a bug report.
 
-| # | brief | model | PR | verdict |
-|---|-------|-------|----|---------|
-| 1 | ARENA_BRIEF_001 (T1+T2, Lean lane) | — | — | pending |
+| # | brief | contributor | PR | verdict |
+|---|-------|-------------|----|---------|
+| 1 | BRIEF_001 (T1+T2, Lean lane) | — | — | pending |
 
 ## Note on brief archival
 
-Per the Arena-brief convention, in-flight briefs start untracked and land as
-historical snapshots after their PR merges. In this public benchmark repo the
-briefs catalog *is* the product, so they are committed in-repo up front (the
-ask + acceptance bar is publicly inspectable); the ledger row and the docs
-carry the live outcome. If a brief is later corrected, the correction is
-co-metadata here — never silent rewrite of the ask.
+Briefs are committed in-repo up front: the ask and the acceptance bar are
+publicly inspectable before any PR exists, and the ledger carries the live
+outcome. If a brief is later corrected, the correction is co-recorded here —
+never a silent rewrite of the ask.
