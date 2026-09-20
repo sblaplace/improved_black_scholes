@@ -36,6 +36,14 @@ Checks
                   arithmetic: both `d1`/`d2` from independent explicit formulas,
                   both puts from an independent closed form. Guards against the
                   two trees drifting into proving different mathematics.
+8. CROSSCHECK SYNC the Float twin in ImprovedBS/Crosscheck.lean keeps its own
+                  independent derivations and its embedded golden grid stays in
+                  sync with tests/golden_grid.json.
+9. PINS           every protected declaration still *says* what
+                  tests/golden_statements.json says it says (see
+                  scripts/pin_statements.py). This is the anti-hollowing guard:
+                  `lake build` proves a theorem is correct, and only this check
+                  notices when a theorem has been quietly changed into `True`.
 
 Exit status is non-zero on any failure, with every failure printed.
 
@@ -46,7 +54,9 @@ Usage:  python3 scripts/lean_lint.py                    # from the repo root
 `--write-baseline` is a deliberate, reviewable act: it records the CURRENT
 deferred-proof markers as the new ceiling. Use it when landing a brief whose
 scope explicitly defers nodes (e.g. T5), never to make a failing lint pass.
-The diff of .github/lean_lint_baseline.json is the audit trail.
+The diff of .github/lean_lint_baseline.json is the audit trail. It refuses to
+write anything while any other check is red, so a re-baseline cannot be used to
+legitimise a tree that is failing for a different reason.
 """
 
 from __future__ import annotations
@@ -134,7 +144,29 @@ PROTECTED = {
 # A `sorry` that survives `lake build` is an axiom. Allow none by default.
 AXIOM_ALLOWLIST: set[str] = set()
 
+# Any one of these in a parity proof means the odd symmetry of the normal law was
+# actually used. See the INDEPENDENCE check for why three names and not one.
+ODD_SYMMETRY_WITNESSES = frozenset({"Phi_add_Phi_neg", "Phi_neg", "erf_neg"})
+
 MARKERS = ("sorry", "admit", "native_decide")
+
+# Structural anchors the [ORACLE SYNC] prohibitions apply to. Checked for
+# *presence*: the independence checks are "must not mention parity"-style
+# negations, and a negation with nothing to negate is a pass, which is how a
+# hollowed-out oracle would otherwise keep the lint job green.
+ORACLE_ANCHORS = (
+    "def norm_cdf(",
+    "def norm_pdf(",
+    "def _d1d2(",
+    "def bs_call(",
+    "def bs_put(",
+    "def bs_put_by_parity(",
+    "def bs_price(",
+    "def bs_pde_residual(",
+    # the independent d2 expression itself: T1's numerical content is a claim
+    # about *this* line, so its absence means T1 is no longer being checked.
+    "(log_m + (r - q - 0.5 * s * s) * tau) / den",
+)
 
 # Optional modifiers: `noncomputable def erf ...` must be seen as a declaration,
 # otherwise a `sorry` hidden inside it escapes the ratchet entirely.
@@ -344,15 +376,24 @@ def main() -> int:
         )
     # and the converse: parity must be reachable from the symmetry lemma
     if "Phi_add_Phi_neg" in bodies and "t2_put_call_parity" in bodies:
-        # Either form of the odd-symmetry identity counts: `Phi_add_Phi_neg`
-        # (Phi x + Phi (-x) = 1) or `Phi_neg` (Phi (-x) = 1 - Phi x), which is
-        # proved from the former. What must not happen is a parity proof that
-        # mentions neither.
-        if not ({"Phi_add_Phi_neg", "Phi_neg"} & set(re.findall(r"\w+", bodies["t2_put_call_parity"]))):
+        # Any of these witnesses *is* the odd symmetry of the normal law:
+        # `Phi_add_Phi_neg` (Phi x + Phi (-x) = 1), `Phi_neg` (Phi (-x) = 1 - Phi x,
+        # proved from it), or `erf_neg` -- `Phi` is defined as (1 + erf (x/sqrt 2))/2,
+        # so citing `erf_neg` is odd symmetry applied one step closer to the source.
+        # What must not happen is a parity proof that cites no symmetry at all.
+        #
+        # Matching the *content* rather than one preferred *name* is deliberate. A
+        # guard that rejects a legitimate proof (`simp only [bsPut, bsCall, Phi,
+        # erf_neg]` proves T2 and is arguably the more honest route) is a guard
+        # that will get loosened or switched off the first time it fires on real
+        # work -- and then it protects nothing. Pin the requirement, not the style.
+        cited = set(re.findall(r"\w+", bodies["t2_put_call_parity"]))
+        if not (ODD_SYMMETRY_WITNESSES & cited):
             failures.append(
-                "[INDEPENDENCE] `t2_put_call_parity` cites neither "
-                "`Phi_add_Phi_neg` nor `Phi_neg`. BRIEF_001 requires the "
-                "odd-symmetry identity to be used, not merely to exist."
+                "[INDEPENDENCE] `t2_put_call_parity` cites none of "
+                f"{sorted(ODD_SYMMETRY_WITNESSES)}. BRIEF_001 requires the odd-symmetry "
+                "identity to be *used*, not merely to exist: without it parity is not a "
+                "claim about the normal law at all."
             )
     else:
         failures.append("[INDEPENDENCE] `Phi_add_Phi_neg` or `t2_put_call_parity` is missing")
@@ -360,6 +401,23 @@ def main() -> int:
     # 7. oracle sync
     if os.path.exists(ORACLE_PATH):
         orc = open(ORACLE_PATH, encoding="utf-8").read()
+
+        # Positive anchors first. Every other ORACLE SYNC check below is a
+        # prohibition ("bs_put must not mention parity"), and a set of
+        # prohibitions is satisfied by an empty file: hollow out or rename the
+        # oracle and the sync check goes green while checking nothing. So the
+        # structure the prohibitions apply to has to be *asserted present*, the
+        # way tests/test_mutants.py asserts its mutation anchors exist.
+        missing = [a for a in ORACLE_ANCHORS if a not in orc]
+        if missing:
+            failures.append(
+                "[ORACLE SYNC] experiments/black_scholes.py is missing "
+                + ", ".join(missing)
+                + ". The independence checks below are prohibitions on these bodies; "
+                "if the bodies are gone the checks are vacuous, so this is a red rather "
+                "than a pass. (The oracle lane would also be red, but the lint job runs "
+                "without it and must not depend on that.)"
+            )
 
         def py_body(fn: str) -> str:
             """Body of `def fn(...)`, with `#` comments removed."""
@@ -427,7 +485,39 @@ def main() -> int:
 
         notes.append("[CROSSCHECK SYNC] Crosscheck.lean independent derivations & golden grid verified")
 
+    # 9. statement pins -- the anti-hollowing guard
+    #    Every check above can be satisfied by a *vacuous* theorem: `theorem
+    #    t4_call_bounds ... : True := trivial` has no `sorry`, cites nothing it
+    #    should not, keeps its name, and builds. Nothing else in the repo can see
+    #    that the claim is gone -- the oracle has no idea what a Lean statement is.
+    #    So compare each protected declaration against the text committed in
+    #    tests/golden_statements.json, which needs no toolchain. See
+    #    scripts/pin_statements.py for why theorems pin their statement and defs
+    #    pin their whole body.
+    sys.path.insert(0, os.path.join(ROOT, "scripts"))
+    try:
+        import pin_statements
+
+        pin_failures = pin_statements.check()
+    except Exception as e:  # a sub-check that cannot run is a failure, not a pass
+        pin_failures = [f"[PINS] pin check failed to run: {e!r}"]
+    if pin_failures:
+        failures.extend(pin_failures)
+    else:
+        notes.append(
+            "[PINS] every protected statement matches tests/golden_statements.json "
+            "(elaborated-type pins are checked in the build job, not here)"
+        )
+
     if "--write-baseline" in sys.argv:
+        if failures:
+            print(
+                "REFUSING to write baseline: the tree has other lint failures. A re-baseline "
+                "records the deferred-proof budget; it is not a way to legitimise a tree that "
+                "is red for a different reason.\n"
+                + "\n".join("  - " + f for f in failures[:8])
+            )
+            return 1
         protected_hits = sorted(set(found_deferred) & PROTECTED)
         if protected_hits:
             print(

@@ -35,6 +35,14 @@ jobs:
       - name: Run mutation harness (proves the oracle tests are falsifiers)
         run: python3 tests/test_mutants.py
 
+      - name: Run the lint's own mutation harness (21 cheats seeded into the Lean tree)
+        # scripts/lean_lint.py has authority over how the Lean tree is *labelled*
+        # and it gates the `lean` workflow's build job, so it gets the same
+        # treatment as the oracle: seeded cheats must each be killed by a named
+        # check, and legitimate edits (a rewrapped proof, a parity reproved via
+        # erf_neg) must stay green. Pure Python; no toolchain, by design.
+        run: python3 tests/test_lint.py
+
       - name: Run crosscheck grid & mutant tests
         run: python3 tests/test_crosscheck.py
 

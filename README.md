@@ -55,6 +55,33 @@ both trees, and the property is enforced mechanically:
   killed by the test meant to kill it. Two of them exist purely to prove the
   parity and `d1 − d2` tests can fail.
 
+A third lane closes a gap neither of those could see. `lake build` proves a proof is
+*correct*; nothing proves a theorem is still *the theorem*. Restate a landed node as
+
+    theorem t4_call_bounds (S K tau r q sigma : ℝ)
+        (hS : 0 < S) (hK : 0 < K) (htau : 0 < tau) (hsigma : 0 < sigma) : True := trivial
+
+and it builds, shows no `sorryAx` — because `True` really is provable, which is what
+makes it a *sound* way to say nothing — keeps its name for the lint's `REQUIRED`
+check, and leaves the oracle suite at 13/13, since the oracle has no idea what a
+Lean statement is. So every declaration in the protected stack is pinned in
+`tests/golden_statements.json`: a theorem by its **statement**, a definition by its
+**body** (a definition *is* the specification). `scripts/pin_statements.py`
+extracts and compares; `lean_lint.py` enforces it with no toolchain, and the build
+job re-elaborates the pinned `#check` types and `#print axioms` output, which is
+where a statement that *reads* the same but elaborates differently gets caught.
+Weakening a claim is still allowed. It is now a diff a reviewer sees.
+
+And because `lean_lint.py` has authority over how the Lean tree is labelled while
+nothing had authority over *it*, `tests/test_lint.py` seeds 21 cheats into copies
+of the tree and requires each to be killed by a *named* check, keeps 5 legitimate
+edits green (a re-wrapped proof, marker words inside a comment, parity reproved
+from `erf_neg` directly), and asserts — rather than folklore-claims — the one
+attack the toolchain-free lanes provably cannot see: hollow the statement *and*
+regenerate the pins. That is also why swapping the numeric oracle for another
+language would have bought nothing here. The oracle is a probe; the linter was the
+pillar, and a pillar in any language is unverified until something pushes on it.
+
 ## How the work is packaged
 
 Every unit of work is a self-contained brief in `briefs/`: background
@@ -91,8 +118,8 @@ lake-manifest.json  # exact dependency revisions (reproducibility)
 briefs/             # task briefs: self-contained work orders, one PR each
 benchmarks/         # ledger: brief -> PR -> CI verdict
 experiments/        # numeric oracle (stdlib-only) — the sanity handrail
-tests/              # oracle tests + mutation harness (pure python, no deps)
-scripts/            # lean_lint.py: toolchain-free enforcement of the grading rule
+tests/              # oracle tests + 2 mutation harnesses + the pinned claims (json)
+scripts/            # lean_lint.py, pin_statements.py, gen_grid.py: toolchain-free grading
 docs/               # 01 baseline math, 02 failure modes, 03 research dirs, 04 formal plan
 .github/workflows/  # CI: oracle lane + lean lane (lint job, then build job)
 ```
@@ -146,7 +173,9 @@ cheapest high-value theorem in the research tier. Details in docs/03 §D1.
 | Lean theorems | `Phi_add_Phi_neg`, T1, T2, T2′ | **GREEN** — `lake build` + `#print axioms` audit, run 35509578689 |
 | Lean theorems | T3, T4, T4′ + the `Φ = ∫ φ` infrastructure (18 lemmas) | **GREEN** — `lake build` + `#print axioms` audit, run 35514867674 |
 | Deferred | *(nothing)* | ratcheted at 0 `sorry`s — `deferred: {}` |
-| Grading lane | briefs/ + benchmarks/ + 2 CI workflows + toolchain-free lint | standing |
+| Lint is a falsifier | `tests/test_lint.py`: 21 seeded cheats each killed by a named check, 5 legitimate edits green, 1 local gap asserted open | verified — 7/7 tests |
+| Pinned claims | `tests/golden_statements.json`: 31 declarations — theorem statements, definition bodies | machine-checked (source level, no toolchain); `#check`/axioms layer runs in the build job |
+| Grading lane | briefs/ + benchmarks/ + 2 CI workflows + toolchain-free lint + pins | standing |
 | First brief | BRIEF_001, re-scoped to what is actually checkable | see briefs/ |
 
 **T1 through T4 are machine-checked.** `lake build` is green against mathlib
@@ -190,10 +219,15 @@ All three are dependency-free Python; none needs a Lean toolchain.
 ```sh
 python3 tests/test_bs.py          # 13/13 — the oracle satisfies the claimed identities
 python3 tests/test_mutants.py     #  4/4  — and those tests can actually fail (11 mutants)
-python3 scripts/lean_lint.py      #  OK   — no sorry in the protected node, ratchet, independence
+python3 tests/test_lint.py        #  7/7  — the linter can fail too (21 cheats, 5 controls)
+python3 scripts/lean_lint.py      #  OK   — no sorry in the protected node, ratchet, independence, pins
+python3 scripts/pin_statements.py --check   # 31 statements match tests/golden_statements.json
 # or, with pytest installed:
 pytest tests/
 ```
+
+`tests/test_lint.py` needs no Lean toolchain by design: it mutates copies of the
+tree and runs the lint against them, exactly as the lint runs in CI.
 
 The Lean build itself needs elan + the mathlib cache:
 

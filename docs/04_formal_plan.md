@@ -158,7 +158,7 @@ is actually needed, which is the information a narrowing PR requires.
 ## Oracle ↔ formal correspondence
 
 The Python oracle and the Lean tree share notation *and* arithmetic meaning,
-but they are still two hand-written sources, so they can drift. Three guards,
+but they are still two hand-written sources, so they can drift. Four guards,
 in increasing strength:
 
 1. **Structural** — `scripts/lean_lint.py` `[ORACLE SYNC]` checks that both
@@ -172,8 +172,51 @@ in increasing strength:
    `ImprovedBS/Crosscheck.lean` (`#eval`), `tests/test_crosscheck.py`, and wired into
    CI. Not a proof — a contradiction detector against code drift.
 
+4. **Pinned claims** — guards (1)–(3) can all be satisfied by a tree that proves
+   the *right equations about the wrong claim*, because none of them reads a
+   statement. `tests/golden_statements.json` pins every declaration in
+   `REQUIRED | PROTECTED` — a theorem by its statement (the text through the first
+   `:=`), a definition by its whole body, since a definition *is* the
+   specification. `scripts/pin_statements.py` extracts and compares;
+   `lean_lint.py` enforces the source-level half with no toolchain, and the build
+   job enforces the elaborated half (`#check` type + `#print axioms` per constant)
+   where a toolchain exists. `--write` refreshes layer 1 only, so an author
+   without a toolchain cannot silently drop layer 2.
+
+   Why two layers, and what each one is *not*: the source-level layer catches a
+   re-stated claim (`: True`, a dropped hypothesis, `theorem`→`def`, a duplicate
+   shadow declaration, a shrunk artifact) on any runner, but it cannot distinguish
+   "the claim changed" from "the claim was hollowed and the pins regenerated" —
+   regeneration is a legal act, and forbidding it would punish every honest
+   restatement. The elaborated layer closes that, because `#check
+   @BSM.t4_call_bounds` printing `: True` is a diff against a committed type. The
+   limit is asserted mechanically, in
+   `tests/test_lint.py::test_known_local_gaps_stay_open`, rather than left as
+   folklore: if the local layer ever gets strong enough to catch it, that test
+   goes red and this paragraph must be rewritten.
+
+   Note what this replaces. The audit that prompted these pins found the repo's own
+   rule — *a green check is only evidence if it could have been red* — applied to
+   the proofs (no `sorry`), to the tests (`test_mutants.py`), and to the
+   oracle↔Lean correspondence (guards 1–3), but not to `lean_lint.py` itself,
+   which is the artefact with actual authority over how the Lean tree is
+   labelled: 20 KB of regexes over a proof assistant's source, gating `lake build`
+   via `needs:`. That is the "unverified second pillar" this repository is
+   exposed to — not the numeric oracle, which no theorem imports and whose removal
+   would leave T1–T4 standing (it would leave the *gate* unable to run, which is a
+   different and fixable problem). `tests/test_lint.py` seeds 21 cheats into
+   throwaway copies of the tree and requires each to be killed by a named check —
+   the 11-mutant discipline, turned on the grader — while 5 controls (a marker word
+   inside a comment, a re-wrapped statement, parity reproved from `erf_neg`
+   directly) must stay green, since a guard that rejects legitimate work is a guard
+   that gets disabled. Two of its results are worth quoting: with `[PINS]` removed
+   from the lint, 7 of the 21 mutants survive; with the odd-symmetry guard narrowed
+   back to a single preferred lemma name, a correct proof of T2 goes red.
+
 Until (3) existed, the correspondence rested on (1) and (2) plus human reading of
-docs/01 §4. All three guards are now active.
+docs/01 §4. All four guards are now active; guard (4)'s elaborated layer is
+CI-only, like `lake build` itself, and its `elab` block is produced by the first
+build run and committed from that run's published log.
 
 ## The brief queue
 
