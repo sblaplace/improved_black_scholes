@@ -178,6 +178,7 @@ cheapest high-value theorem in the research tier. Details in docs/03 §D1.
 | Lean definitions | `erf`, Φ, φ, d1, d2, bsCall, bsPut — independent, matching the oracle | machine-checked |
 | Lean theorems | `Phi_add_Phi_neg`, T1, T2, T2′ | **GREEN** — `lake build` + `#print axioms` audit, run 35509578689 |
 | Lean theorems | T3, T4, T4′ + the `Φ = ∫ φ` infrastructure (18 lemmas) | **GREEN** — `lake build` + `#print axioms` audit, run 35514867674 |
+| Lean theorems | T6 sub-goal 1: the moment obstruction (`ImprovedBS/Levy.lean`, 7 declarations) | **GREEN** — `lake build` + `#print axioms` audit + statement pins, run 35523250105 |
 | Deferred | *(nothing)* | ratcheted at 0 `sorry`s — `deferred: {}` |
 | Lint is a falsifier | `tests/test_lint.py`: 22 seeded cheats each killed by a named check, 5 legitimate edits green, 1 residual gap asserted open | verified — 7/7 tests |
 | Pinned claims | `tests/golden_statements.json`: 38 declarations — theorem statements, definition bodies | machine-checked (source level, no toolchain); `#check`/axioms layer runs in the build job |
@@ -196,6 +197,22 @@ runs (PR #1); T3/T4 landed green on the first run (PR #2) because every mathlib
 name was checked against the pinned tag before pushing. `benchmarks/LEDGER.md`
 records both histories, including one runner incident (ENOSPC) that produced no
 verdict at all.
+
+**T6 sub-goal 1 is machine-checked too** (BRIEF_004, run 35523250105), and it is
+where the repository's thesis starts to bite: a probability measure whose upper
+tail is bounded below by `c·x^(−α)` has **no finite exponential moment**, for
+every real `α` — `ImprovedBS/Levy.lean` proves it through the half-line levels
+`x = 2^k` and `exp u / u^s → ∞` — and the two corollaries that make it a finance
+result: `S_T = S₀·e^{X_τ}` has infinite first moment, and no shift of the drift
+repairs it. That is the negative half of T6 as a theorem rather than a
+paragraph, and it is why the tempered (CGMY) hypothesis in `docs/03` §D1 is
+earned. Two corrections to the brief that demanded it are recorded in
+`benchmarks/LEDGER.md` C7; one of them (`α < 2` is not needed, and the sanity
+check that insisted on it was a false statement about Gaussian tails) makes the
+theorem strictly stronger than the brief asked for. What is *not* checked: the
+specialization to the symmetric α-stable law, since mathlib v4.34.0 has no such
+law — the tail bound enters as the hypothesis and the `c = F(−α)` constant stays
+a citation, as scope item 3 allows.
 
 Three things that green build cost, and that a reader should know:
 

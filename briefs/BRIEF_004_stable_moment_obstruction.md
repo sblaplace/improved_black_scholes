@@ -1,13 +1,15 @@
 # BRIEF_004 — The α-stable moment obstruction (T6, sub-goal 1)
 
-- **Status:** IN PROGRESS — PR
-  [#5](https://github.com/sblaplace/improved_black_scholes/pull/5), commit
-  `54a0ff6`. `ImprovedBS/Levy.lean` is in the tree (seven declarations, no
-  `sorry`), imported by the root module, listed in `REQUIRED`/`PROTECTED` and in
-  the `#print axioms` audit, pins refreshed 31 → 38. The verdict is CI's and is
-  recorded in `benchmarks/LEDGER.md` row 4; the correction record below is
-  written now because both corrections were found by *proving* the theorem, not
-  by running the grader.
+- **Status: LANDED — GREEN.** PR
+  [#5](https://github.com/sblaplace/improved_black_scholes/pull/5), run
+  35523250105, commit `d61c874`. `lake build` green against mathlib v4.34.0 and
+  the `#print axioms` audit green for all seven new constants in
+  `ImprovedBS/Levy.lean` (on `[propext, Classical.choice, Quot.sound]` only).
+  The theorem is proved for **every real `α`**, not for `α < 2`: acceptance item
+  4 is superseded by correction C7 below, with the two corrections recorded
+  rather than edited in silently. The specialization to the symmetric
+  α-stable law is *not* machine-checked and is declared as such in the module,
+  the PR and the ledger, per scope item 3.
 - **Prerequisite PRs:** none in the Lean tree. This brief is deliberately
   independent of BRIEF_001–003: it needs no BS machinery at all.
 
