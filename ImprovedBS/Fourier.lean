@@ -67,9 +67,12 @@
 
   Numerical route-checks for both halves were run before any Lean and are
   recorded in briefs/BRIEF_005_t6_tempered_contour.md (ledger C4's rule:
-  break the route on numbers first). The remaining one-name risks in this
-  file are bundled into single-point lemmas (`complex_abs_exp`) so that if
-  the mathlib spelling moved, CI reports exactly one line.
+  break the route on numbers first). Every mathlib name in this file is now
+  verified at the pinned tag v4.34.0 — the first CI run caught four renamings
+  left over from offline authoring (`Complex.abs`/`abs_exp` → `Complex.norm_exp`,
+  `Set.indicator_of_not_mem` → `indicator_of_notMem`, lowercase
+  `integrableOn_univ`, `Real.continuous_rpow_const`), and all call sites use
+  the tag-verified spellings.
 
   Authored without a local Lean toolchain, under the same discipline as
   BRIEF_004: every mathlib name used below was checked against the pinned tag
@@ -121,8 +124,8 @@ theorem integrable_exp_neg_abs_rpow {c Y : ℝ} (hc : 0 < c) (hY : 0 < Y) :
   have hmeas : MeasurableSet (Set.Ioi (0 : ℝ)) := measurableSet_Ioi
   have hcont : Continuous fun u : ℝ => Real.exp (-c * |u| ^ Y) :=
     Real.continuous_exp.comp
-      (continuous_const.mul ((continuous_rpow_const hY.le).comp continuous_abs))
-  rw [← IntegrableOn_univ, ← @Iio_union_Ici _ _ (0 : ℝ), integrableOn_union,
+      (continuous_const.mul ((Real.continuous_rpow_const hY.le).comp continuous_abs))
+  rw [← integrableOn_univ, ← @Iio_union_Ici _ _ (0 : ℝ), integrableOn_union,
     integrableOn_Ici_iff_integrableOn_Ioi]
   refine ⟨?_, ?_⟩
   · -- the left half-line: transport the right one across `u ↦ −u`
@@ -177,7 +180,7 @@ theorem cmDenom_norm (α u : ℝ) :
   unfold cmDenom
   exact Complex.norm_add_mul_I (α ^ 2 + α - u ^ 2) ((2 * α + 1) * u)
 
-theorem cmDenom_sq_pos (hα : 0 < α) (u : ℝ) :
+theorem cmDenom_sq_pos (α : ℝ) (hα : 0 < α) (u : ℝ) :
     0 < (α ^ 2 + α - u ^ 2) ^ 2 + ((2 * α + 1) * u) ^ 2 := by
   rw [cmDenom_expand]
   have hconst : 0 < (α ^ 2 + α) ^ 2 := by
@@ -192,7 +195,7 @@ theorem cmDenom_sq_pos (hα : 0 < α) (u : ℝ) :
 
 /-- For `0 < α` the denominator has no zero on the real contour: at `u = 0` the
 constant term `(α·(α+1))²` is positive, and at `u ≠ 0` the quartic term is. -/
-theorem cmDenom_ne_zero (hα : 0 < α) (u : ℝ) : cmDenom α u ≠ 0 := by
+theorem cmDenom_ne_zero (α : ℝ) (hα : 0 < α) (u : ℝ) : cmDenom α u ≠ 0 := by
   intro hz
   have hnormsq : ‖cmDenom α u‖ ^ 2
       = (α ^ 2 + α - u ^ 2) ^ 2 + ((2 * α + 1) * u) ^ 2 := by
@@ -201,7 +204,7 @@ theorem cmDenom_ne_zero (hα : 0 < α) (u : ℝ) : cmDenom α u ≠ 0 := by
   have hz0 : ‖cmDenom α u‖ = 0 := by rw [hz, norm_zero]
   have hsum : (α ^ 2 + α - u ^ 2) ^ 2 + ((2 * α + 1) * u) ^ 2 = 0 := by
     rw [← hnormsq, hz0]; norm_num
-  exact ne_of_gt (cmDenom_sq_pos hα u) hsum
+  exact ne_of_gt (cmDenom_sq_pos α hα u) hsum
 
 theorem cmDenom_continuous (α : ℝ) : Continuous fun u : ℝ => cmDenom α u := by
   unfold cmDenom
@@ -211,9 +214,9 @@ theorem cmDenom_continuous (α : ℝ) : Continuous fun u : ℝ => cmDenom α u :
 this module actually uses: `u² · ‖denom(u)⁻¹‖ ≤ 1` for `1 ≤ |u|`.
 Stated without reciprocals of order-theoretic lemmas so that every step is a
 core `mul_le_mul` fact. -/
-theorem cmDenom_inv_norm_mul_sq_le (hα : 0 < α) {u : ℝ} (hu : 1 ≤ |u|) :
+theorem cmDenom_inv_norm_mul_sq_le (α : ℝ) (hα : 0 < α) {u : ℝ} (hu : 1 ≤ |u|) :
     u ^ 2 * ‖(cmDenom α u)⁻¹‖ ≤ 1 := by
-  have hne := cmDenom_ne_zero hα u
+  have hne := cmDenom_ne_zero α hα u
   have hnormpos : 0 < ‖cmDenom α u‖ := norm_pos_iff.mpr hne
   have hsq : u ^ 2 ≤ ‖cmDenom α u‖ := by
     rw [cmDenom_norm]
@@ -245,7 +248,7 @@ theorem carrMadanKernel_continuous {φ : ℂ → ℂ} {α : ℝ} (hα : 0 < α)
     (hcont : Continuous fun u : ℝ => φ (↑u + ↑α * Complex.I)) :
     Continuous fun u : ℝ => carrMadanKernel φ α u := by
   unfold carrMadanKernel
-  exact hcont.mul ((cmDenom_continuous α).inv₀ fun u => cmDenom_ne_zero hα u)
+  exact hcont.mul ((cmDenom_continuous α).inv₀ fun u => cmDenom_ne_zero α hα u)
 
 /-- **Absolute convergence of the tempered contour (T6 sub-goal 2).**
 If the model factor is continuous on the contour and satisfies the tempered
@@ -271,8 +274,16 @@ theorem carrMadanKernel_integrable {φ : ℂ → ℂ} {α : ℝ} (hα : 0 < α)
     le_trans (norm_nonneg _)
       (hB ⟨(0 : ℝ), humem₀, rfl⟩)
   -- the dominating function: the window constant plus the global tempered tail
+  -- (`integrableOn_const`'s auto-discharge tactics go into a depth-limit loop
+  -- on this goal in CI, so both side-conditions are proved here explicitly,
+  -- with names verified at the pinned tag)
+  have hvol : volume (Set.Icc (-(max u₀ 1)) (max u₀ 1)) ≠ ⊤ := by
+    rw [Real.volume_Icc]; exact ENNReal.ofReal_ne_top
+  have hCe : ‖B‖ₑ ≠ ⊤ := by
+    rw [Real.enorm_eq_ofReal_abs]; exact ENNReal.ofReal_ne_top
   have hwin_int : Integrable ((Set.Icc (-(max u₀ 1)) (max u₀ 1)).indicator fun _ : ℝ => B) :=
-    IntegrableOn.integrable_indicator integrableOn_const measurableSet_Icc
+    IntegrableOn.integrable_indicator
+      (integrableOn_const (hs := hvol) (hC := hCe)) measurableSet_Icc
   have htail_int : Integrable fun u : ℝ => D * Real.exp (-c * |u| ^ Y) :=
     (integrable_exp_neg_abs_rpow hc hY).const_mul D
   have hg_int : Integrable
@@ -298,7 +309,7 @@ theorem carrMadanKernel_integrable {φ : ℂ → ℂ} {α : ℝ} (hα : 0 < α)
         rw [Set.mem_Icc]
         rintro ⟨-, h2⟩
         exact not_le.mpr huW h2
-      rw [Set.indicator_of_not_mem humem, zero_add]
+      rw [Set.indicator_of_notMem humem, zero_add]
       have hu₀ : u₀ ≤ |u| := le_trans (le_max_left _ _) huW.le
       have h1 : (1 : ℝ) ≤ |u| := le_trans (le_max_right _ _) huW.le
       have hu2 : (1 : ℝ) ≤ u ^ 2 := by
@@ -313,7 +324,7 @@ theorem carrMadanKernel_integrable {φ : ℂ → ℂ} {α : ℝ} (hα : 0 < α)
             rw [norm_mul, mul_assoc]
         _ ≤ ‖φ (↑u + ↑α * Complex.I)‖ * 1 :=
             mul_le_mul_of_nonneg_left
-              (by rw [mul_comm]; exact cmDenom_inv_norm_mul_sq_le hα h1) (norm_nonneg _)
+              (by rw [mul_comm]; exact cmDenom_inv_norm_mul_sq_le α hα h1) (norm_nonneg _)
         _ = ‖φ (↑u + ↑α * Complex.I)‖ := mul_one _
         _ ≤ D * Real.exp (-c * |u| ^ Y) := hdecay u hu₀
   refine hg_int.mono'
@@ -322,7 +333,7 @@ theorem carrMadanKernel_integrable {φ : ℂ → ℂ} {α : ℝ} (hα : 0 < α)
   have hind_nn : 0 ≤ (Set.Icc (-(max u₀ 1)) (max u₀ 1)).indicator (fun _ : ℝ => B) u := by
     by_cases hm : u ∈ Set.Icc (-(max u₀ 1)) (max u₀ 1)
     · rw [Set.indicator_of_mem hm]; exact hBnonneg
-    · rw [Set.indicator_of_not_mem hm]
+    · rw [Set.indicator_of_notMem hm]
   rw [Real.norm_eq_abs,
     abs_of_nonneg (add_nonneg hind_nn (mul_nonneg hD (Real.exp_pos _).le))]
   exact hbound u
@@ -331,18 +342,14 @@ theorem carrMadanKernel_integrable {φ : ℂ → ℂ} {α : ℝ} (hα : 0 < α)
 one, so dressing the kernel with it never affects absolute convergence. -/
 def carrMadanPhase (tau u : ℝ) : ℂ := Complex.exp (Complex.I * ↑(u * tau))
 
-/-- The one remaining mathlib-name risk, bundled: the modulus of a complex
-exponential is the real exponential of the real part. At v4.34.0 the spelling
-is `Complex.abs_exp`; if it moves, CI reports exactly this line. -/
-theorem complex_abs_exp (z : ℂ) : Complex.abs (Complex.exp z) = Real.exp z.re :=
-  Complex.abs_exp z
-
-theorem carrMadanPhase_abs (tau u : ℝ) :
-    Complex.abs (carrMadanPhase tau u) = 1 := by
+/-- The modulus of a complex exponential is the real exponential of the real
+part — at mathlib v4.34.0 that is `Complex.norm_exp`, from
+`Mathlib/Analysis/Complex/Trigonometric.lean` (`Complex.abs` does not exist at
+the tag; the norm spelling is the only one). The phase form
+`‖exp (I * ↑x)‖ = 1` is `Complex.norm_exp_I_mul_ofReal`, used directly. -/
+theorem carrMadanPhase_norm (tau u : ℝ) : ‖carrMadanPhase tau u‖ = 1 := by
   unfold carrMadanPhase
-  rw [complex_abs_exp]
-  have : (Complex.I * (↑(u * tau) : ℂ)).re = 0 := by simp
-  rw [this, Real.exp_zero]
+  exact Complex.norm_exp_I_mul_ofReal (u * tau)
 
 /-- The full dressed pricing integrand — phase, discount factor, `1/(2π)` —
 is integrable whenever the kernel is. The phase contributes only a modulus-1
@@ -356,14 +363,14 @@ theorem carrMadan_price_integrable {φ : ℂ → ℂ} {α : ℝ} (hα : 0 < α)
     (r tau : ℝ) :
     Integrable (fun u : ℝ => ((Real.exp (-r * tau) / (2 * Real.pi) : ℝ) : ℂ) •
       (carrMadanPhase tau u * carrMadanKernel φ α u)) volume := by
-  refine Integrable.smul _
+  refine Integrable.smul ((Real.exp (-r * tau) / (2 * Real.pi) : ℝ) : ℂ)
     ((carrMadanKernel_integrable hα hcont hc hD hY hdecay).bdd_mul ?_ ?_)
   · have hphase_cont : Continuous fun u : ℝ => carrMadanPhase tau u := by
       unfold carrMadanPhase
       continuity
     exact hphase_cont.measurable.aestronglyMeasurable
   · exact Filter.Eventually.of_forall fun u =>
-      le_of_eq (carrMadanPhase_abs tau u)
+      le_of_eq (carrMadanPhase_norm tau u)
 
 /-!
 --------------------------------------------------------------------------
@@ -383,8 +390,12 @@ half-variance rate `σ²τ/2` and `m` the log-drift per unit time times `τ`. -/
 def gbmCharFactor (m s : ℝ) (v : ℂ) : ℂ :=
   Complex.exp (Complex.I * ↑m * v - ↑s * v ^ 2)
 
-theorem gbmCharFactor_contour_abs (m s u α : ℝ) :
-    Complex.abs (gbmCharFactor m s (↑u + ↑α * Complex.I))
+/-- The contour modulus. On the contour `v = u + iα`, the exponent's real part
+is `s·α² − α·m − s·u²`, so `Complex.norm_exp` gives the modulus EXACTLY — the
+tempered hypothesis will be met with equality, `Y = 2`, `c = s`,
+`D = exp (s·α² − α·m)`. -/
+theorem gbmCharFactor_contour_norm (m s u α : ℝ) :
+    ‖gbmCharFactor m s (↑u + ↑α * Complex.I)‖
       = Real.exp (s * α ^ 2 - α * m) * Real.exp (-(s * u ^ 2)) := by
   have hre : (Complex.I * ↑m * (↑u + ↑α * Complex.I)
         - ↑s * (↑u + ↑α * Complex.I) ^ 2).re = s * α ^ 2 - α * m - s * u ^ 2 := by
@@ -393,16 +404,9 @@ theorem gbmCharFactor_contour_abs (m s u α : ℝ) :
       Complex.I_re, Complex.I_im, pow_two]
     ring
   unfold gbmCharFactor
-  rw [complex_abs_exp, hre, ← Real.exp_add]
+  rw [Complex.norm_exp, hre, ← Real.exp_add]
   congr 1
   ring
-
-/-- The contour modulus, as a norm (norm and `Complex.abs` are definitionally
-equal on ℂ; this is the form the kernel's hypothesis takes). -/
-theorem gbmCharFactor_contour_norm (m s u α : ℝ) :
-    ‖gbmCharFactor m s (↑u + ↑α * Complex.I)‖
-      = Real.exp (s * α ^ 2 - α * m) * Real.exp (-(s * u ^ 2)) :=
-  gbmCharFactor_contour_abs m s u α
 
 theorem gbmCharFactor_contour_continuous (m s α : ℝ) :
     Continuous fun u : ℝ => gbmCharFactor m s (↑u + ↑α * Complex.I) := by

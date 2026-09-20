@@ -240,7 +240,7 @@
     "BSM.cmDenom_ne_zero": {
       "file": "ImprovedBS/Fourier.lean",
       "kind": "theorem",
-      "pin": "theorem cmDenom_ne_zero (hα : 0 < α) (u : ℝ) : cmDenom α u ≠ 0"
+      "pin": "theorem cmDenom_ne_zero (α : ℝ) (hα : 0 < α) (u : ℝ) : cmDenom α u ≠ 0"
     },
     "BSM.cmDenom_u4_le": {
       "file": "ImprovedBS/Fourier.lean",
