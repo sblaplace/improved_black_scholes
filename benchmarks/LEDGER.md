@@ -15,7 +15,7 @@ Verdict discipline:
 | # | brief | contributor | PR | verdict |
 |---|-------|-------------|----|---------|
 | 1 | BRIEF_001 (T1+T2, Lean lane) | arena-ai-coding-agent | [#1](https://github.com/sblaplace/improved_black_scholes/pull/1) | **GREEN** @ `638c66e`, run 35509578689 — `lake build` + `#print axioms` audit + `lint` + `oracle` all pass. Reached on the 8th run; see the CI history. |
-| 2 | BRIEF_002 (oracle ↔ Lean cross-verifier) | arena-ai-coding-agent | [#3](https://github.com/sblaplace/improved_black_scholes/pull/3) | **GREEN** — 39-point golden grid, docs/04 guard (3) active: `ImprovedBS/Crosscheck.lean` (#eval) cross-verified against `experiments/black_scholes.py` with max price diff 1.6e-14 (tol 1e-12) and 4/4 mutants caught. |
+| 2 | BRIEF_002 (oracle ↔ Lean cross-verifier) | arena-ai-coding-agent | [#3](https://github.com/sblaplace/improved_black_scholes/pull/3) | **GREEN** @ `2a7bacb`, run 35517328856 — 39-point golden grid, docs/04 guard (3) active: `ImprovedBS/Crosscheck.lean` (#eval) cross-verified against `experiments/black_scholes.py` with max price diff 1.6e-14 (tol 1e-12) and 4/4 mutants caught. |
 | 3 | BRIEF_003 (T3 delta identity + T4 bounds) | arena-ai-coding-agent | [#2](https://github.com/sblaplace/improved_black_scholes/pull/2) | **GREEN** @ `726325d`, run 35514867674 (first green: run 35514609619 @ `2273461`) — `lake build` + `#print axioms` audit + `lint` + `oracle` all pass; ratchet 3 → 0. Reached on the 1st run; see the CI history and correction C4. |
 | 4 | BRIEF_004 (α-stable moment obstruction) | — | — | OPEN — not started, independent of #1–#3 |
 
@@ -273,7 +273,7 @@ proof, so the next reader does not have to rediscover it.
 
 ### C5 — BRIEF_002: Oracle ↔ Lean pointwise cross-verifier (guard 3)
 
-**Date:** 2026-09-20. **Landed:** PR #3.
+**Date:** 2026-09-20. **Landed:** PR #3, run 35517328856.
 
 **Summary:**
 Stands up guard (3) from `docs/04` §"Oracle ↔ formal correspondence":
