@@ -70,6 +70,14 @@
       "axioms": "'BSM.erf_neg' depends on axioms: [propext, Classical.choice, Quot.sound]",
       "type": "BSM.erf_neg : ∀ (x : ℝ), BSM.erf (-x) = -BSM.erf x"
     },
+    "BSM.exp_moment_infinite_add_of_tail_lower_bound": {
+      "axioms": "'BSM.exp_moment_infinite_add_of_tail_lower_bound' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.exp_moment_infinite_add_of_tail_lower_bound : ∀ (μ : MeasureTheory.Measure ℝ) [MeasureTheory.IsProbabilityMeasure μ] (α c x₀ d : ℝ), 0 < c → (∀ x ≥ x₀, ENNReal.ofReal (c * x ^ (-α)) ≤ μ (Set.Ici x)) → ¬MeasureTheory.Integrable (fun y => Real.exp (y + d)) μ"
+    },
+    "BSM.exp_moment_infinite_of_tail_lower_bound": {
+      "axioms": "'BSM.exp_moment_infinite_of_tail_lower_bound' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.exp_moment_infinite_of_tail_lower_bound : ∀ (μ : MeasureTheory.Measure ℝ) [MeasureTheory.IsProbabilityMeasure μ] (α c x₀ : ℝ), 0 < c → (∀ x ≥ x₀, ENNReal.ofReal (c * x ^ (-α)) ≤ μ (Set.Ici x)) → ¬MeasureTheory.Integrable (fun y => Real.exp y) μ"
+    },
     "BSM.exp_neg_sq_even": {
       "axioms": "'BSM.exp_neg_sq_even' depends on axioms: [propext, Classical.choice, Quot.sound]",
       "type": "BSM.exp_neg_sq_even : ∀ (t : ℝ), Real.exp (-(-t) ^ 2) = Real.exp (-t ^ 2)"
@@ -81,6 +89,22 @@
     "BSM.integral_phi_Iic_zero": {
       "axioms": "'BSM.integral_phi_Iic_zero' depends on axioms: [propext, Classical.choice, Quot.sound]",
       "type": "BSM.integral_phi_Iic_zero : ∫ (u : ℝ) in Set.Iic 0, BSM.phi u = 1 / 2"
+    },
+    "BSM.lintegral_exp_add_eq_top_of_tail_lower_bound": {
+      "axioms": "'BSM.lintegral_exp_add_eq_top_of_tail_lower_bound' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.lintegral_exp_add_eq_top_of_tail_lower_bound : ∀ (μ : MeasureTheory.Measure ℝ) [MeasureTheory.IsProbabilityMeasure μ] (α c x₀ d : ℝ), 0 < c → (∀ x ≥ x₀, ENNReal.ofReal (c * x ^ (-α)) ≤ μ (Set.Ici x)) → ∫⁻ (y : ℝ), ENNReal.ofReal (Real.exp (y + d)) ∂μ = ⊤"
+    },
+    "BSM.lintegral_exp_eq_top_of_tail_lower_bound": {
+      "axioms": "'BSM.lintegral_exp_eq_top_of_tail_lower_bound' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.lintegral_exp_eq_top_of_tail_lower_bound : ∀ (μ : MeasureTheory.Measure ℝ) [MeasureTheory.IsProbabilityMeasure μ] (α c x₀ : ℝ), 0 < c → (∀ x ≥ x₀, ENNReal.ofReal (c * x ^ (-α)) ≤ μ (Set.Ici x)) → ∫⁻ (y : ℝ), ENNReal.ofReal (Real.exp y) ∂μ = ⊤"
+    },
+    "BSM.no_drift_makes_spot_integrable": {
+      "axioms": "'BSM.no_drift_makes_spot_integrable' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.no_drift_makes_spot_integrable : ∀ (μ : MeasureTheory.Measure ℝ) [MeasureTheory.IsProbabilityMeasure μ] (α c x₀ S₀ d : ℝ), 0 < S₀ → 0 < c → (∀ x ≥ x₀, ENNReal.ofReal (c * x ^ (-α)) ≤ μ (Set.Ici x)) → ¬MeasureTheory.Integrable (fun x => S₀ * Real.exp (x + d)) μ"
+    },
+    "BSM.ofReal_mul_tail_le_lintegral_exp_add": {
+      "axioms": "'BSM.ofReal_mul_tail_le_lintegral_exp_add' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.ofReal_mul_tail_le_lintegral_exp_add : ∀ (μ : MeasureTheory.Measure ℝ) (d α c x : ℝ), ENNReal.ofReal (c * x ^ (-α)) ≤ μ (Set.Ici x) → ENNReal.ofReal (Real.exp (x + d) * (c * x ^ (-α))) ≤ ∫⁻ (y : ℝ), ENNReal.ofReal (Real.exp (y + d)) ∂μ"
     },
     "BSM.phi": {
       "axioms": "'BSM.phi' depends on axioms: [propext, Classical.choice, Quot.sound]",
@@ -101,6 +125,10 @@
     "BSM.phi_nonneg": {
       "axioms": "'BSM.phi_nonneg' depends on axioms: [propext, Classical.choice, Quot.sound]",
       "type": "BSM.phi_nonneg : ∀ (x : ℝ), 0 ≤ BSM.phi x"
+    },
+    "BSM.spot_not_integrable_of_tail_lower_bound": {
+      "axioms": "'BSM.spot_not_integrable_of_tail_lower_bound' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.spot_not_integrable_of_tail_lower_bound : ∀ (μ : MeasureTheory.Measure ℝ) [MeasureTheory.IsProbabilityMeasure μ] (α c x₀ S₀ : ℝ), 0 < S₀ → 0 < c → (∀ x ≥ x₀, ENNReal.ofReal (c * x ^ (-α)) ≤ μ (Set.Ici x)) → ¬MeasureTheory.Integrable (fun x => S₀ * Real.exp x) μ"
     },
     "BSM.t1_d1_minus_d2": {
       "axioms": "'BSM.t1_d1_minus_d2' depends on axioms: [propext, Classical.choice, Quot.sound]",
