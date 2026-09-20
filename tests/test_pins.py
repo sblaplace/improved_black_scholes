@@ -134,6 +134,39 @@ def test_parse_audit_refuses_a_half_output():
         raise AssertionError("parse_audit accepted a truncated audit run")
 
 
+def test_parse_audit_accepts_a_name_broken_from_its_colon():
+    """Lead line may carry the name alone, separator on the next line.
+
+    Run 35533637758 (BRIEF_005) refused
+    `BSM.carrMadanKernel_integrable` — type='' — while replaying 48 other
+    pins fine. The one distinguishing feature of that constant is that its
+    signature is by far the longest in the tree, i.e. the `#check` printer
+    had to break further left than any pin seen before. The robust reading
+    is to accept the name on its own line: `normalize` rejoins it into
+    exactly the text a never-wrapped `#check` would pin, so the artifact
+    cannot depend on where the printer happened to break.
+    """
+    wrapped = "\n".join(
+        [
+            "BSM.carrMadanKernel_integrable",
+            "    {φ : ℂ → ℂ} {α : ℝ} (hα : 0 < α) :",
+            "    Integrable (BSM.carrMadanKernel φ α) MeasureTheory.volume",
+            P.SENTINEL,
+            "'BSM.carrMadanKernel_integrable' depends on axioms: [propext]",
+            P.SENTINEL,
+            "",
+        ]
+    )
+    got = P.parse_audit(wrapped, ["BSM.carrMadanKernel_integrable"])
+    assert got["BSM.carrMadanKernel_integrable"]["type"] == (
+        "BSM.carrMadanKernel_integrable {φ : ℂ → ℂ} {α : ℝ} (hα : 0 < α) : "
+        "Integrable (BSM.carrMadanKernel φ α) MeasureTheory.volume"
+    )
+    assert got["BSM.carrMadanKernel_integrable"]["axioms"] == (
+        "'BSM.carrMadanKernel_integrable' depends on axioms: [propext]"
+    )
+
+
 def test_parse_audit_refuses_a_shifted_stream():
     """Sentinel count must match the emission count, or blocks belong to the wrong name."""
     try:

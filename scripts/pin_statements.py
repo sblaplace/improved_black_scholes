@@ -341,8 +341,21 @@ _LEAD_NAME = re.compile(
 def _block_text(block: list[str], q: str) -> str:
     """Payload of one sentinel-delimited block: everything from the line whose
     leading constant name is `q`. Lines naming something else are dropped, so a
-    stray warning does not shift what gets pinned."""
+    stray warning does not shift what gets pinned.
+
+    The lead line is recognized two ways: name followed by a separator on the
+    same line (the common shape), and name alone on its own line with the
+    separator on the next one. The second is rare but real — when a type is
+    long enough that the dedicated pretty-printer breaks between the name and
+    the colon, the `#check` stream is `name\\n    : type`, and a parser that
+    only accepted shape one would silently report the constant as unreadable
+    (observed for `BSM.carrMadanKernel_integrable`, the longest signature in
+    the tree, on the BRIEF_005 run). `normalize` collapses both into the same
+    pinned text, so accepting the second cannot masquerade a real misalignment:
+    a block still has to begin its payload with the constant it claims."""
     for i, ln in enumerate(block):
+        if ln.strip() == q:
+            return normalize(" ".join(block[i:]))
         m = _LEAD_NAME.match(ln)
         if not m:
             continue
