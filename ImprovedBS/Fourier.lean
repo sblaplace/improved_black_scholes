@@ -125,7 +125,7 @@ theorem integrable_exp_neg_abs_rpow {c Y : ℝ} (hc : 0 < c) (hY : 0 < Y) :
   have hcont : Continuous fun u : ℝ => Real.exp (-c * |u| ^ Y) :=
     Real.continuous_exp.comp
       (continuous_const.mul ((Real.continuous_rpow_const hY.le).comp continuous_abs))
-  rw [← integrableOn_univ, ← @Iio_union_Ici _ _ (0 : ℝ), integrableOn_union,
+  rw [← integrableOn_univ, ← @Set.Iio_union_Ici _ _ (0 : ℝ), integrableOn_union,
     integrableOn_Ici_iff_integrableOn_Ioi]
   refine ⟨?_, ?_⟩
   · -- the left half-line: transport the right one across `u ↦ −u`
@@ -133,16 +133,13 @@ theorem integrable_exp_neg_abs_rpow {c Y : ℝ} (hc : 0 < c) (hY : 0 < Y) :
         (Homeomorph.neg ℝ).measurableEmbedding]
     simp only [Function.comp_def, neg_Iio, neg_zero, abs_neg]
     refine Integrable.mono' hbase (hcont.measurable.aestronglyMeasurable) ?_
+    -- `Integrable.mono'` at the tag wants `‖f x‖ ≤ g x` (no norm on `g`)
     filter_upwards [ae_restrict_mem hmeas] with x hx
-    rw [Real.norm_eq_abs, Real.norm_eq_abs, abs_of_nonneg (Real.exp_pos _).le,
-      abs_of_nonneg (Real.exp_pos _).le, abs_of_nonneg (le_of_lt hx)]
-    exact le_refl _
+    rw [Real.norm_eq_abs, abs_of_nonneg (Real.exp_pos _).le, abs_of_nonneg (le_of_lt hx)]
   · -- the right half-line, up to a null boundary point
     refine Integrable.mono' hbase (hcont.measurable.aestronglyMeasurable) ?_
     filter_upwards [ae_restrict_mem hmeas] with x hx
-    rw [Real.norm_eq_abs, Real.norm_eq_abs, abs_of_nonneg (Real.exp_pos _).le,
-      abs_of_nonneg (Real.exp_pos _).le, abs_of_nonneg (le_of_lt hx)]
-    exact le_refl _
+    rw [Real.norm_eq_abs, abs_of_nonneg (Real.exp_pos _).le, abs_of_nonneg (le_of_lt hx)]
 
 /-!
 --------------------------------------------------------------------------
@@ -214,7 +211,7 @@ theorem cmDenom_continuous (α : ℝ) : Continuous fun u : ℝ => cmDenom α u :
 this module actually uses: `u² · ‖denom(u)⁻¹‖ ≤ 1` for `1 ≤ |u|`.
 Stated without reciprocals of order-theoretic lemmas so that every step is a
 core `mul_le_mul` fact. -/
-theorem cmDenom_inv_norm_mul_sq_le (α : ℝ) (hα : 0 < α) {u : ℝ} (hu : 1 ≤ |u|) :
+theorem cmDenom_inv_norm_mul_sq_le (α : ℝ) (hα : 0 < α) {u : ℝ} :
     u ^ 2 * ‖(cmDenom α u)⁻¹‖ ≤ 1 := by
   have hne := cmDenom_ne_zero α hα u
   have hnormpos : 0 < ‖cmDenom α u‖ := norm_pos_iff.mpr hne
@@ -306,9 +303,9 @@ theorem carrMadanKernel_integrable {φ : ℂ → ℂ} {α : ℝ} (hα : 0 < α)
     · -- outside: tempered decay dominates the `1/u²` from the payoff side
       push_neg at huW
       have humem : u ∉ Set.Icc (-(max u₀ 1)) (max u₀ 1) := by
-        rw [Set.mem_Icc]
-        rintro ⟨-, h2⟩
-        exact not_le.mpr huW h2
+        intro hm
+        rw [Set.mem_Icc] at hm
+        exact not_le.mpr huW (abs_le.mpr hm)
       rw [Set.indicator_of_notMem humem, zero_add]
       have hu₀ : u₀ ≤ |u| := le_trans (le_max_left _ _) huW.le
       have h1 : (1 : ℝ) ≤ |u| := le_trans (le_max_right _ _) huW.le
@@ -324,19 +321,14 @@ theorem carrMadanKernel_integrable {φ : ℂ → ℂ} {α : ℝ} (hα : 0 < α)
             rw [norm_mul, mul_assoc]
         _ ≤ ‖φ (↑u + ↑α * Complex.I)‖ * 1 :=
             mul_le_mul_of_nonneg_left
-              (by rw [mul_comm]; exact cmDenom_inv_norm_mul_sq_le α hα h1) (norm_nonneg _)
+              (by rw [mul_comm]; exact cmDenom_inv_norm_mul_sq_le α hα) (norm_nonneg _)
         _ = ‖φ (↑u + ↑α * Complex.I)‖ := mul_one _
         _ ≤ D * Real.exp (-c * |u| ^ Y) := hdecay u hu₀
-  refine hg_int.mono'
+  -- `Integrable.mono'` at the tag takes the bound in the norm-less-g form
+  -- `‖f x‖ ≤ g x`, which is exactly `hbound`
+  exact hg_int.mono'
     (carrMadanKernel_continuous hα hcont).measurable.aestronglyMeasurable
-    (Filter.Eventually.of_forall fun u => ?_)
-  have hind_nn : 0 ≤ (Set.Icc (-(max u₀ 1)) (max u₀ 1)).indicator (fun _ : ℝ => B) u := by
-    by_cases hm : u ∈ Set.Icc (-(max u₀ 1)) (max u₀ 1)
-    · rw [Set.indicator_of_mem hm]; exact hBnonneg
-    · rw [Set.indicator_of_notMem hm]
-  rw [Real.norm_eq_abs,
-    abs_of_nonneg (add_nonneg hind_nn (mul_nonneg hD (Real.exp_pos _).le))]
-  exact hbound u
+    (Filter.Eventually.of_forall hbound)
 
 /-- The oscillatory phase `e^{i u τ}` of the pricing integral. Its modulus is
 one, so dressing the kernel with it never affects absolute convergence. -/
@@ -364,7 +356,7 @@ theorem carrMadan_price_integrable {φ : ℂ → ℂ} {α : ℝ} (hα : 0 < α)
     Integrable (fun u : ℝ => ((Real.exp (-r * tau) / (2 * Real.pi) : ℝ) : ℂ) •
       (carrMadanPhase tau u * carrMadanKernel φ α u)) volume := by
   refine Integrable.smul ((Real.exp (-r * tau) / (2 * Real.pi) : ℝ) : ℂ)
-    ((carrMadanKernel_integrable hα hcont hc hD hY hdecay).bdd_mul ?_ ?_)
+    ((carrMadanKernel_integrable hα hcont hc hD hY hdecay).bdd_mul (c := 1) ?_ ?_)
   · have hphase_cont : Continuous fun u : ℝ => carrMadanPhase tau u := by
       unfold carrMadanPhase
       continuity
@@ -397,8 +389,8 @@ tempered hypothesis will be met with equality, `Y = 2`, `c = s`,
 theorem gbmCharFactor_contour_norm (m s u α : ℝ) :
     ‖gbmCharFactor m s (↑u + ↑α * Complex.I)‖
       = Real.exp (s * α ^ 2 - α * m) * Real.exp (-(s * u ^ 2)) := by
-  have hre : (Complex.I * ↑m * (↑u + ↑α * Complex.I)
-        - ↑s * (↑u + ↑α * Complex.I) ^ 2).re = s * α ^ 2 - α * m - s * u ^ 2 := by
+  have hre : ((Complex.I * ↑m * (↑u + ↑α * Complex.I)
+        - ↑s * (↑u + ↑α * Complex.I) ^ 2 : ℂ).re) = s * α ^ 2 - α * m - s * u ^ 2 := by
     simp only [Complex.add_re, Complex.sub_re, Complex.mul_re, Complex.mul_im,
       Complex.mul_I_re, Complex.mul_I_im, Complex.ofReal_re, Complex.ofReal_im,
       Complex.I_re, Complex.I_im, pow_two]
@@ -420,10 +412,10 @@ theorem gbm_carrMadanKernel_integrable (m s : ℝ) (hs : 0 < s) {α : ℝ}
     (hα : 0 < α) :
     Integrable (carrMadanKernel (gbmCharFactor m s) α) volume := by
   refine carrMadanKernel_integrable hα (gbmCharFactor_contour_continuous m s α)
-    hs (Real.exp_pos _).le (Y := 2) (by norm_num) (u₀ := 0) ?_
+    hs (D := Real.exp (s * α ^ 2 - α * m)) (Real.exp_pos _).le (Y := 2) (by norm_num)
+    (u₀ := 0) ?_
   intro u _
   rw [gbmCharFactor_contour_norm, Real.rpow_two, sq_abs, neg_mul]
-  exact le_refl _
 
 /-- The dressed GBM pricing integrand: phase, discount, `1/(2π)`. -/
 theorem gbm_carrMadan_price_integrable (m s : ℝ) (hs : 0 < s) {α : ℝ}
@@ -431,9 +423,9 @@ theorem gbm_carrMadan_price_integrable (m s : ℝ) (hs : 0 < s) {α : ℝ}
     Integrable (fun u : ℝ => ((Real.exp (-r * tau) / (2 * Real.pi) : ℝ) : ℂ) •
       (carrMadanPhase tau u * carrMadanKernel (gbmCharFactor m s) α u)) volume := by
   refine carrMadan_price_integrable hα (gbmCharFactor_contour_continuous m s α)
-    hs (Real.exp_pos _).le (Y := 2) (by norm_num) (u₀ := 0) ?_ r tau
+    hs (D := Real.exp (s * α ^ 2 - α * m)) (Real.exp_pos _).le (Y := 2) (by norm_num)
+    (u₀ := 0) ?_ r tau
   intro u _
   rw [gbmCharFactor_contour_norm, Real.rpow_two, sq_abs, neg_mul]
-  exact le_refl _
 
 end BSM
