@@ -301,6 +301,11 @@
       "kind": "theorem",
       "pin": "theorem d1_exponent (S K tau r q sigma : ℝ) (htau : 0 < tau) (hsigma : sigma ≠ 0) : sigma * Real.sqrt tau * d1 S K tau r q sigma - (sigma * Real.sqrt tau) ^ 2 / 2 = Real.log (S / K) + (r - q) * tau"
     },
+    "BSM.d1_tau_sub_d2_tau": {
+      "file": "ImprovedBS/Core.lean",
+      "kind": "theorem",
+      "pin": "theorem d1_tau_sub_d2_tau (S K tau r q sigma : ℝ) (htau : 0 < tau) (hsigma : sigma ≠ 0) : (r - q + sigma ^ 2 / 2 - Real.log (S / K) / tau) / (2 * sigma * Real.sqrt tau) - (r - q - sigma ^ 2 / 2 - Real.log (S / K) / tau) / (2 * sigma * Real.sqrt tau) = sigma / (2 * Real.sqrt tau)"
+    },
     "BSM.d2": {
       "file": "ImprovedBS/Core.lean",
       "kind": "def",
@@ -310,6 +315,11 @@
       "file": "ImprovedBS/Core.lean",
       "kind": "theorem",
       "pin": "theorem d2_exponent (S K tau r q sigma : ℝ) (htau : 0 < tau) (hsigma : sigma ≠ 0) : sigma * Real.sqrt tau * d2 S K tau r q sigma + (sigma * Real.sqrt tau) ^ 2 / 2 = Real.log (S / K) + (r - q) * tau"
+    },
+    "BSM.d_tau_quotient_eq": {
+      "file": "ImprovedBS/Core.lean",
+      "kind": "theorem",
+      "pin": "theorem d_tau_quotient_eq (A c sigma s tau : ℝ) (hs : s ^ 2 = tau) (hs0 : s ≠ 0) (hsigma : sigma ≠ 0) : (c * (sigma * s) - (A + c * tau) * (sigma * (1 / (2 * s)))) / (sigma * s) ^ 2 = (c - A / tau) / (2 * sigma * s)"
     },
     "BSM.erf": {
       "file": "ImprovedBS/Core.lean",
@@ -355,6 +365,26 @@
       "file": "ImprovedBS/Fourier.lean",
       "kind": "theorem",
       "pin": "theorem gbm_carrMadan_price_integrable (m s : ℝ) (hs : 0 < s) {α : ℝ} (hα : 0 < α) (r tau : ℝ) : Integrable (fun u : ℝ => ((Real.exp (-r * tau) / (2 * Real.pi) : ℝ) : ℂ) • (carrMadanPhase tau u * carrMadanKernel (gbmCharFactor m s) α u)) volume"
+    },
+    "BSM.hasDerivAt_Phi": {
+      "file": "ImprovedBS/Core.lean",
+      "kind": "theorem",
+      "pin": "theorem hasDerivAt_Phi (x : ℝ) : HasDerivAt Phi (phi x) x"
+    },
+    "BSM.hasDerivAt_d_spot": {
+      "file": "ImprovedBS/Core.lean",
+      "kind": "theorem",
+      "pin": "theorem hasDerivAt_d_spot (K tau sigma c S : ℝ) (hK : 0 < K) (htau : 0 < tau) (hsigma : sigma ≠ 0) (hS : 0 < S) : HasDerivAt (fun x : ℝ => (Real.log (x / K) + c) / (sigma * Real.sqrt tau)) (1 / (S * sigma * Real.sqrt tau)) S"
+    },
+    "BSM.hasDerivAt_d_tau": {
+      "file": "ImprovedBS/Core.lean",
+      "kind": "theorem",
+      "pin": "theorem hasDerivAt_d_tau (A c tau sigma : ℝ) (htau : 0 < tau) (hsigma : sigma ≠ 0) : HasDerivAt (fun u : ℝ => (A + c * u) / (sigma * Real.sqrt u)) ((c - A / tau) / (2 * sigma * Real.sqrt tau)) tau"
+    },
+    "BSM.hasDerivAt_erf": {
+      "file": "ImprovedBS/Core.lean",
+      "kind": "theorem",
+      "pin": "theorem hasDerivAt_erf (x : ℝ) : HasDerivAt erf ((2 / Real.sqrt Real.pi) * Real.exp (-(x ^ 2))) x"
     },
     "BSM.integrable_exp_neg_abs_rpow": {
       "file": "ImprovedBS/Fourier.lean",
@@ -445,6 +475,31 @@
       "file": "ImprovedBS/Core.lean",
       "kind": "theorem",
       "pin": "theorem t4_put_bounds (S K tau r q sigma : ℝ) (hS : 0 < S) (hK : 0 < K) (htau : 0 < tau) (hsigma : 0 < sigma) : max (K * Real.exp (-r * tau) - S * Real.exp (-q * tau)) 0 ≤ bsPut S K tau r q sigma ∧ bsPut S K tau r q sigma ≤ K * Real.exp (-r * tau)"
+    },
+    "BSM.t5_bsCall_pde": {
+      "file": "ImprovedBS/Core.lean",
+      "kind": "theorem",
+      "pin": "theorem t5_bsCall_pde (S K T t r q sigma : ℝ) (hS : 0 < S) (hK : 0 < K) (hTt : 0 < T - t) (hsigma : sigma ≠ 0) : deriv (fun u => bsCall S K (T - u) r q sigma) t + (r - q) * S * deriv (fun x => bsCall x K (T - t) r q sigma) S + (sigma ^ 2 / 2) * S ^ 2 * deriv (fun x => deriv (fun y => bsCall y K (T - t) r q sigma) x) S = r * bsCall S K (T - t) r q sigma"
+    },
+    "BSM.t5_bsCall_pde_tau": {
+      "file": "ImprovedBS/Core.lean",
+      "kind": "theorem",
+      "pin": "theorem t5_bsCall_pde_tau (S K tau r q sigma : ℝ) (hS : 0 < S) (hK : 0 < K) (htau : 0 < tau) (hsigma : sigma ≠ 0) : -deriv (fun u => bsCall S K u r q sigma) tau + (r - q) * S * deriv (fun x => bsCall x K tau r q sigma) S + (sigma ^ 2 / 2) * S ^ 2 * deriv (fun x => deriv (fun y => bsCall y K tau r q sigma) x) S = r * bsCall S K tau r q sigma"
+    },
+    "BSM.t5_delta": {
+      "file": "ImprovedBS/Core.lean",
+      "kind": "theorem",
+      "pin": "theorem t5_delta (S K tau r q sigma : ℝ) (hS : 0 < S) (hK : 0 < K) (htau : 0 < tau) (hsigma : sigma ≠ 0) : deriv (fun x => bsCall x K tau r q sigma) S = Real.exp (-q * tau) * Phi (d1 S K tau r q sigma)"
+    },
+    "BSM.t5_gamma": {
+      "file": "ImprovedBS/Core.lean",
+      "kind": "theorem",
+      "pin": "theorem t5_gamma (S K tau r q sigma : ℝ) (hS : 0 < S) (hK : 0 < K) (htau : 0 < tau) (hsigma : sigma ≠ 0) : deriv (fun x => deriv (fun y => bsCall y K tau r q sigma) x) S = Real.exp (-q * tau) * phi (d1 S K tau r q sigma) / (S * sigma * Real.sqrt tau)"
+    },
+    "BSM.t5_tau": {
+      "file": "ImprovedBS/Core.lean",
+      "kind": "theorem",
+      "pin": "theorem t5_tau (S K tau r q sigma : ℝ) (hS : 0 < S) (hK : 0 < K) (htau : 0 < tau) (hsigma : sigma ≠ 0) : HasDerivAt (fun u => bsCall S K u r q sigma) (-q * (S * Real.exp (-q * tau) * Phi (d1 S K tau r q sigma)) + r * (K * Real.exp (-r * tau) * Phi (d2 S K tau r q sigma)) + (sigma / (2 * Real.sqrt tau)) * (S * Real.exp (-q * tau) * phi (d1 S K tau r q sigma))) tau"
     }
   }
 }

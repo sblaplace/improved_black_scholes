@@ -647,40 +647,488 @@ theorem t4_put_bounds (S K tau r q sigma : ℝ)
     le_trans (le_max_left _ _) hlo
   exact ⟨max_le (by linarith) (by linarith), by linarith⟩
 
+-- --------------------------------------------------------------------------
+-- T5  [BUILT]  the closed form solves the BSM PDE
+-- --------------------------------------------------------------------------
+
 /-!
---------------------------------------------------------------------------
-T5  [DEFERRED — not yet declared]  the closed form solves the BSM PDE
---------------------------------------------------------------------------
+### Why T5 is proved in `(S, tau)` and not in `x = Real.log S`
+
+`docs/04`'s spine section originally argued for reducing to the heat equation
+in `x = Real.log S` before differentiating ("doing it in `S` coordinates buys
+nothing and costs every `1/S` factor by hand"). That is wrong for *this*
+theorem, and the correction is a computation rather than a preference. See
+BRIEF_006 for the full argument; the short form:
+
+write `V = F * Phi(d1) - D * Phi(d2)` with `F = S * e^{-q*tau}` and
+`D = K * e^{-r*tau}`. The two actions the chain rule needs are
+
+    dd1/dS = dd2/dS = 1/(S * sigma * sqrt tau)   -- T1 read in S: `d1 - d2` is S-constant
+    dd1/dtau - dd2/dtau = sigma/(2 * sqrt tau)   -- T1 read in tau: differentiate both sides
+
+and T3 cancels the `phi`-terms *in S*, where they enter with equal and opposite
+coefficients. So the `S^2 * V_SS` term costs exactly ONE division-clearing
+lemma, not one per `1/S`: T1 and T3 supply the actions. The `x = log S` route
+replaces that lemma with a change-of-variable transfer plus a second statement
+of the PDE in the new gauge, and leaves the `1/sqrt tau` structure of the
+tau-derivative exactly as it is -- more work for less machine-checked contract.
+What it genuinely buys (constant coefficients, convolution with the Gaussian
+kernel, uniqueness) is T6 sub-goal (3)'s content, not T5's.
+
+The spine's *content* claim is unchanged and is what this section implements:
+
+    T5  =  T3  +  chain rule  +  `HasDerivAt Phi phi`
+
+`scripts/lean_lint.py`'s `[SPINE]` check now enforces that route structurally,
+because a brute-force differentiation of `erf` composed with a log-rational
+would prove the same theorem while duplicating T3.
+-/
+
+/-- **`erf` is differentiable**, with derivative `(2/sqrt pi) * e^{-x^2}`: the
+right-endpoint derivative of the interval integral that defines `erf`
+(`intervalIntegral.integral_hasDerivAt_right`, the interval-integral FTC),
+scaled by the constant `2/sqrt pi`. Everything T1-T4 needed about `erf` was
+its *oddness*; T5 needs its derivative, and mathlib v4.34.0 still has no
+`Real.erf`, so it is derived here rather than imported. -/
+theorem hasDerivAt_erf (x : ℝ) :
+    HasDerivAt erf ((2 / Real.sqrt Real.pi) * Real.exp (-(x ^ 2))) x := by
+  have hcont : Continuous fun t : ℝ => Real.exp (-(t ^ 2)) := by continuity
+  have hFTC : HasDerivAt (fun u : ℝ => ∫ t in (0:ℝ)..u, Real.exp (-(t ^ 2)))
+      (Real.exp (-(x ^ 2))) x :=
+    intervalIntegral.integral_hasDerivAt_right (hcont.intervalIntegrable 0 x)
+      (hcont.stronglyMeasurableAtFilter MeasureTheory.volume (nhds x)) hcont.continuousAt
+  simpa only [erf] using hFTC.const_mul (2 / Real.sqrt Real.pi)
+
+/-- **`Phi' = phi`** -- the one genuinely new analytic input T5 needs, and the
+only place in the tree where the Gaussian normalization has to be carried
+through a derivative. `Phi` is `(1 + erf (x / sqrt 2)) / 2`, so the chain rule
+gives `(2/sqrt pi) * e^{-(x/sqrt 2)^2} * (1/sqrt 2) / 2`, and the two algebra
+steps are `(x/sqrt 2)^2 = x^2/2` and `(2/sqrt pi)(1/sqrt 2)/2 =
+1/sqrt (2*pi)`. -/
+theorem hasDerivAt_Phi (x : ℝ) : HasDerivAt Phi (phi x) x := by
+  have hpi : Real.sqrt Real.pi ≠ 0 := (Real.sqrt_pos.mpr Real.pi_pos).ne'
+  have h2 : Real.sqrt 2 ≠ 0 := (Real.sqrt_pos.mpr (by norm_num)).ne'
+  have hinner : HasDerivAt (fun y : ℝ => y / Real.sqrt 2) (1 / Real.sqrt 2) x :=
+    (hasDerivAt_id' (x := x)).div_const (Real.sqrt 2)
+  have herf : HasDerivAt (fun y : ℝ => erf (y / Real.sqrt 2))
+      ((2 / Real.sqrt Real.pi) * Real.exp (-((x / Real.sqrt 2) ^ 2)) * (1 / Real.sqrt 2)) x :=
+    (hasDerivAt_erf (x / Real.sqrt 2)).comp x hinner
+  have hmain : HasDerivAt (fun y : ℝ => (1 + erf (y / Real.sqrt 2)) / 2)
+      ((2 / Real.sqrt Real.pi) * Real.exp (-((x / Real.sqrt 2) ^ 2)) * (1 / Real.sqrt 2) / 2) x :=
+    (((hasDerivAt_const (x := x) (c := (1 : ℝ))).add herf).div_const 2).congr_deriv (by ring)
+  have hval : (2 / Real.sqrt Real.pi) * Real.exp (-((x / Real.sqrt 2) ^ 2)) * (1 / Real.sqrt 2) / 2
+      = phi x := by
+    have hsq : (x / Real.sqrt 2) ^ 2 = x ^ 2 / 2 := by
+      rw [div_pow, Real.sq_sqrt (by norm_num : (0 : ℝ) ≤ 2)]
+    have hexp : Real.exp (-((x / Real.sqrt 2) ^ 2)) = Real.exp (-(x ^ 2) / 2) := by
+      rw [hsq]
+      congr 1
+      ring
+    rw [hexp, phi, Real.sqrt_mul (by norm_num : (0 : ℝ) ≤ 2)]
+    -- The one place the two Gaussian normalizations meet. Clearing the four
+    -- denominators (`sqrt pi`, `sqrt 2`, the numeral `2`, and `sqrt 2 * sqrt pi`)
+    -- leaves a *commutativity*: `2 * E * (sqrt 2 * sqrt pi) = 2 * E * sqrt 2 * sqrt pi`.
+    -- Note what is NOT needed: no `Real.sq_sqrt`/`mul_self_sqrt` rewrite appears
+    -- anywhere in T5, because the sqrt factors cancel as quotients (`a / sqrt 2 *
+    -- sqrt 2 = a`, licensed by `sqrt 2 ≠ 0`), never as squares.
+    have hsqrt2pi : Real.sqrt 2 * Real.sqrt Real.pi ≠ 0 := mul_ne_zero h2 hpi
+    field_simp
+    ring
+  have hPhi := hmain.congr_deriv hval
+  simpa only [Phi] using hPhi
+
+/-- **The spot derivative of the shared `d1`/`d2` shape.** For
+`x : (Real.log (x / K) + c) / (sigma * sqrt tau)` the derivative at `S` is
+`1 / (S * sigma * sqrt tau)`: the `sigma * sqrt tau` scaling is constant in
+`x`, and `d/dx (Real.log (x / K)) = 1 / x`.
+
+Instantiating `c` gives `dd1/dS = dd2/dS = 1/(S * sigma * sqrt tau)` -- **the
+two spot actions agree** -- which is the first half of what T3 cancels, and it
+is why the `S`-coordinate route needs one division-clearing lemma rather than
+one per `1/S`. -/
+theorem hasDerivAt_d_spot (K tau sigma c S : ℝ) (hK : 0 < K) (htau : 0 < tau)
+    (hsigma : sigma ≠ 0) (hS : 0 < S) :
+    HasDerivAt (fun x : ℝ => (Real.log (x / K) + c) / (sigma * Real.sqrt tau))
+      (1 / (S * sigma * Real.sqrt tau)) S := by
+  have hsqrt : Real.sqrt tau ≠ 0 := (Real.sqrt_pos.mpr htau).ne'
+  have hlog : HasDerivAt (fun x : ℝ => Real.log (x / K)) (1 / S) S := by
+    have hinner : HasDerivAt (fun x : ℝ => x / K) (1 / K) S :=
+      (hasDerivAt_id' (x := S)).div_const K
+    refine ((Real.hasDerivAt_log (div_ne_zero hS.ne' hK.ne')).comp S hinner).congr_deriv ?_
+    -- `(S / K)⁻¹ * (1 / K) = 1 / S`: `inv_div` first, so no inverse-of-a-quotient
+    -- survives to be guessed at; then two quotients cancel.
+    rw [inv_div]
+    field_simp
+    ring
+  have hnum : HasDerivAt (fun x : ℝ => Real.log (x / K) + c) (1 / S) S :=
+    (hlog.add (hasDerivAt_const (x := S) (c := c))).congr_deriv (by ring)
+  -- `(1/S) / (sigma*sqrt tau) = 1 / (S*sigma*sqrt tau)`: the same cancellation the
+  -- `S`-coordinate route is often accused of costing "by hand" for every `1/S`.
+  have hden : sigma * Real.sqrt tau ≠ 0 := mul_ne_zero hsigma hsqrt
+  have hden' : S * sigma * Real.sqrt tau ≠ 0 :=
+    mul_ne_zero (mul_ne_zero hS.ne' hsigma) hsqrt
+  refine (hnum.div_const (sigma * Real.sqrt tau)).congr_deriv ?_
+  field_simp
+  ring
+
+/-- Arithmetic core of the tau-derivative of the shared `d1`/`d2` shape: the
+quotient-rule expression, cleaned. `sqrt tau` is abstracted to `s` and the
+*only* relation the ring step needs is handed in as the hypothesis `s ^ 2 =
+tau` -- which is exactly `Real.sq_sqrt htau.le` at the use site, so the two
+never drift apart. -/
+theorem d_tau_quotient_eq (A c sigma s tau : ℝ) (hs : s ^ 2 = tau) (hs0 : s ≠ 0)
+    (hsigma : sigma ≠ 0) :
+    (c * (sigma * s) - (A + c * tau) * (sigma * (1 / (2 * s)))) / (sigma * s) ^ 2
+      = (c - A / tau) / (2 * sigma * s) := by
+  have htau : tau ≠ 0 := by
+    rw [← hs]
+    exact pow_ne_zero 2 hs0
+  have hDs : (sigma * s) ^ 2 ≠ 0 := by
+    rw [mul_pow]
+    exact mul_ne_zero (pow_ne_zero 2 hsigma) (pow_ne_zero 2 hs0)
+  have hs2 : s ^ 2 ≠ 0 := pow_ne_zero 2 hs0
+  have h2s : (2 : ℝ) * s ≠ 0 := mul_ne_zero two_ne_zero hs0
+  have h2ss : (2 : ℝ) * sigma * s ≠ 0 :=
+    mul_ne_zero (mul_ne_zero two_ne_zero hsigma) hs0
+  -- Everything the quotient rule produced is a quotient; clear them all at once
+  -- (`τ` for the `A / τ` factor, `(σ s)^2`, `2 σ s` for the two sides, `2 s` for
+  -- the middle term), then the remaining goal is a polynomial identity.
+  field_simp
+  rw [← hs]
+  ring
+
+/-- **The tau-derivative of the shared `d1`/`d2` shape**: for
+`u : (A + c * u) / (sigma * sqrt u)` the derivative at `tau` is
+`(c - A / tau) / (2 * sigma * sqrt tau)`. The quotient rule
+(`HasDerivAt.div`) produces the expression `d_tau_quotient_eq` cleans.
+
+Instantiating `c` gives `dd1/dtau` and `dd2/dtau`; their *difference* is
+`d1_tau_sub_d2_tau` below, which is what T5's `phi`-terms collapse to. -/
+theorem hasDerivAt_d_tau (A c tau sigma : ℝ) (htau : 0 < tau) (hsigma : sigma ≠ 0) :
+    HasDerivAt (fun u : ℝ => (A + c * u) / (sigma * Real.sqrt u))
+      ((c - A / tau) / (2 * sigma * Real.sqrt tau)) tau := by
+  have hsqrt : Real.sqrt tau ≠ 0 := (Real.sqrt_pos.mpr htau).ne'
+  have hnum : HasDerivAt (fun u : ℝ => A + c * u) c tau :=
+    ((hasDerivAt_const (x := tau) (c := A)).add
+      ((hasDerivAt_id' (x := tau)).const_mul c)).congr_deriv (by ring)
+  have hden : HasDerivAt (fun u : ℝ => sigma * Real.sqrt u)
+      (sigma * (1 / (2 * Real.sqrt tau))) tau :=
+    (Real.hasDerivAt_sqrt hsqrt).const_mul sigma
+  refine ((hnum.div hden (mul_ne_zero hsigma hsqrt)).congr_deriv ?_)
+  exact d_tau_quotient_eq A c sigma (Real.sqrt tau) tau (Real.sq_sqrt htau.le) hsqrt hsigma
+
+/-- **The tau-actions of `d1` and `d2` differ by exactly `sigma / (2 * sqrt
+tau)`** -- T1 (`d1 - d2 = sigma * sqrt tau`) differentiated in `tau`. This is
+the second half of T3's cancellation: with the tilting identity
+`S e^{-q*tau} phi(d1) = K e^{-r*tau} phi(d2)`, the two `phi`-terms of
+`dV/dtau` combine into `S e^{-q*tau} phi(d1)` times this difference, and the
+resulting `sigma / (2 * sqrt tau)` is exactly what the `(sigma^2/2) S^2 V_SS`
+term contributes to the operator. -/
+theorem d1_tau_sub_d2_tau (S K tau r q sigma : ℝ) (htau : 0 < tau) (hsigma : sigma ≠ 0) :
+    (r - q + sigma ^ 2 / 2 - Real.log (S / K) / tau) / (2 * sigma * Real.sqrt tau)
+      - (r - q - sigma ^ 2 / 2 - Real.log (S / K) / tau) / (2 * sigma * Real.sqrt tau)
+      = sigma / (2 * Real.sqrt tau) := by
+  have hsqrt : Real.sqrt tau ≠ 0 := (Real.sqrt_pos.mpr htau).ne'
+  rw [← sub_div]
+  have hnum : (r - q + sigma ^ 2 / 2 - Real.log (S / K) / tau)
+      - (r - q - sigma ^ 2 / 2 - Real.log (S / K) / tau) = sigma ^ 2 := by ring
+  rw [hnum]
+  have hd : (2 : ℝ) * sigma * Real.sqrt tau ≠ 0 :=
+    mul_ne_zero (mul_ne_zero two_ne_zero hsigma) hsqrt
+  have hd' : (2 : ℝ) * Real.sqrt tau ≠ 0 := mul_ne_zero two_ne_zero hsqrt
+  field_simp
+  ring
+
+/-- **T5, the delta.** `dV/dS = e^{-q*tau} Phi(d1)` for the closed form, with
+**T3 doing the work**: the chain rule gives
+
+    e^{-q*tau} Phi(d1) + [S e^{-q*tau} phi(d1) - K e^{-r*tau} phi(d2)] / (S sigma sqrt tau)
+
+and the bracket is zero by `t3_delta_identity`, because `dd1/dS = dd2/dS`.
+Differentiating `erf` composed with the log-rational directly would prove the
+same thing while duplicating T3; the proof below cites it instead, and
+`scripts/lean_lint.py`'s `[SPINE]` check enforces the citation. -/
+theorem t5_delta (S K tau r q sigma : ℝ)
+    (hS : 0 < S) (hK : 0 < K) (htau : 0 < tau) (hsigma : sigma ≠ 0) :
+    deriv (fun x => bsCall x K tau r q sigma) S
+      = Real.exp (-q * tau) * Phi (d1 S K tau r q sigma) := by
+  have hsqrt : Real.sqrt tau ≠ 0 := (Real.sqrt_pos.mpr htau).ne'
+  have hd1S : HasDerivAt (fun x : ℝ => d1 x K tau r q sigma)
+      (1 / (S * sigma * Real.sqrt tau)) S := by
+    simpa only [d1] using
+      hasDerivAt_d_spot K tau sigma ((r - q + sigma ^ 2 / 2) * tau) S hK htau hsigma hS
+  have hd2S : HasDerivAt (fun x : ℝ => d2 x K tau r q sigma)
+      (1 / (S * sigma * Real.sqrt tau)) S := by
+    simpa only [d2] using
+      hasDerivAt_d_spot K tau sigma ((r - q - sigma ^ 2 / 2) * tau) S hK htau hsigma hS
+  have hΦ1 : HasDerivAt (fun x : ℝ => Phi (d1 x K tau r q sigma))
+      (phi (d1 S K tau r q sigma) * (1 / (S * sigma * Real.sqrt tau))) S :=
+    (hasDerivAt_Phi (d1 S K tau r q sigma)).comp S hd1S
+  have hΦ2 : HasDerivAt (fun x : ℝ => Phi (d2 x K tau r q sigma))
+      (phi (d2 S K tau r q sigma) * (1 / (S * sigma * Real.sqrt tau))) S :=
+    (hasDerivAt_Phi (d2 S K tau r q sigma)).comp S hd2S
+  have hF : HasDerivAt (fun x : ℝ => x * Real.exp (-q * tau)) (Real.exp (-q * tau)) S := by
+    simpa using (hasDerivAt_id' (x := S)).mul_const (Real.exp (-q * tau))
+  have hP : HasDerivAt (fun x : ℝ => x * Real.exp (-q * tau) * Phi (d1 x K tau r q sigma))
+      (Real.exp (-q * tau) * Phi (d1 S K tau r q sigma)
+        + (S * Real.exp (-q * tau))
+          * (phi (d1 S K tau r q sigma) * (1 / (S * sigma * Real.sqrt tau)))) S :=
+    hF.mul hΦ1
+  have hQ : HasDerivAt (fun x : ℝ => K * Real.exp (-r * tau) * Phi (d2 x K tau r q sigma))
+      ((K * Real.exp (-r * tau))
+        * (phi (d2 S K tau r q sigma) * (1 / (S * sigma * Real.sqrt tau)))) S :=
+    hΦ2.const_mul (K * Real.exp (-r * tau))
+  have hclean : (Real.exp (-q * tau) * Phi (d1 S K tau r q sigma)
+        + (S * Real.exp (-q * tau))
+          * (phi (d1 S K tau r q sigma) * (1 / (S * sigma * Real.sqrt tau))))
+      - (K * Real.exp (-r * tau))
+          * (phi (d2 S K tau r q sigma) * (1 / (S * sigma * Real.sqrt tau)))
+      = Real.exp (-q * tau) * Phi (d1 S K tau r q sigma) := by
+    have hzero : (S * Real.exp (-q * tau))
+          * (phi (d1 S K tau r q sigma) * (1 / (S * sigma * Real.sqrt tau)))
+        - (K * Real.exp (-r * tau))
+          * (phi (d2 S K tau r q sigma) * (1 / (S * sigma * Real.sqrt tau))) = 0 := by
+      have hT3 := t3_delta_identity S K tau r q sigma hS hK htau hsigma
+      have hfac : (S * Real.exp (-q * tau))
+            * (phi (d1 S K tau r q sigma) * (1 / (S * sigma * Real.sqrt tau)))
+          - (K * Real.exp (-r * tau))
+            * (phi (d2 S K tau r q sigma) * (1 / (S * sigma * Real.sqrt tau)))
+          = (S * Real.exp (-q * tau) * phi (d1 S K tau r q sigma)
+              - K * Real.exp (-r * tau) * phi (d2 S K tau r q sigma))
+              * (1 / (S * sigma * Real.sqrt tau)) := by ring
+      have hcancel : S * Real.exp (-q * tau) * phi (d1 S K tau r q sigma)
+          - K * Real.exp (-r * tau) * phi (d2 S K tau r q sigma) = 0 := by
+        rw [hT3]
+        ring
+      rw [hfac, hcancel, zero_mul]
+    linarith
+  have hgoal : HasDerivAt (fun x : ℝ => bsCall x K tau r q sigma)
+      (Real.exp (-q * tau) * Phi (d1 S K tau r q sigma)) S :=
+    (hP.sub hQ).congr_deriv hclean
+  exact hgoal.deriv
+
+/-- **T5, the gamma.** `d^2V/dS^2 = e^{-q*tau} phi(d1) / (S sigma sqrt tau)`,
+which is `Phi' = phi` applied to the delta: on a neighbourhood of `S` the
+function `x : deriv (bsCall) x` *is* `x : e^{-q*tau} Phi (d1 x)` by
+`t5_delta`, so `HasDerivAt.congr_of_eventuallyEq` moves the derivative across
+and `hasDerivAt_Phi` finishes it. No T3 here -- T3 was spent on the delta. -/
+theorem t5_gamma (S K tau r q sigma : ℝ)
+    (hS : 0 < S) (hK : 0 < K) (htau : 0 < tau) (hsigma : sigma ≠ 0) :
+    deriv (fun x => deriv (fun y => bsCall y K tau r q sigma) x) S
+      = Real.exp (-q * tau) * phi (d1 S K tau r q sigma) / (S * sigma * Real.sqrt tau) := by
+  have hsqrt : Real.sqrt tau ≠ 0 := (Real.sqrt_pos.mpr htau).ne'
+  have hd1S : HasDerivAt (fun x : ℝ => d1 x K tau r q sigma)
+      (1 / (S * sigma * Real.sqrt tau)) S := by
+    simpa only [d1] using
+      hasDerivAt_d_spot K tau sigma ((r - q + sigma ^ 2 / 2) * tau) S hK htau hsigma hS
+  have hΦ1 : HasDerivAt (fun x : ℝ => Phi (d1 x K tau r q sigma))
+      (phi (d1 S K tau r q sigma) * (1 / (S * sigma * Real.sqrt tau))) S :=
+    (hasDerivAt_Phi (d1 S K tau r q sigma)).comp S hd1S
+  have hdelta : HasDerivAt (fun x : ℝ => Real.exp (-q * tau) * Phi (d1 x K tau r q sigma))
+      (Real.exp (-q * tau)
+        * (phi (d1 S K tau r q sigma) * (1 / (S * sigma * Real.sqrt tau)))) S :=
+    hΦ1.const_mul (Real.exp (-q * tau))
+  have hloc : (fun x => deriv (fun y => bsCall y K tau r q sigma) x)
+      =ᶠ[nhds S] (fun x => Real.exp (-q * tau) * Phi (d1 x K tau r q sigma)) := by
+    filter_upwards [Ioo_mem_nhds hS (by linarith : S < 2 * S)] with x hx
+    exact t5_delta x K tau r q sigma hx.1 hK htau hsigma
+  have hmain : HasDerivAt (fun x => deriv (fun y => bsCall y K tau r q sigma) x)
+      (Real.exp (-q * tau)
+        * (phi (d1 S K tau r q sigma) * (1 / (S * sigma * Real.sqrt tau)))) S :=
+    hdelta.congr_of_eventuallyEq hloc
+  rw [hmain.deriv]
+  ring
+
+/-- **T5, the tau-derivative.** The closed form differentiated in `tau`, from
+the chain rule plus **both halves of T3's cancellation**:
+
+    dV/dtau = -q F Phi(d1) + r D Phi(d2) + (sigma/(2 sqrt tau)) F phi(d1)
+
+with `F = S e^{-q*tau}`, `D = K e^{-r*tau}`: the two `phi`-terms combine, by
+`t3_delta_identity`, into `F phi(d1)` times the tau-action difference
+`d1_tau_sub_d2_tau = sigma/(2 sqrt tau)`.
+
+Stated as `HasDerivAt` rather than as a `deriv` value because the
+calendar-time form of T5 (`t5_bsCall_pde`) differentiates the *composite*
+`t : V(S, T - t)`, which needs the chain rule, not a value at a point. -/
+theorem t5_tau (S K tau r q sigma : ℝ)
+    (hS : 0 < S) (hK : 0 < K) (htau : 0 < tau) (hsigma : sigma ≠ 0) :
+    HasDerivAt (fun u => bsCall S K u r q sigma)
+      (-q * (S * Real.exp (-q * tau) * Phi (d1 S K tau r q sigma))
+        + r * (K * Real.exp (-r * tau) * Phi (d2 S K tau r q sigma))
+        + (sigma / (2 * Real.sqrt tau))
+            * (S * Real.exp (-q * tau) * phi (d1 S K tau r q sigma))) tau := by
+  have hsqrt : Real.sqrt tau ≠ 0 := (Real.sqrt_pos.mpr htau).ne'
+  have hd1 : HasDerivAt (fun u : ℝ => d1 S K u r q sigma)
+      ((r - q + sigma ^ 2 / 2 - Real.log (S / K) / tau) / (2 * sigma * Real.sqrt tau)) tau := by
+    simpa only [d1] using
+      hasDerivAt_d_tau (Real.log (S / K)) (r - q + sigma ^ 2 / 2) tau sigma htau hsigma
+  have hd2 : HasDerivAt (fun u : ℝ => d2 S K u r q sigma)
+      ((r - q - sigma ^ 2 / 2 - Real.log (S / K) / tau) / (2 * sigma * Real.sqrt tau)) tau := by
+    simpa only [d2] using
+      hasDerivAt_d_tau (Real.log (S / K)) (r - q - sigma ^ 2 / 2) tau sigma htau hsigma
+  have hΦ1 : HasDerivAt (fun u : ℝ => Phi (d1 S K u r q sigma))
+      (phi (d1 S K tau r q sigma)
+        * ((r - q + sigma ^ 2 / 2 - Real.log (S / K) / tau) / (2 * sigma * Real.sqrt tau))) tau :=
+    (hasDerivAt_Phi (d1 S K tau r q sigma)).comp tau hd1
+  have hΦ2 : HasDerivAt (fun u : ℝ => Phi (d2 S K u r q sigma))
+      (phi (d2 S K tau r q sigma)
+        * ((r - q - sigma ^ 2 / 2 - Real.log (S / K) / tau) / (2 * sigma * Real.sqrt tau))) tau :=
+    (hasDerivAt_Phi (d2 S K tau r q sigma)).comp tau hd2
+  have hF : HasDerivAt (fun u : ℝ => S * Real.exp (-q * u)) (-q * (S * Real.exp (-q * tau))) tau := by
+    have hlin : HasDerivAt (fun u : ℝ => -q * u) (-q) tau := by
+      simpa using (hasDerivAt_id' (x := tau)).const_mul (-q)
+    exact ((hlin.exp).const_mul S).congr_deriv (by ring)
+  have hD : HasDerivAt (fun u : ℝ => K * Real.exp (-r * u)) (-r * (K * Real.exp (-r * tau))) tau := by
+    have hlin : HasDerivAt (fun u : ℝ => -r * u) (-r) tau := by
+      simpa using (hasDerivAt_id' (x := tau)).const_mul (-r)
+    exact ((hlin.exp).const_mul K).congr_deriv (by ring)
+  have hP : HasDerivAt (fun u : ℝ => S * Real.exp (-q * u) * Phi (d1 S K u r q sigma))
+      ((-q * (S * Real.exp (-q * tau))) * Phi (d1 S K tau r q sigma)
+        + (S * Real.exp (-q * tau))
+          * (phi (d1 S K tau r q sigma)
+            * ((r - q + sigma ^ 2 / 2 - Real.log (S / K) / tau)
+                / (2 * sigma * Real.sqrt tau)))) tau :=
+    hF.mul hΦ1
+  have hQ : HasDerivAt (fun u : ℝ => K * Real.exp (-r * u) * Phi (d2 S K u r q sigma))
+      ((-r * (K * Real.exp (-r * tau))) * Phi (d2 S K tau r q sigma)
+        + (K * Real.exp (-r * tau))
+          * (phi (d2 S K tau r q sigma)
+            * ((r - q - sigma ^ 2 / 2 - Real.log (S / K) / tau)
+                / (2 * sigma * Real.sqrt tau)))) tau :=
+    hD.mul hΦ2
+  have hclean : ((-q * (S * Real.exp (-q * tau))) * Phi (d1 S K tau r q sigma)
+        + (S * Real.exp (-q * tau))
+          * (phi (d1 S K tau r q sigma)
+            * ((r - q + sigma ^ 2 / 2 - Real.log (S / K) / tau)
+                / (2 * sigma * Real.sqrt tau))))
+      - ((-r * (K * Real.exp (-r * tau))) * Phi (d2 S K tau r q sigma)
+        + (K * Real.exp (-r * tau))
+          * (phi (d2 S K tau r q sigma)
+            * ((r - q - sigma ^ 2 / 2 - Real.log (S / K) / tau)
+                / (2 * sigma * Real.sqrt tau))))
+      = -q * (S * Real.exp (-q * tau) * Phi (d1 S K tau r q sigma))
+        + r * (K * Real.exp (-r * tau) * Phi (d2 S K tau r q sigma))
+        + (sigma / (2 * Real.sqrt tau))
+            * (S * Real.exp (-q * tau) * phi (d1 S K tau r q sigma)) := by
+    have hT3 := t3_delta_identity S K tau r q sigma hS hK htau hsigma
+    have hV := d1_tau_sub_d2_tau S K tau r q sigma htau hsigma
+    have hφ : (S * Real.exp (-q * tau))
+          * (phi (d1 S K tau r q sigma)
+            * ((r - q + sigma ^ 2 / 2 - Real.log (S / K) / tau)
+                / (2 * sigma * Real.sqrt tau)))
+        - (K * Real.exp (-r * tau))
+          * (phi (d2 S K tau r q sigma)
+            * ((r - q - sigma ^ 2 / 2 - Real.log (S / K) / tau)
+                / (2 * sigma * Real.sqrt tau)))
+        = (sigma / (2 * Real.sqrt tau))
+            * (S * Real.exp (-q * tau) * phi (d1 S K tau r q sigma)) := by
+      have hp : (S * Real.exp (-q * tau))
+            * (phi (d1 S K tau r q sigma)
+              * ((r - q + sigma ^ 2 / 2 - Real.log (S / K) / tau)
+                  / (2 * sigma * Real.sqrt tau)))
+          = (S * Real.exp (-q * tau) * phi (d1 S K tau r q sigma))
+              * ((r - q + sigma ^ 2 / 2 - Real.log (S / K) / tau)
+                  / (2 * sigma * Real.sqrt tau)) := by ring
+      have hq : (K * Real.exp (-r * tau))
+            * (phi (d2 S K tau r q sigma)
+              * ((r - q - sigma ^ 2 / 2 - Real.log (S / K) / tau)
+                  / (2 * sigma * Real.sqrt tau)))
+          = (K * Real.exp (-r * tau) * phi (d2 S K tau r q sigma))
+              * ((r - q - sigma ^ 2 / 2 - Real.log (S / K) / tau)
+                  / (2 * sigma * Real.sqrt tau)) := by ring
+      rw [hp, hq, hT3.symm, ← sub_mul, hV]
+      ring
+    have hsplit : ((-q * (S * Real.exp (-q * tau))) * Phi (d1 S K tau r q sigma)
+          + (S * Real.exp (-q * tau))
+            * (phi (d1 S K tau r q sigma)
+              * ((r - q + sigma ^ 2 / 2 - Real.log (S / K) / tau)
+                  / (2 * sigma * Real.sqrt tau))))
+        - ((-r * (K * Real.exp (-r * tau))) * Phi (d2 S K tau r q sigma)
+          + (K * Real.exp (-r * tau))
+            * (phi (d2 S K tau r q sigma)
+              * ((r - q - sigma ^ 2 / 2 - Real.log (S / K) / tau)
+                  / (2 * sigma * Real.sqrt tau))))
+        = ((-q * (S * Real.exp (-q * tau))) * Phi (d1 S K tau r q sigma)
+            - (-r * (K * Real.exp (-r * tau))) * Phi (d2 S K tau r q sigma))
+          + ((S * Real.exp (-q * tau))
+              * (phi (d1 S K tau r q sigma)
+                * ((r - q + sigma ^ 2 / 2 - Real.log (S / K) / tau)
+                    / (2 * sigma * Real.sqrt tau)))
+            - (K * Real.exp (-r * tau))
+              * (phi (d2 S K tau r q sigma)
+                * ((r - q - sigma ^ 2 / 2 - Real.log (S / K) / tau)
+                    / (2 * sigma * Real.sqrt tau)))) := by ring
+    rw [hsplit, hφ]
+    ring
+  simpa only [bsCall] using (hP.sub hQ).congr_deriv hclean
+
+/-- **T5, the `tau`-gauge form.** `V_t + (r - q) S V_S + (sigma^2/2) S^2 V_SS
+= r V` for the closed form, with `tau = T - t` kept fixed and `V_t` written as
+`-dV/dtau` (the chain rule for `t : T - t`, whose derivative is `-1`). -/
+theorem t5_bsCall_pde_tau (S K tau r q sigma : ℝ)
+    (hS : 0 < S) (hK : 0 < K) (htau : 0 < tau) (hsigma : sigma ≠ 0) :
+    -deriv (fun u => bsCall S K u r q sigma) tau
+      + (r - q) * S * deriv (fun x => bsCall x K tau r q sigma) S
+      + (sigma ^ 2 / 2) * S ^ 2
+          * deriv (fun x => deriv (fun y => bsCall y K tau r q sigma) x) S
+      = r * bsCall S K tau r q sigma := by
+  have hsqrt : Real.sqrt tau ≠ 0 := (Real.sqrt_pos.mpr htau).ne'
+  have hΘ : deriv (fun u => bsCall S K u r q sigma) tau
+      = -q * (S * Real.exp (-q * tau) * Phi (d1 S K tau r q sigma))
+        + r * (K * Real.exp (-r * tau) * Phi (d2 S K tau r q sigma))
+        + (sigma / (2 * Real.sqrt tau))
+            * (S * Real.exp (-q * tau) * phi (d1 S K tau r q sigma)) :=
+    (t5_tau S K tau r q sigma hS hK htau hsigma).deriv
+  have hΔ := t5_delta S K tau r q sigma hS hK htau hsigma
+  have hΓ := t5_gamma S K tau r q sigma hS hK htau hsigma
+  -- the Euler action in `S`: the `S^2 V_SS` term equals `(sigma/(2 sqrt tau)) F phi(d1)`,
+  -- which is exactly the term the tau-derivative contributed. One division, one lemma.
+  have hEuler : (sigma ^ 2 / 2) * S ^ 2
+      * (Real.exp (-q * tau) * phi (d1 S K tau r q sigma) / (S * sigma * Real.sqrt tau))
+      = (sigma / (2 * Real.sqrt tau))
+          * (S * Real.exp (-q * tau) * phi (d1 S K tau r q sigma)) := by
+    have hden : S * sigma * Real.sqrt tau ≠ 0 :=
+      mul_ne_zero (mul_ne_zero hS.ne' hsigma) hsqrt
+    have h2t : (2 : ℝ) * Real.sqrt tau ≠ 0 := mul_ne_zero two_ne_zero hsqrt
+    field_simp
+    ring
+  rw [hΘ, hΔ, hΓ]
+  unfold bsCall
+  rw [← hEuler]
+  ring
+
+/-- **T5.** The closed form solves the BSM PDE
 
     V_t + (r - q) * S * V_S + (sigma^2 / 2) * S^2 * V_SS = r * V
 
-This is the first heavy node and the reason the stack has a spine rather than
-six unrelated chores. Two decisions recorded here so the brief that picks it
-up does not relitigate them:
-
-1. **Prove T5 through T3, not around it.** Substituting the closed form, the
-   `S^2 V_SS` term produces `phi(d1)` and `phi(d2)` contributions whose
-   *difference* is exactly what T3 cancels. So the PDE identity is
-   `T3 + chain rule + Phi' = phi`, and the only genuinely new analytic input
-   is `HasDerivAt Phi phi x` (from `Real.hasDerivAt_erf`). Attempting it by
-   brute-force differentiation of `erf ∘ (log-rational)` is the slow route.
-
-2. **Change variables before differentiating.** In `x = Real.log S` the BSM
-   operator becomes a constant-coefficient operator and the closed form is a
-   convolution of the payoff with the Gaussian kernel; uniqueness then follows
-   from the heat-kernel/Feynman–Kac side. Doing it in `S` coordinates buys
-   nothing and costs every `1/S` factor by hand.
-
-Numeric shadow, with a measured step-size window:
-`tests/test_bs.py::test_pde_residual_vanishes` and
-`::test_pde_residual_is_second_order`. Note that the residual is O(h^2) only
-for `h ∈ [1e-3, 1e-1]`; below `1e-3` round-off dominates and it *diverges*.
-Do not "strengthen" that test by shrinking `h`.
-
-Not declared yet: it needs a PDE/derivative notation decision (partial
-derivatives over `(S, t)` vs. the `x = log S` reduction) and that decision
-belongs in the brief, not in a comment.
--/
+in calendar time, which is the form `docs/04` states and the form
+`tests/test_bs.py::test_pde_residual_vanishes` checks numerically: `V` is
+`(S, t) : bsCall S K (T - t) r q sigma`, so `V_t` here is an honest `deriv` in
+`t` (not a re-labelled `-dV/dtau`), and `V_S`, `V_SS` are spot derivatives at
+`tau = T - t`. The proof is the chain rule for `t : T - t` applied to
+`t5_bsCall_pde_tau`; the hypothesis `0 < T - t` is the oracle's guard on
+`tau`. -/
+theorem t5_bsCall_pde (S K T t r q sigma : ℝ)
+    (hS : 0 < S) (hK : 0 < K) (hTt : 0 < T - t) (hsigma : sigma ≠ 0) :
+    deriv (fun u => bsCall S K (T - u) r q sigma) t
+      + (r - q) * S * deriv (fun x => bsCall x K (T - t) r q sigma) S
+      + (sigma ^ 2 / 2) * S ^ 2
+          * deriv (fun x => deriv (fun y => bsCall y K (T - t) r q sigma) x) S
+      = r * bsCall S K (T - t) r q sigma := by
+  have hinner : HasDerivAt (fun u : ℝ => T - u) (-1) t := by
+    simpa using (hasDerivAt_const (x := t) (c := T)).sub (hasDerivAt_id' (x := t))
+  have hVt : deriv (fun u => bsCall S K (T - u) r q sigma) t
+      = -deriv (fun u => bsCall S K u r q sigma) (T - t) := by
+    -- the chain rule for `t ↦ T - t` (`HasDerivAt.comp`, not a re-gauging): the
+    -- outer derivative is `t5_tau`'s, the inner one is `-1`. Both `deriv`s are
+    -- rewritten -- the composite's by `hcomp`, the pointwise value's by `hτ`.
+    have hτ := t5_tau S K (T - t) r q sigma hS hK hTt hsigma
+    have hcomp := hτ.comp t hinner
+    rw [hcomp.deriv, hτ.deriv]
+    ring
+  rw [hVt]
+  exact t5_bsCall_pde_tau S K (T - t) r q sigma hS hK hTt hsigma
 
 /-!
 --------------------------------------------------------------------------

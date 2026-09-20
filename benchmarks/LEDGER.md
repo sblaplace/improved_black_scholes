@@ -21,6 +21,7 @@ Verdict discipline:
 | 4 | BRIEF_004 (α-stable moment obstruction) | arena-ai-coding-agent | [#5](https://github.com/sblaplace/improved_black_scholes/pull/5) | **GREEN** @ `d61c874`, run 35523250105 — `lake build` + `#print axioms` audit + **Statement pins (elab)** + `lint` + `oracle` all pass. Module authored without a toolchain (four-run arc: two one-line build errors, then build+audit green with an empty `elab` block by design, then the block committed verbatim). The seven new constants are on `[propext, Classical.choice, Quot.sound]` only. Statement strengthened: the theorem holds for **every real α**, superseding the `α < 2` acceptance item (correction C7). The documentation commits that record this row re-grade green as well (run 35523462850 @ `28dda5b`). |
 | — | *(defect repair, no new brief)* BRIEF_002's two recorded crosscheck defects (C6 item 4) | arena-ai-coding-agent | [#6](https://github.com/sblaplace/improved_black_scholes/pull/6) | **GREEN** @ `7d2b2a3`, run 35526035651 (oracle lane run 35526035655) — `lake build` + `#print axioms` audit + **Statement pins (elab)** + `lint` + `oracle` all pass; the crosscheck step ran the real `#eval` against 14-token `CK` lines (both T3 sides) through the new comparator. Locally, before pushing: crosscheck 6/6 (7 comparator mutants, incl. formula-level RHS corruption at the largest-delta point; 13-token lines rejected; the recorded `--run-lean` repro now a loud FAIL with a scrubbed PATH), `test_lint.py` 7/7 (24 mutants — CC1/CC2 killed by `[CROSSCHECK SYNC]`), oracle 13/13, mutants 4/4, pins 8/8. Sorry baseline untouched; no theorem statement changed. See correction C8. |
 | 5 | BRIEF_005 (T6 sub-goal 2: tempered contour absolute convergence) | arena-ai-coding-agent | [#6](https://github.com/sblaplace/improved_black_scholes/pull/6) | **GREEN** @ `386a331`, lean run 35536031936 (oracle lane run 35536031949) — `lake build` + `#print axioms` audit + **Statement pins (elab, all 49)** + `lint` + `oracle` all pass. `ImprovedBS/Fourier.lean` (431 lines) fully elaborates at mathlib v4.34.0: `integrable_exp_neg_abs_rpow`, `cmDenom_u4_le`, `cmDenom_ne_zero`, `carrMadanKernel_integrable`, `carrMadan_price_integrable` and both GBM instances — every new constant on `[propext, Classical.choice, Quot.sound]`, no sorryAx; the CGMY-decay hypothesis appears only as a hypothesis (brief acceptance: no unbacked premise). Eight-run lean arc (seven red, then green), and its shape is the informative part: `d935117` → 35531017611 elaboration errors → round 2 `bedef4e`→`11f47df` (35532227392, 35532974067) → **`2209077` → run 35533637758: build GREEN**, elab-pins step red — then two red runs spent *finding the parse failure's shape*, not fixing assumptions: `3dbaeb2` 35534649501 (wrap hypothesis, wrong), `926637c` 35535082152 (self-diagnosing error dumped the raw block: `#check @q` echoes the `@` when the constant has a binder telescope — first such pin in the tree) → `d379fc5` 35535582258 parses all 49, red by design on the 11 unpinned elab pairs, block printed paste-ready → committed byte-for-byte with identical-merge re-verified → `386a331` green. Sorry baseline: `deferred: {}` added zero entries; no T1–T5 statement changed. |
+| 6 | BRIEF_006 (T5: the closed form solves the BSM PDE) | arena-ai-coding-agent | PR pending | **PENDING** — CI verdict to be recorded here with the run id. Landed in `ImprovedBS/Core.lean`: 11 declarations (`hasDerivAt_erf`, `hasDerivAt_Phi`, `hasDerivAt_d_spot`, `d_tau_quotient_eq`, `hasDerivAt_d_tau`, `d1_tau_sub_d2_tau`, `t5_delta`, `t5_gamma`, `t5_tau`, `t5_bsCall_pde_tau`, `t5_bsCall_pde`), all in `REQUIRED` + `PROTECTED`, 11 new statement pins (60 total), a `[SPINE]` route check with its 25th lint mutant, and the `docs/04` spine correction (C9). No `sorry`; baseline untouched at `deferred: {}`; T1–T4 statements unchanged. |
 
 ## Corrections and co-recorded changes to the ask
 
@@ -514,3 +515,73 @@ work out why the demanded hypothesis does not belong, and record the correction
 — which is the same sequence that produced C1 and C4. The pins then make the
 strengthened statement the *checked* one, so "the brief asked for `α < 2`" can
 never quietly re-enter the tree.
+
+### C9 — `docs/04`'s T5 route was reversed by the brief that implemented it
+
+**Date:** 2026-09-20. **Trigger:** writing BRIEF_006, whose first scope item was
+to settle the coordinate question that `docs/04` had left open.
+
+`docs/04` §"The dependency spine" carried a paragraph headed **"Change variables
+before differentiating"**: formalize T5 in `x = Real.log S`, where the BSM
+operator has constant coefficients and the closed form is the convolution of the
+payoff with the Gaussian kernel, with uniqueness coming from the heat-kernel
+side. BRIEF_006 §1 commits to the opposite: the PDE stated and proved directly in
+`(S, τ)`, with `V_S` and `V_SS` as the derivatives of the closed form. The
+reasons (also recorded in `docs/04`, where the paragraph now points at this
+correction):
+
+1. The graded claim *is* the `(S, t)` PDE. A change of variables proves a
+   different theorem — the heat equation for `v(x, τ) = V(e^x, τ)` — and
+   recovering the stated identity needs the chain rule back twice, so the `1/S`
+   factors the paragraph wanted to avoid arrive anyway, hidden inside a
+   substitution lemma.
+2. The log-`S` route is not "cheaper", it is *priced elsewhere*: it needs the
+   convolution with the Gaussian kernel to be a theorem in the tree, i.e. the
+   measure-theoretic side that `docs/04`'s own mathlib table marks as not yet
+   available at this tier. In `(S, τ)` the whole analytic bill is one interval
+   integral — the derivative of the local `erf`, since mathlib v4.34.0 has no
+   `Real.erf` and therefore no `HasDerivAt erf`.
+3. The feared cost did not materialize. The `S`-side algebra is two
+   `field_simp`/`ring` steps, and the `√2`/`√π` factors cancel as *quotients*
+   rather than as squares — no `Real.sq_sqrt` appears anywhere in the T5 node.
+   That is a measurable outcome, not an impression: it is what the node's shape
+   shows, and the brief records it because the argument for the other route was
+   an argument about cost.
+
+The uniqueness half is deferred, not dropped: it belongs to T6 sub-goal 3, where
+the kernel and the measure-theoretic integral are the actual objects. A second,
+smaller staleness in the same section is corrected too: the closing paragraph
+assigned the T5 coordinate decision to "whoever writes BRIEF_005", and
+BRIEF_005 was the tempered-contour brief.
+
+**Generalizable lesson, and the reason this is a correction rather than a silent
+edit:** a plan document's *route* paragraph is a prediction about a proof that
+does not exist yet, and it will sometimes be wrong. The failure mode is not the
+wrong prediction, it is a brief that follows it anyway (or leaves both routes
+open, which is the same thing with more words). The check that keeps the
+*implemented* route honest is new with this brief: `[SPINE]` in
+`scripts/lean_lint.py` fails if the T5 node stops citing `t3_delta_identity` and
+`hasDerivAt_Phi`, or if `t5_delta` stops consuming T3 — because "T5 was proved
+via T3" is a claim about a proof *body*, and nothing in the tree could see a
+route change before.
+
+Two mathlib-arity findings from this brief, recorded because they cost guessing
+time and generalize past T5:
+
+- **`HasDerivAt.comp`'s point is an explicit argument, and it is invisible in
+  the statement.** `Mathlib/Analysis/Calculus/Deriv/Comp.lean:243` is written
+  `theorem HasDerivAt.comp (hh₂ : …) (hh : …)`; the `𝕜`-point appears in neither
+  binder. It is contributed by a `variable … (x)` line 170 lines earlier (with
+  the comment *"For composition lemmas, we put x explicit to help the
+  elaborator"*), so every call site in mathlib passes it:
+  `(Real.hasDerivAt_exp (f x)).comp x hf`. A source grep of the statement text
+  cannot see this; the call sites can.
+- **`Real.hasDerivAt_log`'s value is `x⁻¹`, not `1/x`.** The `S`-side chain rule
+  needs `inv_div` before the quotients cancel, or the inverse-of-a-quotient
+  survives into `field_simp` as a term nobody wrote on purpose.
+
+Both are instances of the rule this ledger already carries from C3 — *a mathlib
+dependency is a claim about a specific version, and it has to be checked against
+that version* — with one addition: for a lemma, "the version" includes its
+*signature*, and a signature is not always visible in the declaration's first
+line.

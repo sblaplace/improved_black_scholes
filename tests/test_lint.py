@@ -21,7 +21,11 @@ is not: the original `d2 := d1 - sigma * sqrt tau` sin, a `sorry` in a protected
 node, a re-baselined `deferred` map, an `axiom` (a `sorry` that survives `lake
 build`), a deleted `REQUIRED` theorem, a hollowed-out oracle, and -- the one no
 lane could previously see -- a protected theorem *re-stated as `True`*, which
-builds, has no `sorryAx`, keeps its name, and says nothing.
+builds, has no `sorryAx`, keeps its name, and says nothing. The last entry aims
+at the one thing no *content* check can see at all: T5's delta re-deriving the
+`phi`-bracket that T3 exists to supply. Every statement survives that edit, the
+build is still honest, and the only false thing left is docs/04's claim about
+*how* T5 is proved -- which is what `[SPINE]` is for.
 
 Each is applied to a throwaway copy of the repository, `scripts/lean_lint.py`
 is run against that copy in a subprocess, and the mutant must be KILLED by a
@@ -279,6 +283,34 @@ MUTANTS = [
         "also_rewrite_pins": True,
         "tag": "[PINS]",
     },
+    # ---- the route, not the claim: every check above is about *what* the tree
+    # says. `[SPINE]` is the only one about *how* a node gets there, and the
+    # cheat it exists to see is the one that costs the reader the most: T5
+    # proved by brute force, duplicating T1's `S`-action and T3's cancellation
+    # inside its own proof, leaving the "dependency spine" a diagram of a
+    # dependency that is not actually used. Note what the other lanes say about
+    # this edit: the statement is untouched (`[PINS]` is proof-blind by design),
+    # nothing is deferred, no marker appeared, nothing was deleted. If `[SPINE]`
+    # does not fire, nothing does.
+    {
+        "name": "S1 T5's delta re-derives the phi-bracket instead of consuming T3",
+        "file": CORE,
+        "from": "      have hT3 := t3_delta_identity S K tau r q sigma hS hK htau hsigma",
+        "to": "      have hT3 : S * Real.exp (-q * tau) * phi (d1 S K tau r q sigma)\n"
+              "          - K * Real.exp (-r * tau) * phi (d2 S K tau r q sigma) = 0 := by\n"
+              "        unfold phi d1 d2 erf\n"
+              "        field_simp\n"
+              "        ring",
+        "tag": "[SPINE]",
+        "why": "The proof body is where a spine is either consumed or re-derived, and "
+               "a proof body is exactly what `[PINS]` cannot see (`--write` would "
+               "regenerate layer 1 byte-identically). The mutant *looks* like honest "
+               "local work -- a `have` with the same conclusion, proved from the "
+               "definitions -- which is precisely the drift docs/04 warns about: the "
+               "route is what makes T3 load-bearing, so a T5 that stops citing it "
+               "leaves T3 as an orphan and the spine as a claim about a dependency "
+               "graph nobody traverses.",
+    },
 ]
 
 # Attacks the toolchain-free lanes provably CANNOT see, kept as
@@ -467,8 +499,8 @@ def test_baseline_is_green():
 def test_mutation_anchors_exist():
     """Guard: every anchor must be present in the committed source.
 
-    A mutant whose anchor has been edited away is a silent no-op, and 24 silent
-    no-ops read exactly like 24 kills.
+    A mutant whose anchor has been edited away is a silent no-op, and 25 silent
+    no-ops read exactly like 25 kills.
     """
     missing = []
     for mut in MUTANTS + CONTROLS + KNOWN_LOCAL_GAPS:
