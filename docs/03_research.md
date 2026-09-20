@@ -39,6 +39,36 @@ So the failure is at the **moment** step, not the **kernel** step. Any brief
 that asks for "the transport kernel survives α-stable increments" is asking for
 a theorem about an object that does not exist.
 
+**Proved versus asserted (BRIEF_004).** The moment step of this obstruction is
+no longer prose. `ImprovedBS/Levy.lean` proves — no `sorry`, clean `#print
+axioms` audit — that a probability measure on `ℝ` whose upper tail is bounded
+below by `c·x^(−α)` has no finite exponential moment
+(`BSM.exp_moment_infinite_of_tail_lower_bound`, and the shifted form
+`BSM.exp_moment_infinite_add_of_tail_lower_bound`), that the spot
+`S_T = S₀·e^{X_τ}` therefore has infinite first moment
+(`BSM.spot_not_integrable_of_tail_lower_bound`), and that no shift of the
+log-drift repairs it (`BSM.no_drift_makes_spot_integrable`): drift cannot move
+a tail index. Two corrections to how this section states the obstruction,
+recorded in `benchmarks/LEDGER.md` C7 and in the brief's own correction record:
+
+* **The index range is not `α < 2`.** The theorem holds for every real `α`.
+  The divergent object is `exp` against `rpow`, and a genuine power tail —
+  `x^(−3)` as much as `x^(−1)` — has infinite exponential moment. The `α < 2`
+  above is a property of the α-stable *family*, not of the obstruction; the
+  obstruction itself is wider, and `α ∈ (0, 2)` — the whole range T6 cares
+  about — sits inside it. Nothing that stays within that interval can escape,
+  which is why the tempered (CGMY) repair has to change the tail, not the
+  index.
+* **`α > 0` is a satisfiability condition on the hypothesis**, not a step in
+  the proof: for `α ≤ 0` no probability measure satisfies the tail lower bound.
+
+Still asserted rather than machine-checked, and therefore still prose here: the
+**specialization** to the symmetric α-stable law — mathlib v4.34.0 has no such
+law, so the tail bound enters as a hypothesis and the `c = F(−α)` constant of
+the Zolotarev `S1` parametrization is cited from the literature — and everything
+downstream of the moment step: emptiness of the moment strip, and the tempered
+repair built on it.
+
 **The repair.** Temper the Lévy measure. In the CGMY family
 (Carr–Geman–Madan–Yor) and the Boyarchenko–Levendorskii family, the Lévy density
 carries an `e^{−λ|x|}` damping:

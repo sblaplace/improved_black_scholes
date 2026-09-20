@@ -380,3 +380,49 @@ the class of cheat that slips through a name-and-marker check — keep the name,
 keep the absence of `sorry`, change what is claimed — is exactly the class that
 cannot be caught syntactically, which is why the answer is a pinned artifact plus
 an elaboration diff, not a stricter regex.
+
+### C7 — BRIEF_004: the `α < 2` acceptance item was false; the theorem is stated for every real `α`
+
+**Date:** 2026-09-20. **Trigger:** *proving* the brief, not running the grader.
+**Found by:** the author, while choosing the half-line levels `x = 2^k`: the
+lower bound `e^{2^k} · (2^k)^(−α) → ∞` never consults `α`, which forced the
+question of whether `α < 2` was load-bearing at all.
+
+1. **`α < 2` dropped from the statement.** BRIEF_004's acceptance item 4
+   demanded the hypothesis be *used*, with the argument: "with `α ≥ 2`-like
+   Gaussian tails the exponential moment is finite, so a proof that never uses
+   `α < 2` has proved something false". The instinct is right — a proof that
+   ignores a hypothesis can be a proof of a false statement — but the argument
+   is invalid. A Gaussian tail is not a power law with `α ≥ 2`: `e^{−x²/2}` is
+   eventually *below* `c·x^(−α)` for **every** `α`, so it satisfies no such
+   hypothesis at any index and cannot be the counterexample the item claims.
+   For a genuine power tail the conclusion holds at every index —
+   `∫ e^x x^(−3) dx` diverges exactly as `∫ e^x x^(−1) dx` does. The dichotomy
+   the obstruction turns on is **polynomial versus exponential decay**, not
+   `α < 2` versus `α ≥ 2`.
+   The machine-checked form of the correction is the absence of `α < 2` from
+   the theorem, and the pins record it: `tests/golden_statements.json` stores
+   the statement as it is. The result is strictly stronger, and it *widens* the
+   obstruction inside T6 — `α ∈ (0, 2)`, the whole interval the resolution
+   cares about, is inside it, so the tempered (CGMY) repair is not an artifact
+   of having restricted the index.
+2. **`0 < α` dropped as a binder, kept as a statement note.** It too is never
+   used in the proof: the divergence is `exp` versus `rpow` and the index does
+   not enter the estimate. Its content is a domain fact — for `α ≤ 0` the lower
+   bound `μ([x, ∞)) ≥ c·x^(−α)` is *unsatisfiable* for a probability measure,
+   since it forces `c ≤ μ([x, ∞))` for all large `x` — so `α > 0` is exactly
+   the range in which the hypothesis says anything. Recorded in the module
+   doc-comment and `docs/03` §D1 rather than kept as an unused hypothesis.
+3. **Not machine-checked, and said so:** the specialization to a symmetric
+   α-stable law. mathlib v4.34.0 has no such law, so the tail bound enters as
+   the hypothesis; the `c = F(−α)` constant of the Zolotarev `S1` tail stays a
+   citation in `docs/03` §D1, per the brief's scope item 3. No definition-free
+   fake and no prose posing as a theorem.
+
+**What this says about "use your hypotheses" as an acceptance bar.** It is the
+right instinct — it is what kills vacuous proofs — but it cannot be written as
+a *syntactic* requirement, because the honest answer to "does this proof need
+`α < 2`?" can be "no, and the hypothesis should not have been there". The bar
+that survives is the one the repository already uses: pin the statement,
+audit the axioms, and record the correction when the *brief's* statement, not
+the proof, was the thing that was wrong.

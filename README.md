@@ -180,7 +180,7 @@ cheapest high-value theorem in the research tier. Details in docs/03 §D1.
 | Lean theorems | T3, T4, T4′ + the `Φ = ∫ φ` infrastructure (18 lemmas) | **GREEN** — `lake build` + `#print axioms` audit, run 35514867674 |
 | Deferred | *(nothing)* | ratcheted at 0 `sorry`s — `deferred: {}` |
 | Lint is a falsifier | `tests/test_lint.py`: 22 seeded cheats each killed by a named check, 5 legitimate edits green, 1 residual gap asserted open | verified — 7/7 tests |
-| Pinned claims | `tests/golden_statements.json`: 31 declarations — theorem statements, definition bodies | machine-checked (source level, no toolchain); `#check`/axioms layer runs in the build job |
+| Pinned claims | `tests/golden_statements.json`: 38 declarations — theorem statements, definition bodies | machine-checked (source level, no toolchain); `#check`/axioms layer runs in the build job |
 | Grading lane | briefs/ + benchmarks/ + 2 CI workflows + toolchain-free lint + pins | standing |
 | First brief | BRIEF_001, re-scoped to what is actually checkable | see briefs/ |
 
@@ -228,7 +228,7 @@ python3 tests/test_mutants.py     #  4/4  — and those tests can actually fail 
 python3 tests/test_lint.py        #  7/7  — the linter can fail too (22 cheats, 5 controls)
 python3 tests/test_pins.py        #  8/8  — and the pins that back it parse real CI output
 python3 scripts/lean_lint.py      #  OK   — no sorry in the protected node, ratchet, independence, pins
-python3 scripts/pin_statements.py --check   # 31 statements match tests/golden_statements.json
+python3 scripts/pin_statements.py --check   # 38 statements match tests/golden_statements.json
 python3 tests/test_crosscheck.py    #  4/4  — grid + oracle self-consistency (the cross-check itself needs lake)
 # or, with pytest installed:
 pytest tests/

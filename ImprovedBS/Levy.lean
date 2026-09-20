@@ -126,9 +126,9 @@ theorem ofReal_mul_tail_le_lintegral_exp_add (μ : Measure ℝ) (d α c x : ℝ)
     _ = ∫⁻ y in Set.Ici x, ENNReal.ofReal (Real.exp (x + d)) ∂μ :=
         (setLIntegral_const _ _).symm
     _ ≤ ∫⁻ y in Set.Ici x, ENNReal.ofReal (Real.exp (y + d)) ∂μ :=
-        setLIntegral_mono' hset fun y hy =>
-          ENNReal.ofReal_le_ofReal
-            (Real.exp_le_exp.mpr (add_le_add_right (show x ≤ y from hy) d))
+        setLIntegral_mono' hset fun y hy => by
+          have hxy : x ≤ y := hy
+          exact ENNReal.ofReal_le_ofReal (Real.exp_le_exp.mpr (by linarith))
     _ ≤ ∫⁻ y, ENNReal.ofReal (Real.exp (y + d)) ∂μ :=
         setLIntegral_le_lintegral _ _
 
@@ -170,7 +170,9 @@ theorem lintegral_exp_add_eq_top_of_tail_lower_bound (μ : Measure ℝ)
   obtain ⟨k, hkM, hk0⟩ :=
     ((Filter.tendsto_atTop.1 hseq (r : ℝ)).and
       (Filter.tendsto_atTop.1 hpow x₀)).exists
-  exact le_trans (le_of_eq (ENNReal.ofReal_coe_nnreal r).symm)
+  have hr : ((r : ℝ≥0) : ℝ≥0∞) = ENNReal.ofReal (r : ℝ) :=
+    ENNReal.ofReal_coe_nnreal.symm
+  exact le_trans (le_of_eq hr)
     ((ENNReal.ofReal_le_ofReal hkM).trans (hstep k hk0))
 
 /-- The `d = 0` case of `lintegral_exp_add_eq_top_of_tail_lower_bound`: the
