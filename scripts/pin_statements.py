@@ -52,11 +52,18 @@ TWO LAYERS
    diffs them; the `lint` job never runs them.
 
 `--write` refreshes layer 1 and never touches the `elab` block, so a local
-author without a toolchain cannot accidentally drop the elaborated pins.
+author without a toolchain cannot accidentally drop the elaborated pins. That
+preservation has a consequence worth naming out loud: it permits the two layers
+to *drift*, layer 1 regenerated after a claim edit and layer 2 left behind -- an
+accident, not an attack, and the easiest one to make here. So `check()` also runs
+`cross_layer_check()`: the pinned statement and the pinned elaborated type must
+mention the same members of the spec vocabulary (the pinned `def`s), or one of
+them is stale and the artifact has stopped pinning anything.
 
-Run:  python3 scripts/pin_statements.py --check       # layer 1, no toolchain
-      python3 scripts/pin_statements.py --write       # regenerate layer 1
-      python3 scripts/pin_statements.py --elab-check  # layer 2 diff (needs lake)
+Run:  python3 scripts/pin_statements.py --check        # layer 1 + skew, no toolchain
+      python3 scripts/pin_statements.py --write        # regenerate layer 1
+      python3 scripts/pin_statements.py --elab-write   # layers 1 + 2 (needs lake)
+      python3 scripts/pin_statements.py --elab-check   # layer 2 diff (needs lake)
 """
 
 from __future__ import annotations
