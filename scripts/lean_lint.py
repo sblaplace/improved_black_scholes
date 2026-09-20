@@ -16,8 +16,9 @@ Checks
                   own namespace).
 2. REQUIRED       every theorem in the committed stack must still be declared.
                   Stops the easiest way to make a lint pass: delete the theorem.
-3. PROTECTED      zero `sorry`/`admit`/`native_decide` in the T1/T2 node, which
-                  is the BRIEF_001 deliverable. Automatic reject.
+3. PROTECTED      zero `sorry`/`admit`/`native_decide` in the landed nodes: T1/T2
+                  (the BRIEF_001 deliverable) and T3/T4 with their infrastructure
+                  (BRIEF_003). Automatic reject.
 4. RATCHET        repo-wide, the set of declarations containing a deferred-proof
                   marker must be a subset of the committed baseline, and the
                   total count must not exceed it. You may discharge a `sorry`;
@@ -78,10 +79,30 @@ REQUIRED = {
     "t3_delta_identity": "ImprovedBS/Core.lean",
     "t4_call_bounds": "ImprovedBS/Core.lean",
     "t4_put_bounds": "ImprovedBS/Core.lean",
+    # BRIEF_003 infrastructure: phi/Phi as integrals, and the positivity lemma
+    # that carries the T4 lower bound. Listed so that "prove T4 by deleting the
+    # lemma that makes it non-trivial" is not an option.
+    "phi_neg": "ImprovedBS/Core.lean",
+    "phi_nonneg": "ImprovedBS/Core.lean",
+    "phi_integrable": "ImprovedBS/Core.lean",
+    "phi_add": "ImprovedBS/Core.lean",
+    "integral_phi_Iic_zero": "ImprovedBS/Core.lean",
+    "Phi_eq_integral_Iic": "ImprovedBS/Core.lean",
+    "Phi_nonneg": "ImprovedBS/Core.lean",
+    "Phi_le_one": "ImprovedBS/Core.lean",
+    "Phi_le_exp_mul_Phi_add": "ImprovedBS/Core.lean",
+    "d1_exponent": "ImprovedBS/Core.lean",
+    "d2_exponent": "ImprovedBS/Core.lean",
+    "forward_eq": "ImprovedBS/Core.lean",
+    "bsCall_nonneg": "ImprovedBS/Core.lean",
+    "bsPut_nonneg": "ImprovedBS/Core.lean",
 }
 
-# The T1/T2 node: zero deferred-proof markers allowed, per BRIEF_001.
+# Zero deferred-proof markers allowed. The T1/T2 node per BRIEF_001; the T3/T4
+# node and its infrastructure per BRIEF_003. A landed theorem never goes back
+# to `sorry` -- that is the whole point of the ratchet.
 PROTECTED = {
+    # T1/T2 (BRIEF_001)
     "erf",
     "erf_neg",
     "exp_neg_sq_even",
@@ -90,6 +111,24 @@ PROTECTED = {
     "t1_d1_minus_d2",
     "t2_put_call_parity",
     "t2_put_call_parity_spread",
+    # T3/T4 (BRIEF_003)
+    "phi_neg",
+    "phi_nonneg",
+    "phi_integrable",
+    "phi_add",
+    "integral_phi_Iic_zero",
+    "Phi_eq_integral_Iic",
+    "Phi_nonneg",
+    "Phi_le_one",
+    "Phi_le_exp_mul_Phi_add",
+    "d1_exponent",
+    "d2_exponent",
+    "forward_eq",
+    "bsCall_nonneg",
+    "bsPut_nonneg",
+    "t3_delta_identity",
+    "t4_call_bounds",
+    "t4_put_bounds",
 }
 
 # A `sorry` that survives `lake build` is an axiom. Allow none by default.
@@ -233,7 +272,8 @@ def main() -> int:
             failures.append(
                 f"[PROTECTED] `{name}` ({rel}:{line}) contains "
                 f"{', '.join(sorted({h.group(0) for h in hits}))} at {where}. "
-                f"This is the T1/T2 node: an automatic reject per BRIEF_001."
+                f"This is a landed node (T1/T2 per BRIEF_001, T3/T4 per BRIEF_003): "
+                f"an automatic reject."
             )
 
     base_deferred = baseline.get("deferred", {})
@@ -340,7 +380,7 @@ def main() -> int:
         protected_hits = sorted(set(found_deferred) & PROTECTED)
         if protected_hits:
             print(
-                "REFUSING to write baseline: the protected T1/T2 node still contains "
+                "REFUSING to write baseline: a protected (landed) node still contains "
                 "deferred-proof markers: " + ", ".join(protected_hits) + "\n"
                 "A baseline must never legitimise a `sorry` in a protected declaration."
             )
@@ -350,7 +390,7 @@ def main() -> int:
                 "Ratchet ceiling for deferred-proof markers (sorry / admit / native_decide) "
                 "in the Lean tree, enforced by scripts/lean_lint.py. A declaration may "
                 "appear here only if its brief explicitly defers it. Lower a count when a "
-                "proof lands; never raise one to make CI pass. The T1/T2 node "
+                "proof lands; never raise one to make CI pass. Landed nodes "
                 "(PROTECTED in lean_lint.py) may never appear here at all."
             ),
             "_generated_by": "python3 scripts/lean_lint.py --write-baseline",

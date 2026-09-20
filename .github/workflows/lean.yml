@@ -3,7 +3,7 @@ name: lean
 # Two lanes, deliberately split:
 #
 #   lint  -- needs NO Lean toolchain. Enforces the syntactic half of the
-#            grading rule: no `sorry` in the protected T1/T2 node, the sorry
+#            grading rule: no `sorry` in the protected T1..T4 node, the sorry
 #            ratchet, no new axioms, every stack theorem still declared, and
 #            the anti-vacuity independence guard (d2 not defined from d1,
 #            bsPut not defined from bsCall). Runs in seconds, on any runner,
@@ -153,6 +153,25 @@ jobs:
           #print axioms BSM.t1_d1_minus_d2
           #print axioms BSM.t2_put_call_parity
           #print axioms BSM.t2_put_call_parity_spread
+          -- BRIEF_003: T3, T4 and the infrastructure they rest on
+          #print axioms BSM.phi_neg
+          #print axioms BSM.phi_nonneg
+          #print axioms BSM.phi_integrable
+          #print axioms BSM.phi_add
+          #print axioms BSM.integral_phi_Iic_zero
+          #print axioms BSM.Phi_eq_integral_Iic
+          #print axioms BSM.Phi_nonneg
+          #print axioms BSM.Phi_le_one
+          #print axioms BSM.integral_comp_add_right_Iic
+          #print axioms BSM.Phi_le_exp_mul_Phi_add
+          #print axioms BSM.d1_exponent
+          #print axioms BSM.d2_exponent
+          #print axioms BSM.forward_eq
+          #print axioms BSM.bsCall_nonneg
+          #print axioms BSM.bsPut_nonneg
+          #print axioms BSM.t3_delta_identity
+          #print axioms BSM.t4_call_bounds
+          #print axioms BSM.t4_put_bounds
           LEAN
           lake env lean /tmp/Audit.lean 2>&1 | tee lean-audit.log
           if grep -q sorryAx lean-audit.log; then
@@ -161,16 +180,56 @@ jobs:
           fi
           echo "OK: no protected theorem depends on sorryAx"
 
+      - name: Publish the axioms audit to the PR
+        # The audit passing is the acceptance evidence for a landed node, and
+        # the ledger quotes it. Artifacts and Actions logs live behind blob
+        # storage that a restricted sandbox cannot reach, so put the ~2 KB of
+        # `#print axioms` output where `gh api .../comments` can read it.
+        if: success() && github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.number }}
+          REPO: ${{ github.repository }}
+          # GITHUB_SHA is the synthetic merge commit on pull_request events;
+          # the head SHA is the one a reader can find in `git log`.
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -uo pipefail
+          {
+            echo "### Lean CI green on ${HEAD_SHA::7} — \`#print axioms\` audit"
+            echo
+            echo "run: ${GITHUB_SERVER_URL}/${REPO}/actions/runs/${GITHUB_RUN_ID}"
+            echo
+            echo '```'
+            cat lean-audit.log
+            echo '```'
+            echo
+            echo "_Posted by .github/workflows/lean.yml. \`sorryAx\` anywhere above would have failed the job._"
+          } > /tmp/audit_body.md
+          python3 - <<'PY'
+          import json, os, urllib.request
+          body = open('/tmp/audit_body.md').read()
+          req = urllib.request.Request(
+              f"https://api.github.com/repos/{os.environ['REPO']}/issues/{os.environ['PR_NUMBER']}/comments",
+              data=json.dumps({"body": body}).encode(),
+              headers={"Authorization": f"Bearer {os.environ['GH_TOKEN']}",
+                       "Accept": "application/vnd.github+json"},
+              method="POST")
+          urllib.request.urlopen(req)
+          print(f"posted axioms audit to PR #{os.environ['PR_NUMBER']}")
+          PY
+
       - name: Publish the failure log back to the PR
         if: failure() && github.event_name == 'pull_request'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ github.event.number }}
           REPO: ${{ github.repository }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           set -uo pipefail
           {
-            echo "### Lean CI failed on ${GITHUB_SHA::7}"
+            echo "### Lean CI failed on ${HEAD_SHA::7}"
             echo
             # Every log this job produces, labelled. Publishing only the build log
             # is how the `#print axioms` step failed invisibly on run 35509168675:

@@ -7,9 +7,10 @@
     [BUILT] = proof script present, no `sorry`
     [TODO]  = statement is the agreed contract, proof deferred (`sorry`)
 
-  The lint job hard-fails on ANY `sorry` in the T1/T2 node (the BRIEF_001
-  deliverable) and ratchets the repo-wide `sorry` count against
+  The lint job hard-fails on ANY `sorry` in the T1..T4 node (the BRIEF_001 and
+  BRIEF_003 deliverables) and ratchets the repo-wide `sorry` count against
   .github/lean_lint_baseline.json, so deferred nodes cannot silently grow.
+  As of BRIEF_003 that baseline is empty: T1..T4 are all [BUILT].
 
   IMPORTANT — what was fixed here, and why
   ----------------------------------------
@@ -94,10 +95,10 @@ corrected there.
 
 So `erf` is defined here, from the interval integral of the Gaussian. That is
 enough for everything T1 and T2 need: the *oddness* of `erf`, which is what
-put-call parity actually rests on. What it is **not** enough for is T4, whose
-bounds `0 ≤ Phi ≤ 1` need the *value* of the Gaussian integral
-(`∫ x:ℝ, exp(-x^2) = sqrt pi`), i.e. real measure theory rather than interval
-integrals. That is recorded in the T4 doc-comment.
+put-call parity actually rests on. T3 and T4 need more — the *value* of the
+Gaussian integral, to identify `Phi` with `∫_{(-∞, x]} phi` — and that is
+imported from `integral_gaussian_Ioi` in exactly one place,
+`integral_phi_Iic_zero` (see the "Analytic infrastructure" section).
 
 If mathlib ever grows `Real.erf`, this section should be deleted in favour of
 it and `Phi_add_Phi_neg` re-pointed at `Real.erf_neg`.
@@ -257,7 +258,235 @@ theorem t2_put_call_parity_spread (S K tau r q sigma : ℝ) :
   linarith [t2_put_call_parity S K tau r q sigma]
 
 -- --------------------------------------------------------------------------
--- T3  [TODO]  the delta identity
+-- Analytic infrastructure for T3 and T4
+-- --------------------------------------------------------------------------
+
+/-!
+### The Gaussian density, and `Phi` as an integral
+
+Everything T3 and T4 need about the normal law is packaged here, and it is
+less than one might expect:
+
+* `phi_add` — the **tilting identity** `e^{a u + a²/2} · φ(u + a) = φ(u)`,
+  i.e. completing the square. With `u = d2`, `a = σ√τ` this *is* T3, and it is
+  also the pointwise fact behind the positivity of the option price.
+* `Phi_eq_integral_Iic` — `Φ(x) = ∫_{(-∞, x]} φ`. This is the one place the
+  **value** of the Gaussian integral enters (`integral_gaussian_Ioi`): it
+  identifies the `1/2` in `Φ = (1 + erf(·/√2))/2` with `∫_{(-∞, 0]} φ`.
+* `Phi_nonneg`, `Phi_le_one` — immediate from the representation and `Phi_neg`.
+* `Phi_le_exp_mul_Phi_add` — `Φ(x) ≤ e^{a x + a²/2} · Φ(x + a)` for `a ≥ 0`,
+  obtained by integrating `phi_add` over `(-∞, x]`. With `x = d2`, `a = σ√τ`
+  this is `bsCall ≥ 0`; with `x = -d1` it is `bsPut ≥ 0`. **This, not
+  monotonicity of `Φ`, is the content of the T4 lower bound** — see the T4
+  doc-comment for why the previously recorded route could not work.
+
+`d1_exponent` / `d2_exponent` / `forward_eq` are the three lines of
+exp/log/sqrt algebra that connect the abstract statements to the BSM
+parameters; they are shared by T3 and both halves of T4.
+-/
+
+/-- `phi` is even. -/
+theorem phi_neg (x : ℝ) : phi (-x) = phi x := by
+  have h : (-x) ^ 2 = x ^ 2 := by ring
+  simp only [phi, h]
+
+/-- `phi` is non-negative. -/
+theorem phi_nonneg (x : ℝ) : 0 ≤ phi x := by
+  unfold phi
+  positivity
+
+/-- `phi` in the shape mathlib's Gaussian lemmas use, `exp (-b * x^2)` with `b = 1/2`. -/
+theorem phi_eq_gauss (u : ℝ) :
+    phi u = Real.exp (-(1 / 2 : ℝ) * u ^ 2) / Real.sqrt (2 * Real.pi) := by
+  have h : -(u ^ 2) / 2 = -(1 / 2 : ℝ) * u ^ 2 := by ring
+  unfold phi
+  rw [h]
+
+/-- `phi` is integrable on `ℝ` — `integrable_exp_neg_mul_sq`, scaled. -/
+theorem phi_integrable : MeasureTheory.Integrable phi := by
+  have h : phi = fun u => Real.exp (-(1 / 2 : ℝ) * u ^ 2) / Real.sqrt (2 * Real.pi) :=
+    funext phi_eq_gauss
+  rw [h]
+  exact (integrable_exp_neg_mul_sq (by norm_num : (0:ℝ) < 1 / 2)).div_const _
+
+/-- **The tilting identity**: `exp (a u + a²/2) * phi (u + a) = phi u`.
+
+Completing the square, `-(u+a)²/2 + a u + a²/2 = -u²/2`. This is the whole of
+T3 once `u = d2` and `a = σ√τ` (see `t3_delta_identity`), and it is the
+pointwise inequality behind the positivity of the BSM price
+(see `Phi_le_exp_mul_Phi_add`). -/
+theorem phi_add (u a : ℝ) : Real.exp (a * u + a ^ 2 / 2) * phi (u + a) = phi u := by
+  unfold phi
+  have h : Real.exp (a * u + a ^ 2 / 2) * Real.exp (-((u + a) ^ 2) / 2)
+      = Real.exp (-(u ^ 2) / 2) := by
+    rw [← Real.exp_add]
+    congr 1
+    ring
+  rw [← h]
+  ring
+
+/-- The substitution `t = u / √2` in the `erf` integral: `erf (x/√2) = 2 ∫₀ˣ phi`. -/
+theorem erf_div_sqrt_two (x : ℝ) : erf (x / Real.sqrt 2) = 2 * ∫ u in (0:ℝ)..x, phi u := by
+  have h2 : (0:ℝ) < Real.sqrt 2 := Real.sqrt_pos.mpr (by norm_num)
+  have hsq : Real.sqrt 2 ^ 2 = 2 := Real.sq_sqrt (by norm_num)
+  -- `integral_comp_div`: ∫ u in 0..x, f (u / c) = c • ∫ t in 0/c..x/c, f t
+  have hsubst : ∫ u in (0:ℝ)..x, Real.exp (-(u ^ 2) / 2)
+      = Real.sqrt 2 * ∫ t in (0:ℝ)..(x / Real.sqrt 2), Real.exp (-(t ^ 2)) := by
+    have h := intervalIntegral.integral_comp_div (a := (0:ℝ)) (b := x)
+      (fun t : ℝ => Real.exp (-(t ^ 2))) h2.ne'
+    simp only [zero_div, smul_eq_mul] at h
+    rw [← h]
+    congr 1
+    funext u
+    congr 1
+    rw [div_pow, hsq]
+    ring
+  have hphi : ∫ u in (0:ℝ)..x, phi u
+      = (∫ u in (0:ℝ)..x, Real.exp (-(u ^ 2) / 2)) / Real.sqrt (2 * Real.pi) := by
+    show ∫ u in (0:ℝ)..x, Real.exp (-(u ^ 2) / 2) / Real.sqrt (2 * Real.pi) = _
+    exact intervalIntegral.integral_div _ _
+  rw [erf, hphi, hsubst, Real.sqrt_mul (by norm_num : (0:ℝ) ≤ 2) Real.pi,
+    mul_div_mul_left _ _ h2.ne']
+  ring
+
+/-- `Phi x = 1/2 + ∫₀ˣ phi`. Still an interval integral; the `1/2` is identified
+with a tail integral in `Phi_eq_integral_Iic`. -/
+theorem Phi_eq_half_add_integral (x : ℝ) : Phi x = 1 / 2 + ∫ u in (0:ℝ)..x, phi u := by
+  rw [Phi, erf_div_sqrt_two]
+  ring
+
+/-- `∫_{(-∞, 0]} phi = 1/2`. Reflect `(-∞, 0]` onto `(0, ∞)` (`integral_comp_neg_Ioi`,
+`phi` is even) and read off `integral_gaussian_Ioi`. This is the only use of
+the **value** of the Gaussian integral in the T1–T4 stack. -/
+theorem integral_phi_Iic_zero : ∫ u in Set.Iic (0:ℝ), phi u = 1 / 2 := by
+  have hrefl : ∫ u in Set.Iic (0:ℝ), phi u = ∫ u in Set.Ioi (0:ℝ), phi u := by
+    have h := integral_comp_neg_Ioi (0:ℝ) phi
+    simp only [neg_zero, phi_neg] at h
+    exact h.symm
+  have hgauss : ∫ u in Set.Ioi (0:ℝ), Real.exp (-(1 / 2 : ℝ) * u ^ 2)
+      = Real.sqrt (2 * Real.pi) / 2 := by
+    have h := integral_gaussian_Ioi (1 / 2 : ℝ)
+    have h2 : Real.pi / (1 / 2 : ℝ) = 2 * Real.pi := by ring
+    rw [h2] at h
+    exact h
+  have hphi : phi = fun u => Real.exp (-(1 / 2 : ℝ) * u ^ 2) / Real.sqrt (2 * Real.pi) :=
+    funext phi_eq_gauss
+  have hne : Real.sqrt (2 * Real.pi) ≠ 0 := (Real.sqrt_pos.mpr (by positivity)).ne'
+  rw [hrefl, hphi, MeasureTheory.integral_div, hgauss, div_div,
+    mul_comm (2:ℝ) (Real.sqrt (2 * Real.pi)), ← div_div, div_self hne]
+
+/-- **`Phi` is the distribution function of `phi`**: `Phi x = ∫_{(-∞, x]} phi`.
+
+`intervalIntegral.integral_Iic_sub_Iic` splits `∫_{(-∞,x]} = ∫_{(-∞,0]} + ∫₀ˣ`,
+and the two pieces are `integral_phi_Iic_zero` and `Phi_eq_half_add_integral`. -/
+theorem Phi_eq_integral_Iic (x : ℝ) : Phi x = ∫ u in Set.Iic x, phi u := by
+  have hsub : (∫ u in Set.Iic x, phi u) - ∫ u in Set.Iic (0:ℝ), phi u
+      = ∫ u in (0:ℝ)..x, phi u :=
+    intervalIntegral.integral_Iic_sub_Iic phi_integrable.integrableOn
+      phi_integrable.integrableOn
+  rw [Phi_eq_half_add_integral, ← hsub, integral_phi_Iic_zero]
+  ring
+
+/-- `0 ≤ Phi x`. -/
+theorem Phi_nonneg (x : ℝ) : 0 ≤ Phi x := by
+  rw [Phi_eq_integral_Iic]
+  exact MeasureTheory.setIntegral_nonneg measurableSet_Iic (fun u _ => phi_nonneg u)
+
+/-- `Phi x ≤ 1`, from `Phi_nonneg` at `-x` and the odd symmetry `Phi_neg`. -/
+theorem Phi_le_one (x : ℝ) : Phi x ≤ 1 := by
+  have h := Phi_nonneg (-x)
+  rw [Phi_neg] at h
+  linarith
+
+/-- Translation invariance of a half-line integral,
+`∫_{(-∞, c]} f (u + a) du = ∫_{(-∞, c + a]} f`. Mathlib v4.34.0 has the reflection
+(`integral_comp_neg_Iic`) but not the translation; this is the same proof with
+`Homeomorph.addRight` in place of `Homeomorph.neg`. -/
+theorem integral_comp_add_right_Iic (f : ℝ → ℝ) (c a : ℝ) :
+    ∫ u in Set.Iic c, f (u + a) = ∫ v in Set.Iic (c + a), f v := by
+  have A : MeasurableEmbedding fun u : ℝ => u + a :=
+    (Homeomorph.addRight a).measurableEmbedding
+  have h := MeasurableEmbedding.setIntegral_map (μ := MeasureTheory.volume) A f
+    (Set.Iic (c + a))
+  -- `map_add_right_eq_self` lives in `MeasureTheory`, not `MeasureTheory.Measure`
+  -- (checked against the v4.34.0 source: Mathlib/MeasureTheory/Group/Measure.lean).
+  rw [MeasureTheory.map_add_right_eq_self
+    (MeasureTheory.volume : MeasureTheory.Measure ℝ) a] at h
+  have hs : (fun u : ℝ => u + a) ⁻¹' Set.Iic (c + a) = Set.Iic c := by
+    ext u
+    simp
+  rw [h, hs]
+
+/-- **The positivity inequality**: for `a ≥ 0`,
+`Phi x ≤ exp (a x + a²/2) * Phi (x + a)`.
+
+Integrate the tilting identity: on `(-∞, x]`,
+`phi u = e^{a u + a²/2} phi (u + a) ≤ e^{a x + a²/2} phi (u + a)`, and
+`∫_{(-∞, x]} phi (u + a) du = Phi (x + a)` by translation. In the BSM variables
+(`x = d2`, `a = σ√τ`) the factor `e^{a x + a²/2}` is exactly the ratio of the
+discounted forward to the discounted strike (`d2_exponent`, `forward_eq`), so
+this says `K e^{-rτ} Φ(d2) ≤ S e^{-qτ} Φ(d1)`, i.e. `bsCall ≥ 0`. It is the
+lognormal martingale property in disguise. -/
+theorem Phi_le_exp_mul_Phi_add (x a : ℝ) (ha : 0 ≤ a) :
+    Phi x ≤ Real.exp (a * x + a ^ 2 / 2) * Phi (x + a) := by
+  rw [Phi_eq_integral_Iic x, Phi_eq_integral_Iic (x + a),
+    ← integral_comp_add_right_Iic phi x a, ← MeasureTheory.integral_const_mul]
+  refine MeasureTheory.setIntegral_mono_on phi_integrable.integrableOn
+    ((phi_integrable.comp_add_right a).const_mul (Real.exp (a * x + a ^ 2 / 2))).integrableOn
+    measurableSet_Iic ?_
+  intro u hu
+  have hu' : u ≤ x := Set.mem_Iic.mp hu
+  show phi u ≤ Real.exp (a * x + a ^ 2 / 2) * phi (u + a)
+  rw [← phi_add u a]
+  refine mul_le_mul_of_nonneg_right ?_ (phi_nonneg _)
+  exact Real.exp_le_exp.mpr (by linarith [mul_le_mul_of_nonneg_left hu' ha])
+
+/-- `σ√τ · d2 + (σ√τ)²/2 = ln(S/K) + (r − q)τ`: the exponent that turns the
+discounted strike into the discounted forward. Needs only `σ√τ ≠ 0`, so it is
+stated under T3's hypotheses (`sigma ≠ 0`), not T4's (`0 < sigma`). -/
+theorem d2_exponent (S K tau r q sigma : ℝ) (htau : 0 < tau) (hsigma : sigma ≠ 0) :
+    sigma * Real.sqrt tau * d2 S K tau r q sigma + (sigma * Real.sqrt tau) ^ 2 / 2
+      = Real.log (S / K) + (r - q) * tau := by
+  have hne : sigma * Real.sqrt tau ≠ 0 := mul_ne_zero hsigma (Real.sqrt_pos.mpr htau).ne'
+  have h1 : Real.log (S / K) + (r - q - sigma ^ 2 / 2) * tau
+      = d2 S K tau r q sigma * (sigma * Real.sqrt tau) := by
+    apply (div_eq_iff hne).mp
+    rfl
+  have h2 : (sigma * Real.sqrt tau) ^ 2 = sigma ^ 2 * tau := by
+    rw [mul_pow, Real.sq_sqrt htau.le]
+  rw [mul_comm (sigma * Real.sqrt tau) (d2 S K tau r q sigma), ← h1, h2]
+  ring
+
+/-- `σ√τ · d1 − (σ√τ)²/2 = ln(S/K) + (r − q)τ`: the `d1` twin of `d2_exponent`,
+used for the put side. -/
+theorem d1_exponent (S K tau r q sigma : ℝ) (htau : 0 < tau) (hsigma : sigma ≠ 0) :
+    sigma * Real.sqrt tau * d1 S K tau r q sigma - (sigma * Real.sqrt tau) ^ 2 / 2
+      = Real.log (S / K) + (r - q) * tau := by
+  have hne : sigma * Real.sqrt tau ≠ 0 := mul_ne_zero hsigma (Real.sqrt_pos.mpr htau).ne'
+  have h1 : Real.log (S / K) + (r - q + sigma ^ 2 / 2) * tau
+      = d1 S K tau r q sigma * (sigma * Real.sqrt tau) := by
+    apply (div_eq_iff hne).mp
+    rfl
+  have h2 : (sigma * Real.sqrt tau) ^ 2 = sigma ^ 2 * tau := by
+    rw [mul_pow, Real.sq_sqrt htau.le]
+  rw [mul_comm (sigma * Real.sqrt tau) (d1 S K tau r q sigma), ← h1, h2]
+  ring
+
+/-- The discounted strike times `e^{ln(S/K) + (r − q)τ}` is the discounted
+forward: `K e^{-rτ} · e^{ln(S/K) + (r-q)τ} = S e^{-qτ}`. -/
+theorem forward_eq (S K tau r q : ℝ) (hS : 0 < S) (hK : 0 < K) :
+    K * Real.exp (-r * tau) * Real.exp (Real.log (S / K) + (r - q) * tau)
+      = S * Real.exp (-q * tau) := by
+  have hKS : K * (S / K) = S := by
+    rw [← mul_div_assoc, mul_comm K S, mul_div_assoc, div_self hK.ne', mul_one]
+  have harg : -r * tau + (Real.log (S / K) + (r - q) * tau)
+      = Real.log (S / K) + -q * tau := by
+    ring
+  rw [mul_assoc, ← Real.exp_add, harg, Real.exp_add, Real.exp_log (div_pos hS hK),
+    ← mul_assoc, hKS]
+
+-- --------------------------------------------------------------------------
+-- T3  [BUILT]  the delta identity
 -- --------------------------------------------------------------------------
 
 /-- **T3.** `S * e^{-q*tau} * phi(d1) = K * e^{-r*tau} * phi(d2)`.
@@ -274,27 +503,81 @@ K*e^{-r*tau}*phi(0)`, which fails whenever `S*e^{-q*tau} ≠ K*e^{-r*tau}`
 hypotheses below are the ones the proof actually consumes:
 
 * `0 < S`, `0 < K` — so `Real.log (S/K)` is the genuine logarithm and
-  `exp (-(log (S/K))) = K/S`;
+  `exp (log (S/K)) = S/K` (`forward_eq`);
 * `sigma ≠ 0`, `0 < tau` — so `sigma * Real.sqrt tau ≠ 0` and
-  `Real.sqrt tau * Real.sqrt tau = tau`, both needed for
-  `d1^2 - d2^2 = 2*log(S/K) + 2*(r-q)*tau`.
+  `Real.sqrt tau ^ 2 = tau` (`d2_exponent`).
 
-Proof route (recorded so the next contributor does not rediscover it):
-1. `d1^2 - d2^2 = (d1 - d2) * (d1 + d2) = 2*Real.log (S/K) + 2*(r-q)*tau`
-   — by T1 and `field_simp`, using `Real.mul_self_sqrt`.
-2. Hence `-(d1^2)/2 = -(d2^2)/2 - (Real.log (S/K) + (r-q)*tau)`, so by
-   `Real.exp_add` / `Real.exp_sub` and `Real.exp_log (by positivity)`:
-   `phi d1 = (K/S) * Real.exp (-(r-q)*tau) * phi d2`.
-3. Multiply through by `S * Real.exp (-q*tau)` and `ring`. -/
+Proof, as landed: T1 gives `d1 = d2 + σ√τ`; the tilting identity `phi_add` at
+`u = d2`, `a = σ√τ` reads `e^{σ√τ·d2 + (σ√τ)²/2} · phi d1 = phi d2`;
+`d2_exponent` identifies the exponent with `ln(S/K) + (r − q)τ`; `forward_eq`
+turns `K e^{-rτ}` times that exponential into `S e^{-qτ}`. (The route recorded
+earlier — `d1² − d2² = 2 ln(S/K) + 2(r−q)τ` — is the same computation
+written as a difference of squares.) -/
 theorem t3_delta_identity (S K tau r q sigma : ℝ)
     (hS : 0 < S) (hK : 0 < K) (htau : 0 < tau) (hsigma : sigma ≠ 0) :
     S * Real.exp (-q * tau) * phi (d1 S K tau r q sigma)
       = K * Real.exp (-r * tau) * phi (d2 S K tau r q sigma) := by
-  sorry
+  have hd1 : d1 S K tau r q sigma = d2 S K tau r q sigma + sigma * Real.sqrt tau := by
+    have := t1_d1_minus_d2 S K tau r q sigma htau hsigma
+    linarith
+  have hphi := phi_add (d2 S K tau r q sigma) (sigma * Real.sqrt tau)
+  rw [d2_exponent S K tau r q sigma htau hsigma, ← hd1] at hphi
+  rw [← hphi, ← forward_eq S K tau r q hS hK]
+  ring
 
 -- --------------------------------------------------------------------------
--- T4  [TODO]  no-arbitrage bounds
+-- T4  [BUILT]  no-arbitrage bounds
 -- --------------------------------------------------------------------------
+
+/-- **Positivity of the call**: `0 ≤ bsCall`. Multiply `Phi_le_exp_mul_Phi_add`
+at `x = d2`, `a = σ√τ` by `K e^{-rτ} ≥ 0` and use `d2_exponent` + `forward_eq`
+to recognise `K e^{-rτ} e^{σ√τ d2 + (σ√τ)²/2}` as `S e^{-qτ}`; T1 supplies
+`d2 + σ√τ = d1`. -/
+theorem bsCall_nonneg (S K tau r q sigma : ℝ)
+    (hS : 0 < S) (hK : 0 < K) (htau : 0 < tau) (hsigma : 0 < sigma) :
+    0 ≤ bsCall S K tau r q sigma := by
+  have ha : 0 ≤ sigma * Real.sqrt tau := mul_nonneg hsigma.le (Real.sqrt_nonneg _)
+  have hd1 : d1 S K tau r q sigma = d2 S K tau r q sigma + sigma * Real.sqrt tau := by
+    have := t1_d1_minus_d2 S K tau r q sigma htau hsigma.ne'
+    linarith
+  have hineq := Phi_le_exp_mul_Phi_add (d2 S K tau r q sigma) (sigma * Real.sqrt tau) ha
+  rw [d2_exponent S K tau r q sigma htau hsigma.ne', ← hd1] at hineq
+  -- hineq : Phi d2 ≤ exp (ln(S/K) + (r-q)τ) * Phi d1
+  have hD : 0 ≤ K * Real.exp (-r * tau) := mul_nonneg hK.le (Real.exp_pos _).le
+  have hmul := mul_le_mul_of_nonneg_left hineq hD
+  rw [← mul_assoc, forward_eq S K tau r q hS hK] at hmul
+  -- hmul : K e^{-rτ} Phi d2 ≤ S e^{-qτ} Phi d1
+  unfold bsCall
+  linarith
+
+/-- **Positivity of the put**: `0 ≤ bsPut`. The same inequality at `x = -d1`,
+`a = σ√τ`: now the exponent is `-(ln(S/K) + (r − q)τ)` (`d1_exponent`) and
+`S e^{-qτ}` times that exponential is `K e^{-rτ}` (`forward_eq`, inverted);
+T1 supplies `-d1 + σ√τ = -d2`. -/
+theorem bsPut_nonneg (S K tau r q sigma : ℝ)
+    (hS : 0 < S) (hK : 0 < K) (htau : 0 < tau) (hsigma : 0 < sigma) :
+    0 ≤ bsPut S K tau r q sigma := by
+  have ha : 0 ≤ sigma * Real.sqrt tau := mul_nonneg hsigma.le (Real.sqrt_nonneg _)
+  have hd2 : -(d1 S K tau r q sigma) + sigma * Real.sqrt tau = -(d2 S K tau r q sigma) := by
+    have := t1_d1_minus_d2 S K tau r q sigma htau hsigma.ne'
+    linarith
+  have harg : sigma * Real.sqrt tau * -(d1 S K tau r q sigma) + (sigma * Real.sqrt tau) ^ 2 / 2
+      = -(Real.log (S / K) + (r - q) * tau) := by
+    rw [← d1_exponent S K tau r q sigma htau hsigma.ne']
+    ring
+  have hineq := Phi_le_exp_mul_Phi_add (-(d1 S K tau r q sigma)) (sigma * Real.sqrt tau) ha
+  rw [harg, hd2] at hineq
+  -- hineq : Phi (-d1) ≤ exp (-(ln(S/K) + (r-q)τ)) * Phi (-d2)
+  have hF : 0 ≤ S * Real.exp (-q * tau) := mul_nonneg hS.le (Real.exp_pos _).le
+  have hmul := mul_le_mul_of_nonneg_left hineq hF
+  have hFD : S * Real.exp (-q * tau) * Real.exp (-(Real.log (S / K) + (r - q) * tau))
+      = K * Real.exp (-r * tau) := by
+    rw [← forward_eq S K tau r q hS hK, mul_assoc, ← Real.exp_add]
+    simp
+  rw [← mul_assoc, hFD] at hmul
+  -- hmul : S e^{-qτ} Phi (-d1) ≤ K e^{-rτ} Phi (-d2)
+  unfold bsPut
+  linarith
 
 /-- **T4.** No-arbitrage bounds on the call:
 
@@ -302,22 +585,32 @@ theorem t3_delta_identity (S K tau r q sigma : ℝ)
 
 Previously this node existed only as a row in README/docs tables; it had no
 Lean statement at all, so nothing in the tree could contradict the claim that
-it was "stated". It is stated here now.
+it was "stated". It was stated in BRIEF_001's correction and is proved here.
 
-Proof route: both bounds follow from `0 ≤ Phi` and `Phi ≤ 1` (the upper bound
-by dropping the non-negative `K e^{-r*tau} Phi(d2)` term; the lower by
-`bsCall ≥ S e^{-q*tau} Phi(d1) - K e^{-r*tau} Phi(d1)` once `Phi` is shown
-monotone, then `Phi(d1) ≥ Phi(d2)` from `d1 ≥ d2`, i.e. T1 plus
-`0 ≤ sigma * Real.sqrt tau`).
+**The proof route recorded here before BRIEF_003 was wrong, and it is worth
+saying exactly how.** It read: "the lower bound follows from
+`bsCall ≥ S e^{-qτ} Φ(d1) − K e^{-rτ} Φ(d1)` once `Φ` is monotone and
+`d1 ≥ d2`." Write `F = S e^{-qτ}`, `D = K e^{-rτ}`. Monotonicity gives
+`bsCall ≥ (F − D) Φ(d1)`, and `max (F − D) 0 ≤ bsCall` needs **both**
+`bsCall ≥ 0` and `bsCall ≥ F − D`. In every regime the monotonicity bound
+delivers only the half that is *not* binding: if `F ≥ D` it gives `bsCall ≥ 0`
+but not `≥ F − D`; if `F < D` it gives `bsCall ≥ F − D` but not `≥ 0`
+(S=100, K=120, τ=1, r=q=0, σ=0.2: `bsCall ≈ 2.15` while `(F − D) Φ(d1) ≈ −4.17`).
+No amount of `0 ≤ Φ ≤ 1` plus monotonicity closes that gap, because the lower
+bound is the statement that the BSM price is the discounted expectation of a
+*non-negative payoff* — `bsCall ≥ 0` and (by parity) `bsPut ≥ 0` — and that
+needs the *integral* structure of `Φ`, not just its range.
 
-**This is the node that the missing `Real.erf` actually bites.** Oddness (all
-T2 needs) comes from a substitution in an interval integral. *Bounds* are
-different: `0 ≤ Phi x` and `Phi x ≤ 1` need `|erf x| ≤ 1`, which needs the
-**value** of the Gaussian integral, `∫ x:ℝ, Real.exp (-(x^2)) = Real.sqrt
-Real.pi` — real measure theory, not interval integrals. Mathlib has this in
-`Mathlib/Analysis/SpecialFunctions/Gaussian/GaussianIntegral.lean`; start there
-rather than trying to squeeze it out of the `erf` definition above. Budget
-accordingly: this is the expensive part of T4, not the monotonicity.
+What the proof actually rests on:
+
+* upper bound: `Phi_nonneg` (drop `K e^{-rτ} Φ(d2) ≥ 0`) and `Phi_le_one`;
+* `0 ≤ bsCall`: `bsCall_nonneg`, i.e. `Phi_le_exp_mul_Phi_add` at `x = d2`;
+* `F − D ≤ bsCall`: parity (`t2_put_call_parity`) and `bsPut_nonneg`, i.e. the
+  same inequality at `x = −d1`.
+
+The *value* of the Gaussian integral enters exactly once, in
+`integral_phi_Iic_zero`; everything else is the tilting identity `phi_add`
+integrated over a half-line. Monotonicity of `Φ` is never used.
 
 The numeric shadow of this theorem is
 `tests/test_bs.py::test_value_bounds`, which checks it on a 6-point grid. -/
@@ -326,16 +619,33 @@ theorem t4_call_bounds (S K tau r q sigma : ℝ)
     max (S * Real.exp (-q * tau) - K * Real.exp (-r * tau)) 0
       ≤ bsCall S K tau r q sigma ∧
     bsCall S K tau r q sigma ≤ S * Real.exp (-q * tau) := by
-  sorry
+  have hF : 0 ≤ S * Real.exp (-q * tau) := mul_nonneg hS.le (Real.exp_pos _).le
+  have hD : 0 ≤ K * Real.exp (-r * tau) := mul_nonneg hK.le (Real.exp_pos _).le
+  have hc := bsCall_nonneg S K tau r q sigma hS hK htau hsigma
+  have hp := bsPut_nonneg S K tau r q sigma hS hK htau hsigma
+  have hpar := t2_put_call_parity S K tau r q sigma
+  refine ⟨max_le (by linarith) hc, ?_⟩
+  have h1 : S * Real.exp (-q * tau) * Phi (d1 S K tau r q sigma) ≤ S * Real.exp (-q * tau) :=
+    mul_le_of_le_one_right hF (Phi_le_one _)
+  have h2 : 0 ≤ K * Real.exp (-r * tau) * Phi (d2 S K tau r q sigma) :=
+    mul_nonneg hD (Phi_nonneg _)
+  unfold bsCall
+  linarith
 
 /-- **T4 (put side).** The mirrored bounds, obtained from the call bounds by
-parity (T2) — so this is a corollary, not an independent analytic claim. -/
+parity (T2) — so this is a corollary, not an independent analytic claim: every
+inequality below is `t4_call_bounds` plus `t2_put_call_parity` and `linarith`. -/
 theorem t4_put_bounds (S K tau r q sigma : ℝ)
     (hS : 0 < S) (hK : 0 < K) (htau : 0 < tau) (hsigma : 0 < sigma) :
     max (K * Real.exp (-r * tau) - S * Real.exp (-q * tau)) 0
       ≤ bsPut S K tau r q sigma ∧
     bsPut S K tau r q sigma ≤ K * Real.exp (-r * tau) := by
-  sorry
+  obtain ⟨hlo, hhi⟩ := t4_call_bounds S K tau r q sigma hS hK htau hsigma
+  have hpar := t2_put_call_parity S K tau r q sigma
+  have h0 : 0 ≤ bsCall S K tau r q sigma := le_trans (le_max_right _ _) hlo
+  have h1 : S * Real.exp (-q * tau) - K * Real.exp (-r * tau) ≤ bsCall S K tau r q sigma :=
+    le_trans (le_max_left _ _) hlo
+  exact ⟨max_le (by linarith) (by linarith), by linarith⟩
 
 /-!
 --------------------------------------------------------------------------

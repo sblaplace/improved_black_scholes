@@ -1,6 +1,44 @@
 # BRIEF_003 — The delta identity (T3) and the no-arbitrage bounds (T4)
 
-- **Status:** OPEN
+> **Correction record (2026-09-20, landed with PR #2).** The brief below is
+> kept as issued; the deviations from it are recorded here, per the ledger's
+> convention (`benchmarks/LEDGER.md`, correction C4).
+>
+> 1. **Scope item 6 was wrong, not just suboptimal.** Monotonicity of `Φ` plus
+>    `d2 ≤ d1` yields `bsCall ≥ (F − D)·Φ(d1)` with `F = S e^{−qτ}`,
+>    `D = K e^{−rτ}`. The lower bound `max(F − D, 0) ≤ bsCall` needs *both*
+>    `bsCall ≥ 0` and `bsCall ≥ F − D`, and the monotonicity bound gives only
+>    the non-binding one in every regime (S=100, K=120, τ=1, r=q=0, σ=0.2:
+>    `bsCall ≈ 2.15`, `(F − D)Φ(d1) ≈ −4.17`). What the lower bound actually is:
+>    positivity of the call and of the put (parity turns `bsPut ≥ 0` into
+>    `bsCall ≥ F − D`). Positivity needs `Φ` as an *integral* of `φ`. Landed as
+>    `Phi_eq_integral_Iic` → `Phi_le_exp_mul_Phi_add` → `bsCall_nonneg`,
+>    `bsPut_nonneg`. No `Phi_monotone` was written; none is used.
+> 2. **Scope item 4's negative result is confirmed.** mathlib v4.34.0 has no
+>    `Real.erf`, hence no erf bounds. The minimal lemma is not `|erf| ≤ 1` but
+>    `Φ(x) = ∫_{(−∞,x]} φ`, which costs the value of the Gaussian integral once
+>    (`integral_phi_Iic_zero`, from `integral_gaussian_Ioi`) and then gives
+>    `Phi_nonneg` by `setIntegral_nonneg` and `Phi_le_one` from `Phi_neg`.
+> 3. **Scope item 1's route was replaced by an equivalent one.** T3 landed via
+>    the tilting identity `phi_add : e^{a u + a²/2} φ(u + a) = φ(u)` at
+>    `u = d2`, `a = σ√τ`, plus `d2_exponent` and `forward_eq`; it reuses
+>    `t1_d1_minus_d2` for `d1 = d2 + σ√τ` as required. The
+>    difference-of-squares route in item 1 is the same computation; the tilting
+>    form was chosen because T4's positivity is that identity integrated over a
+>    half-line, so one lemma serves both nodes. `field_simp` was avoided
+>    throughout (no toolchain to check whether it closes a goal).
+> 4. **The budget line was inverted.** "T3 is the work; T4 is mostly a
+>    mathlib-availability question" — in fact T3 is an eight-line corollary of
+>    `phi_add`, and T4 is the analytic content: sixteen infrastructure lemmas,
+>    including a translation-invariance lemma for half-line integrals
+>    (`integral_comp_add_right_Iic`) that mathlib has only in the reflection
+>    form.
+>
+> Everything in "Done looks like" holds: `lake build` green, `#print axioms`
+> clean for all 25 declarations in the T1–T4 node, `deferred: {}`, lint green,
+> oracle 13/13 and mutants 4/4 untouched, no statement changed.
+
+- **Status:** CLOSED — **GREEN** in [PR #2](https://github.com/sblaplace/improved_black_scholes/pull/2), run 35514867674 @ `726325d`
 - **Prerequisite PRs:** BRIEF_001 merged and green. BRIEF_002 is helpful but
   not required.
 - **Skills:** Lean 4 + mathlib real analysis (`Real.exp`/`Real.log` algebra,
