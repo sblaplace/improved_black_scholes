@@ -46,6 +46,34 @@
       "axioms": "'BSM.bsPut_nonneg' depends on axioms: [propext, Classical.choice, Quot.sound]",
       "type": "BSM.bsPut_nonneg : ∀ (S K tau r q sigma : ℝ), 0 < S → 0 < K → 0 < tau → 0 < sigma → 0 ≤ BSM.bsPut S K tau r q sigma"
     },
+    "BSM.carrMadanKernel": {
+      "axioms": "'BSM.carrMadanKernel' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.carrMadanKernel : (ℂ → ℂ) → ℝ → ℝ → ℂ"
+    },
+    "BSM.carrMadanKernel_integrable": {
+      "axioms": "'BSM.carrMadanKernel_integrable' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.carrMadanKernel_integrable : ∀ {φ : ℂ → ℂ} {α : ℝ}, 0 < α → (Continuous fun u => φ (↑u + ↑α * Complex.I)) → ∀ {c D Y : ℝ}, 0 < c → 0 ≤ D → 0 < Y → ∀ {u₀ : ℝ}, (∀ (u : ℝ), u₀ ≤ |u| → ‖φ (↑u + ↑α * Complex.I)‖ ≤ D * Real.exp (-c * |u| ^ Y)) → MeasureTheory.Integrable (BSM.carrMadanKernel φ α) MeasureTheory.volume"
+    },
+    "BSM.carrMadanPhase": {
+      "axioms": "'BSM.carrMadanPhase' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.carrMadanPhase : ℝ → ℝ → ℂ"
+    },
+    "BSM.carrMadan_price_integrable": {
+      "axioms": "'BSM.carrMadan_price_integrable' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.carrMadan_price_integrable : ∀ {φ : ℂ → ℂ} {α : ℝ}, 0 < α → (Continuous fun u => φ (↑u + ↑α * Complex.I)) → ∀ {c D Y : ℝ}, 0 < c → 0 ≤ D → 0 < Y → ∀ {u₀ : ℝ}, (∀ (u : ℝ), u₀ ≤ |u| → ‖φ (↑u + ↑α * Complex.I)‖ ≤ D * Real.exp (-c * |u| ^ Y)) → ∀ (r tau : ℝ), MeasureTheory.Integrable (fun u => ↑(Real.exp (-r * tau) / (2 * Real.pi)) • (BSM.carrMadanPhase tau u * BSM.carrMadanKernel φ α u)) MeasureTheory.volume"
+    },
+    "BSM.cmDenom": {
+      "axioms": "'BSM.cmDenom' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.cmDenom : ℝ → ℝ → ℂ"
+    },
+    "BSM.cmDenom_ne_zero": {
+      "axioms": "'BSM.cmDenom_ne_zero' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.cmDenom_ne_zero : ∀ (α : ℝ), 0 < α → ∀ (u : ℝ), BSM.cmDenom α u ≠ 0"
+    },
+    "BSM.cmDenom_u4_le": {
+      "axioms": "'BSM.cmDenom_u4_le' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.cmDenom_u4_le : ∀ (α u : ℝ), u ^ 4 ≤ (α ^ 2 + α - u ^ 2) ^ 2 + ((2 * α + 1) * u) ^ 2"
+    },
     "BSM.d1": {
       "axioms": "'BSM.d1' depends on axioms: [propext, Classical.choice, Quot.sound]",
       "type": "BSM.d1 : ℝ → ℝ → ℝ → ℝ → ℝ → ℝ → ℝ"
@@ -85,6 +113,22 @@
     "BSM.forward_eq": {
       "axioms": "'BSM.forward_eq' depends on axioms: [propext, Classical.choice, Quot.sound]",
       "type": "BSM.forward_eq : ∀ (S K tau r q : ℝ), 0 < S → 0 < K → K * Real.exp (-r * tau) * Real.exp (Real.log (S / K) + (r - q) * tau) = S * Real.exp (-q * tau)"
+    },
+    "BSM.gbmCharFactor": {
+      "axioms": "'BSM.gbmCharFactor' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.gbmCharFactor : ℝ → ℝ → ℂ → ℂ"
+    },
+    "BSM.gbm_carrMadanKernel_integrable": {
+      "axioms": "'BSM.gbm_carrMadanKernel_integrable' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.gbm_carrMadanKernel_integrable : ∀ (m s : ℝ), 0 < s → ∀ {α : ℝ}, 0 < α → MeasureTheory.Integrable (BSM.carrMadanKernel (BSM.gbmCharFactor m s) α) MeasureTheory.volume"
+    },
+    "BSM.gbm_carrMadan_price_integrable": {
+      "axioms": "'BSM.gbm_carrMadan_price_integrable' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.gbm_carrMadan_price_integrable : ∀ (m s : ℝ), 0 < s → ∀ {α : ℝ}, 0 < α → ∀ (r tau : ℝ), MeasureTheory.Integrable (fun u => ↑(Real.exp (-r * tau) / (2 * Real.pi)) • (BSM.carrMadanPhase tau u * BSM.carrMadanKernel (BSM.gbmCharFactor m s) α u)) MeasureTheory.volume"
+    },
+    "BSM.integrable_exp_neg_abs_rpow": {
+      "axioms": "'BSM.integrable_exp_neg_abs_rpow' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.integrable_exp_neg_abs_rpow : ∀ {c Y : ℝ}, 0 < c → 0 < Y → MeasureTheory.Integrable (fun u => Real.exp (-c * |u| ^ Y)) MeasureTheory.volume"
     },
     "BSM.integral_phi_Iic_zero": {
       "axioms": "'BSM.integral_phi_Iic_zero' depends on axioms: [propext, Classical.choice, Quot.sound]",
