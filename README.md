@@ -220,14 +220,21 @@ All three are dependency-free Python; none needs a Lean toolchain.
 python3 tests/test_bs.py          # 13/13 — the oracle satisfies the claimed identities
 python3 tests/test_mutants.py     #  4/4  — and those tests can actually fail (11 mutants)
 python3 tests/test_lint.py        #  7/7  — the linter can fail too (21 cheats, 5 controls)
+python3 tests/test_pins.py        #  8/8  — and the pins that back it parse real CI output
 python3 scripts/lean_lint.py      #  OK   — no sorry in the protected node, ratchet, independence, pins
 python3 scripts/pin_statements.py --check   # 31 statements match tests/golden_statements.json
+python3 tests/test_crosscheck.py    #  4/4  — grid + oracle self-consistency (the cross-check itself needs lake)
 # or, with pytest installed:
 pytest tests/
 ```
 
-`tests/test_lint.py` needs no Lean toolchain by design: it mutates copies of the
-tree and runs the lint against them, exactly as the lint runs in CI.
+None of the four harnesses needs a Lean toolchain, by design: `tests/test_lint.py`
+mutates copies of the tree and runs the lint against them exactly as CI does, and
+`tests/test_pins.py` replays recorded `lake env lean` output through the pin
+parser instead of assuming its format. The pins' elaborated layer
+(`#check` types, `#print axioms`) is the one part that genuinely needs a
+toolchain, so it is graded by the build job and its local behaviour is asserted to
+be *red*, not skipped.
 
 The Lean build itself needs elan + the mathlib cache:
 

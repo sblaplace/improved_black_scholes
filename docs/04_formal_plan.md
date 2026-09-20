@@ -218,6 +218,21 @@ docs/01 §4. All four guards are now active; guard (4)'s elaborated layer is
 CI-only, like `lake build` itself, and its `elab` block is produced by the first
 build run and committed from that run's published log.
 
+That sentence earned itself. The first build run (35519747870) went red — `lake
+build` green, `#print axioms` green, the pin step failing with
+`could not recover both a type and an axiom line for BSM.Phi (type='BSM.Phi : ℝ →
+ℝ', axioms='')`. `#print axioms` quotes the constant name where `#check` does not,
+and the parser had assumed symmetry between two Lean commands whose output formats
+are not shared. The refusal was correct — a partial pin would have looked like
+coverage — but the bug was only visible in CI, which is the one place this
+repository cannot iterate cheaply. `tests/test_pins.py` fixes that properly:
+`parse_audit` is now a pure function over recorded output, both message shapes and
+a wrapped type are replayed in-sandbox, and `test_generator_and_parser_agree_on_the_protocol`
+asserts that the emitter and the reader still agree on the sentinel protocol. Two
+lessons generalize: *a format assumption about a tool you cannot run is a bug
+with a delay*, and *a CI-only check must fail loudly where it cannot run* — the
+local `--elab-check` is a red with a message, never a skip.
+
 ## The brief queue
 
 Order is chosen so that each brief's acceptance bar is checkable by the time it

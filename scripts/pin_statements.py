@@ -266,36 +266,88 @@ def check() -> list[str]:
 
 # ---------------------------------------------------------------- elaboration
 
+SENTINEL = "@@END@@"
+
+# `#check` echoes the constant bare (`BSM.Phi : ℝ → ℝ`); `#print axioms` quotes it
+# (`'BSM.Phi' depends on axioms: [...]`). Both shapes are real, from run
+# 35519747870 -- see tests/test_pins.py, which replays that output through
+# parse_audit(). Assuming one shape is how a CI-only layer gets silently
+# half-pinned, and a half-pin reads like a checked claim.
+_LEAD_NAME = re.compile(
+    r"^'?(?P<name>[\w.]+)'?(?P<sep>\s*:|\s+depends on|\s+does not depend)"
+)
+
+
+def _block_text(block: list[str], q: str) -> str:
+    """Payload of one sentinel-delimited block: everything from the line whose
+    leading constant name is `q`. Lines naming something else are dropped, so a
+    stray warning does not shift what gets pinned."""
+    for i, ln in enumerate(block):
+        m = _LEAD_NAME.match(ln)
+        if not m:
+            continue
+        if (m.group("name") or m.group("quoted")) != q:
+            continue
+        return normalize(" ".join(block[i:]))
+    return ""
+
+
+def parse_audit(stdout: str, qualified: list[str]) -> dict:
+    """Turn the audit program's stdout into {constant: {type, axioms}}.
+
+    The generated file emits, per constant: `#check`, sentinel, `#print axioms`,
+    sentinel -- so stdout splits into 2N blocks in `qualified` order. No guessing
+    which wrapped line belongs to which declaration, and no dependence on how
+    Lean chooses to break a long type. Anything unpairable raises: a partial pin
+    is worse than a red build.
+    """
+    blocks = [
+        [ln.strip() for ln in chunk.splitlines() if ln.strip()]
+        for chunk in stdout.split(SENTINEL)
+    ]
+    if len(blocks) < 2 * len(qualified):
+        raise RuntimeError(
+            f"expected {2 * len(qualified)} {SENTINEL}-delimited blocks, got {len(blocks)}: "
+            "the audit file or the sentinel mechanism changed. Fix the parser rather "
+            "than pinning a partial result."
+        )
+    out: dict[str, dict] = {}
+    for i, q in enumerate(qualified):
+        ty = _block_text(blocks[2 * i], q)
+        ax = _block_text(blocks[2 * i + 1], q)
+        if not ty or not ax:
+            raise RuntimeError(
+                f"could not recover both a type and an axiom line for `{q}` "
+                f"(type={ty!r}, axioms={ax!r}). The `#check`/`#print axioms` output "
+                "format is an assumption; repair the parser explicitly rather than "
+                "committing a half-pin."
+            )
+        out[q] = {"type": ty, "axioms": ax}
+    return out
+
+
 def audit_source(qualified: list[str]) -> str:
     """The Lean file whose output *is* the elaborated pin.
 
-    `@@END@@` sentinels let the reader join wrapped lines without guessing where
-    one declaration's output ends, because `#check` breaks long types across
-    lines. `#eval IO.println` is the same mechanism `ImprovedBS/Crosscheck.lean`
-    already relies on, so it needs no new Lean API surface -- an important
-    property while the tree is authored without a toolchain.
+    `#eval IO.println "@@END@@"` is the same mechanism
+    `ImprovedBS/Crosscheck.lean` already relies on, so this needs no Lean API
+    surface beyond what the tree already uses -- an important property while the
+    tree is authored in sandboxes that cannot build.
     """
     lines = ["import ImprovedBS", ""]
     for q in qualified:
         lines += [
             f"#check @{q}",
-            '#eval IO.println "@@END@@"',
+            f'#eval IO.println "{SENTINEL}"',
             f"#print axioms {q}",
-            '#eval IO.println "@@END@@"',
+            f'#eval IO.println "{SENTINEL}"',
             "",
         ]
     return "\n".join(lines)
 
 
 def elaborate(pins: dict) -> dict:
-    """Run the audit through `lake env lean`; return {name: {type, axioms}}.
-
-    Parsing is by line *prefix*, not by line count: a chunk belonging to `q`
-    starts at `BSM.q :` (the `#check` echo) and the axiom line is the one that
-    says `depends on axioms` / `does not depend on any axioms`. Anything that
-    fails to parse raises rather than pinning a partial result -- a half-pin is
-    worse than a red build, because it looks like a checked claim.
-    """
+    """Run the audit through `lake env lean` and parse it. CI-only by nature."""
     qualified = sorted(pins)
     if shutil.which("lake") is None:
         raise RuntimeError(
@@ -309,48 +361,10 @@ def elaborate(pins: dict) -> dict:
     )
     if proc.returncode != 0:
         sys.stderr.write(proc.stdout + proc.stderr)
-        raise RuntimeError(
-            f"`lake env lean {AUDIT_PATH}` failed; refusing to pin nothing."
-        )
+        raise RuntimeError(f"`lake env lean {AUDIT_PATH}` failed; refusing to pin nothing.")
     if "sorryAx" in proc.stdout:
-        raise RuntimeError("[PINS][ELAB] sorryAx in the audit output -- refusing to pin it.")
-    # The generated file emits, per constant: #check, sentinel, #print axioms,
-    # sentinel. So stdout splits into 2N blocks in exactly `qualified` order --
-    # no guessing which line belongs to which declaration, and no dependence on
-    # how Lean chooses to wrap a long type.
-    blocks = [[ln for ln in b.splitlines() if ln.strip()] for b in proc.stdout.split("@@END@@")]
-    if len(blocks) < 2 * len(qualified):
-        raise RuntimeError(
-            f"[PINS][ELAB] expected {2 * len(qualified)} @@END@@-delimited blocks, got "
-            f"{len(blocks)}. The audit file or the sentinel mechanism changed; fix the "
-            "parser rather than pinning a partial result."
-        )
-
-    def block_text(block: list[str], q: str) -> str:
-        """Drop leading noise lines (a stray warning before our echo), keep the rest.
-
-        Lean's own output for both commands starts with the constant name, so the
-        first such line is the start of the payload and everything after it is
-        either the same message wrapped or the message.
-        """
-        start = next((i for i, ln in enumerate(block) if ln.startswith(f"{q} ")), None)
-        if start is None:
-            return ""
-        return normalize(" ".join(block[start:]))
-
-    out: dict[str, dict] = {}
-    for i, q in enumerate(qualified):
-        ty = block_text(blocks[2 * i], q)
-        ax = block_text(blocks[2 * i + 1], q)
-        if not ty or not ax:
-            raise RuntimeError(
-                f"[PINS][ELAB] could not recover both a type and an axiom line for `{q}` "
-                f"(type={ty!r}, axioms={ax!r}). The `#check`/`#print axioms` output format "
-                "is an assumption; repair the parser explicitly rather than committing a "
-                "half-pin."
-            )
-        out[q] = {"type": ty, "axioms": ax}
-    return out
+        raise RuntimeError("sorryAx in the audit output -- refusing to pin it.")
+    return parse_audit(proc.stdout, qualified)
 
 
 def elab_check() -> tuple[list[str], dict]:
