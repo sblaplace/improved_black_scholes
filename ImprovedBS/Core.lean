@@ -203,8 +203,16 @@ theorem t1_d1_minus_d2 (S K tau r q sigma : ℝ) (htau : 0 < tau) (hsigma : sigm
   show (Real.log (S / K) + (r - q + sigma ^ 2 / 2) * tau) / (sigma * Real.sqrt tau)
       - (Real.log (S / K) + (r - q - sigma ^ 2 / 2) * tau) / (sigma * Real.sqrt tau)
       = sigma * Real.sqrt tau
+  -- `← sub_div`, not `sub_div`. In mathlib v4.34.0 the lemma is oriented
+  --   (a - b) / c = a / c - b / c
+  -- i.e. it SPLITS a fraction; this goal needs the two fractions COMBINED, so
+  -- the rewrite has to run backwards. CI reported the mismatch directly:
+  --   Did not find an occurrence of the pattern (?a - ?b) / ?c
+  -- which is the lemma's own left-hand side and the fastest possible way to see
+  -- that the orientation is the other way round.
+  --
   -- `div_eq_iff`, not `eq_div_iff_mul_eq`: the division is on the LEFT here.
-  rw [sub_div, key, div_eq_iff hD]
+  rw [← sub_div, key, div_eq_iff hD]
   exact hsq'.symm
 
 -- --------------------------------------------------------------------------
