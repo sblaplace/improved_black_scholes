@@ -170,7 +170,7 @@ theorem lintegral_exp_add_eq_top_of_tail_lower_bound (μ : Measure ℝ)
   obtain ⟨k, hkM, hk0⟩ :=
     ((Filter.tendsto_atTop.1 hseq (r : ℝ)).and
       (Filter.tendsto_atTop.1 hpow x₀)).exists
-  have hr : ((r : ℝ≥0) : ℝ≥0∞) = ENNReal.ofReal (r : ℝ) :=
+  have hr : ((r : NNReal) : ENNReal) = ENNReal.ofReal (r : ℝ) :=
     ENNReal.ofReal_coe_nnreal.symm
   exact le_trans (le_of_eq hr)
     ((ENNReal.ofReal_le_ofReal hkM).trans (hstep k hk0))
