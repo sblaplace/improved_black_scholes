@@ -186,8 +186,12 @@ jobs:
         # agreement across d1, d2, call, put, parity, and delta identity.
         run: |
           touch lean-crosscheck.log
-          set -o pipefail
-          lake env lean ImprovedBS/Crosscheck.lean | python3 tests/test_crosscheck.py 2>&1 | tee lean-crosscheck.log
+          if ! lake env lean ImprovedBS/Crosscheck.lean > lean-eval.log 2>&1; then
+            echo "FAIL: 'lake env lean ImprovedBS/Crosscheck.lean' failed:" | tee lean-crosscheck.log
+            cat lean-eval.log | tee -a lean-crosscheck.log
+            exit 1
+          fi
+          python3 tests/test_crosscheck.py --lean-output lean-eval.log 2>&1 | tee lean-crosscheck.log
 
       - name: Publish the axioms audit to the PR
         # The audit passing is the acceptance evidence for a landed node, and

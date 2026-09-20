@@ -1,5 +1,3 @@
-import ImprovedBS.Core
-
 /-!
 # ImprovedBS.Crosscheck — Oracle ↔ Lean pointwise cross-verifier (BRIEF_002)
 
@@ -30,9 +28,7 @@ def pi : Float := 3.14159265358979323846
 /--
 High-precision Cody (1969) rational Chebyshev approximation for the error function `erf`.
 Agrees with `math.erf` / libc `erf` to within ~1.1e-16 across the real line.
-Marked `@[extern "erf"]` so that compiled code / platforms with dynamic libc linkage
-use the hardware/libc symbol directly while interpreted `#eval` falls back to the
-definition if extern resolution is bypassed.
+Pure Lean `Float` implementation — portable across all platforms with no external C dependencies.
 -/
 def codyErf (x : Float) : Float :=
   let ax := x.abs
@@ -47,18 +43,18 @@ def codyErf (x : Float) : Float :=
     let num := -0.00236211856075265944077 + s * (0.414856118683748331666 + s * (-0.372207876035701323847 + s * (0.318346619901161753674 + s * (-0.110894694282396677476 + s * (0.0354783043256182359371 + s * (-0.00216637559486879084300))))))
     let den := 1.0 + s * (0.106420880400844228286 + s * (0.540397917702171048937 + s * (0.0718286544141962662868 + s * (0.126171219808761642112 + s * (0.0136370839120290507362 + s * 0.0119844998467991074170)))))
     let res := c + num / den
-    if x >= 0.0 then res else -res
+    if 0.0 <= x then res else -res
   else if ax < 6.0 then
     let z := 1.0 / (ax * ax)
     let num := -0.00986494403484714822705 + z * (-0.693858572707181764372 + z * (-10.5586262253232909814 + z * (-62.3753324503260060396 + z * (-162.396669462573470355 + z * (-184.605092906711035994 + z * (-81.2874355063065934246 + z * (-9.81432934416914548592)))))))
     let den := 1.0 + z * (19.6512716674392571292 + z * (137.657754143519042600 + z * (434.565877475229228821 + z * (645.387271733267880336 + z * (429.008140027567833386 + z * (108.635005541779435134 + z * (6.57024977031928170135 + z * (-0.0604244152148580987438))))))))
     let erfcVal := Float.exp (-ax * ax - 0.5625 + num / den) / ax
     let res := 1.0 - erfcVal
-    if x >= 0.0 then res else -res
+    if 0.0 <= x then res else -res
   else
-    if x >= 0.0 then 1.0 else -1.0
+    if 0.0 <= x then 1.0 else -1.0
 
-@[extern "erf"]
+/-- Error function on Float. -/
 def erf (x : Float) : Float :=
   codyErf x
 
