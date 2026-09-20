@@ -1,5 +1,6 @@
 import ImprovedBS.Core
 import ImprovedBS.Levy
+import ImprovedBS.Fourier
 
 /-!
 # ImprovedBS
@@ -12,6 +13,11 @@ Root module of the `ImprovedBS` library. Modules imported here are built by
   analysis (a polynomial tail lower bound forces an infinite exponential
   moment), §2 is the modelling claim that consumes it (`E[S_T] = ∞`, hence no
   equivalent martingale measure in the exponential-Lévy ansatz).
+* `ImprovedBS.Fourier` — BRIEF_005: absolute convergence of the tempered
+  Carr–Madan contour (T6 sub-goal 2). §1 is the two-sided tempered-tail
+  integrability, §2 the exact quartic lower bound of the strike-transform
+  denominator, §3 the joining domination argument, §4 the fully
+  machine-checked GBM instance of classical Fourier pricing.
 
 ## Why the module is not called `Lean.*`
 

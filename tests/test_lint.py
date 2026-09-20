@@ -60,6 +60,7 @@ if ROOT not in sys.path:
 
 CORE = "ImprovedBS/Core.lean"
 ORACLE = "experiments/black_scholes.py"
+CROSSCHECK = "ImprovedBS/Crosscheck.lean"
 GOLDEN = "tests/golden_statements.json"
 BASELINE = ".github/lean_lint_baseline.json"
 
@@ -186,6 +187,29 @@ MUTANTS = [
         "file": ORACLE,
         "delete": True,
         "tag": "[ORACLE SYNC]",
+    },
+    # ---- the Float twin: guard (3) must EMIT both sides of T3, not just define them ----
+    {
+        "name": "CC1 twin prints the delta identity's LHS twice (the C6 item 4 defect, verbatim)",
+        "file": CROSSCHECK,
+        "from": "    let deltaRhsVal := deltaIdentityRhs pt.S pt.K pt.tau pt.r pt.q pt.sigma",
+        "to":   "    let deltaRhsVal := deltaIdentityLhs pt.S pt.K pt.tau pt.r pt.q pt.sigma",
+        "tag": "[CROSSCHECK SYNC]",
+        "why": "Numerically invisible to the Python comparator: the two sides agree "
+               "to ~7e-15 inside the oracle, far under the 1e-12 tolerance, so a "
+               "stream that prints the LHS twice passes every numeric comparison. "
+               "Only the source-level requirement that `runCrosscheck` reference "
+               "`deltaIdentityRhs` can see it -- which is exactly why the guard is "
+               "structural and not another numeric comparison.",
+    },
+    {
+        "name": "CC2 deltaIdentityRhs definition deleted outright",
+        "file": CROSSCHECK,
+        "from": "/-- Delta identity RHS: `K * exp(-r*tau) * phi(d2)`. -/\n"
+                "def deltaIdentityRhs (S K tau r q sigma : Float) : Float :=\n"
+                "  K * Float.exp (-r * tau) * phi (d2 S K tau r q sigma)\n",
+        "to": "",
+        "tag": "[CROSSCHECK SYNC]",
     },
     # ---- statement pins: what nothing else could see ----
     {

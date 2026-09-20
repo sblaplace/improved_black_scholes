@@ -134,6 +134,79 @@ def test_parse_audit_refuses_a_half_output():
         raise AssertionError("parse_audit accepted a truncated audit run")
 
 
+def test_parse_audit_replays_the_at_echo_shape():
+    """`#check @q` echoes the `@` when the constant has binders.
+
+    Recorded verbatim -- raw block echoed by the (then) self-diagnosing parse
+    error -- from run 35535082152, where `BSM.carrMadanKernel_integrable` was
+    the first pinned constant with a binder telescope and Lean printed
+    `@name : ∀ {φ ...},` with the break after the comma, not after the name.
+    The other 44 pins parsed bare because `#check @` on a telescope-free
+    constant drops the `@`. The pin drops it too: it is audit_source's own
+    invocation echoing back, and the audit must pin ONE shape regardless of
+    whether the constant happens to carry binders.
+    """
+    at_echo = "\n".join(
+        [
+            "@BSM.carrMadanKernel_integrable : ∀ {φ : ℂ → ℂ} {α : ℝ},",
+            "0 < α →",
+            "(Continuous fun u => φ (↑u + ↑α * Complex.I)) →",
+            "∀ {c D Y : ℝ},",
+            "0 < c →",
+            "0 ≤ D →",
+            "0 < Y →",
+            "∀ {u₀ : ℝ},",
+            "(∀ (u : ℝ), u₀ ≤ |u| → ‖φ (↑u + ↑α * Complex.I)‖ ≤ D * Real.exp (-c * |u| ^ Y)) →",
+            "MeasureTheory.Integrable (BSM.carrMadanKernel φ α) MeasureTheory.volume",
+            P.SENTINEL,
+            "'BSM.carrMadanKernel_integrable' depends on axioms: [propext]",
+            P.SENTINEL,
+            "",
+        ]
+    )
+    got = P.parse_audit(at_echo, ["BSM.carrMadanKernel_integrable"])
+    assert got["BSM.carrMadanKernel_integrable"]["type"] == (
+        "BSM.carrMadanKernel_integrable : ∀ {φ : ℂ → ℂ} {α : ℝ}, 0 < α → "
+        "(Continuous fun u => φ (↑u + ↑α * Complex.I)) → ∀ {c D Y : ℝ}, "
+        "0 < c → 0 ≤ D → 0 < Y → ∀ {u₀ : ℝ}, (∀ (u : ℝ), u₀ ≤ |u| → "
+        "‖φ (↑u + ↑α * Complex.I)‖ ≤ D * Real.exp (-c * |u| ^ Y)) → "
+        "MeasureTheory.Integrable (BSM.carrMadanKernel φ α) MeasureTheory.volume"
+    )
+    assert got["BSM.carrMadanKernel_integrable"]["axioms"] == (
+        "'BSM.carrMadanKernel_integrable' depends on axioms: [propext]"
+    )
+
+
+def test_parse_audit_accepts_a_name_broken_from_its_colon():
+    """Defensive tolerance: name alone on a line, separator on the next.
+
+    Not yet observed -- run 35533637758's refusal was misattributed to this
+    shape before the raw-block dump (then unprinted) revealed the `@`-echo
+    above. Kept because it cannot fire spuriously: the line must equal the
+    qualified name exactly, and `normalize` rejoins it into the same pinned
+    text the never-broken printer would emit.
+    """
+    wrapped = "\n".join(
+        [
+            "BSM.carrMadanKernel_integrable",
+            "    {φ : ℂ → ℂ} {α : ℝ} (hα : 0 < α) :",
+            "    Integrable (BSM.carrMadanKernel φ α) MeasureTheory.volume",
+            P.SENTINEL,
+            "'BSM.carrMadanKernel_integrable' depends on axioms: [propext]",
+            P.SENTINEL,
+            "",
+        ]
+    )
+    got = P.parse_audit(wrapped, ["BSM.carrMadanKernel_integrable"])
+    assert got["BSM.carrMadanKernel_integrable"]["type"] == (
+        "BSM.carrMadanKernel_integrable {φ : ℂ → ℂ} {α : ℝ} (hα : 0 < α) : "
+        "Integrable (BSM.carrMadanKernel φ α) MeasureTheory.volume"
+    )
+    assert got["BSM.carrMadanKernel_integrable"]["axioms"] == (
+        "'BSM.carrMadanKernel_integrable' depends on axioms: [propext]"
+    )
+
+
 def test_parse_audit_refuses_a_shifted_stream():
     """Sentinel count must match the emission count, or blocks belong to the wrong name."""
     try:

@@ -37,8 +37,12 @@ Checks
                   both puts from an independent closed form. Guards against the
                   two trees drifting into proving different mathematics.
 8. CROSSCHECK SYNC the Float twin in ImprovedBS/Crosscheck.lean keeps its own
-                  independent derivations and its embedded golden grid stays in
-                  sync with tests/golden_grid.json.
+                  independent derivations, its embedded golden grid stays in
+                  sync with tests/golden_grid.json, and `runCrosscheck` actually
+                  emits BOTH sides of T3's delta identity: the twin once defined
+                  `deltaIdentityRhs` and never printed it, so guard (3)
+                  cross-checked the LHS against the oracle's LHS and never
+                  tested T3's equation (benchmarks/LEDGER.md, C6 item 4).
 9. PINS           every protected declaration still *says* what
                   tests/golden_statements.json says it says (see
                   scripts/pin_statements.py). This is the anti-hollowing guard:
@@ -118,6 +122,28 @@ REQUIRED = {
     "exp_moment_infinite_of_tail_lower_bound": "ImprovedBS/Levy.lean",
     "spot_not_integrable_of_tail_lower_bound": "ImprovedBS/Levy.lean",
     "no_drift_makes_spot_integrable": "ImprovedBS/Levy.lean",
+    # BRIEF_005 (T6, sub-goal 2): absolute convergence of the tempered
+    # Carr–Madan contour. The two halves that make up the result plus the join:
+    # `integrable_exp_neg_abs_rpow` is the model side (the two-sided tempered
+    # tail integrates), `cmDenom_u4_le`/`cmDenom_ne_zero` the payoff side (the
+    # denominator's modulus has an exact quartic lower bound and no zero on the
+    # real contour), `carrMadanKernel_integrable`/`carrMadan_price_integrable`
+    # the joining domination, and the two `gbm_*` theorems the fully
+    # machine-checked instance through which classical Fourier pricing enters
+    # this repository. The four `def`s are listed too: a definition is the
+    # specification, and hollowing one changes every statement above it. Listed
+    # so that "prove integrability by deleting the theorem" is not an option.
+    "cmDenom": "ImprovedBS/Fourier.lean",
+    "carrMadanKernel": "ImprovedBS/Fourier.lean",
+    "carrMadanPhase": "ImprovedBS/Fourier.lean",
+    "gbmCharFactor": "ImprovedBS/Fourier.lean",
+    "integrable_exp_neg_abs_rpow": "ImprovedBS/Fourier.lean",
+    "cmDenom_u4_le": "ImprovedBS/Fourier.lean",
+    "cmDenom_ne_zero": "ImprovedBS/Fourier.lean",
+    "carrMadanKernel_integrable": "ImprovedBS/Fourier.lean",
+    "carrMadan_price_integrable": "ImprovedBS/Fourier.lean",
+    "gbm_carrMadanKernel_integrable": "ImprovedBS/Fourier.lean",
+    "gbm_carrMadan_price_integrable": "ImprovedBS/Fourier.lean",
 }
 
 # Zero deferred-proof markers allowed. The T1/T2 node per BRIEF_001; the T3/T4
@@ -161,6 +187,16 @@ PROTECTED = {
     "exp_moment_infinite_of_tail_lower_bound",
     "spot_not_integrable_of_tail_lower_bound",
     "no_drift_makes_spot_integrable",
+    # T6 sub-goal 2 (BRIEF_005): absolute convergence of the tempered contour.
+    # The same ratchet posture: the integrability theorems below are the result
+    # this node landed, so a `sorry` in any of them reverts the node outright.
+    "integrable_exp_neg_abs_rpow",
+    "cmDenom_u4_le",
+    "cmDenom_ne_zero",
+    "carrMadanKernel_integrable",
+    "carrMadan_price_integrable",
+    "gbm_carrMadanKernel_integrable",
+    "gbm_carrMadan_price_integrable",
 }
 
 # A `sorry` that survives `lake build` is an axiom. Allow none by default.
@@ -492,6 +528,27 @@ def main() -> int:
             failures.append("[CROSSCHECK SYNC] ImprovedBS/Crosscheck.lean `d1` missing `+` in volatility term")
         if "-" not in cc_def_body("d2"):
             failures.append("[CROSSCHECK SYNC] ImprovedBS/Crosscheck.lean `d2` missing `-` in volatility term")
+
+        # Both sides of T3's delta identity must actually be emitted by the
+        # twin. Numerically this is NOT the Python comparator's job to catch:
+        # the two sides agree within the oracle to ~7e-15 on the grid, far
+        # inside the 1e-12 tolerance, so a twin that printed the LHS twice
+        # would pass the numeric comparison. What sees the difference is the
+        # source: does `runCrosscheck` reference `deltaIdentityRhs` at all
+        # (defining it without printing it was ledger C6 item 4)?
+        for side in ("deltaIdentityLhs", "deltaIdentityRhs"):
+            cc_def_body(side)  # records a `[CROSSCHECK SYNC]` failure if the def is missing
+        cc_run_body = cc_def_body("runCrosscheck")
+        if cc_run_body != "":
+            for side in ("deltaIdentityLhs", "deltaIdentityRhs"):
+                if side not in cc_run_body:
+                    failures.append(
+                        f"[CROSSCHECK SYNC] ImprovedBS/Crosscheck.lean `runCrosscheck` never references "
+                        f"`{side}` -- `{side}` can be defined without ever being emitted, in which "
+                        "case the cross-verifier compares the delta identity's LHS against the "
+                        "oracle's LHS and never checks T3's equation across trees "
+                        "(benchmarks/LEDGER.md, C6 item 4)"
+                    )
 
         # Check grid consistency against tests/golden_grid.json
         sys.path.insert(0, os.path.join(ROOT, "scripts"))

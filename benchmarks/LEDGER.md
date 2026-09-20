@@ -19,6 +19,8 @@ Verdict discipline:
 | 3 | BRIEF_003 (T3 delta identity + T4 bounds) | arena-ai-coding-agent | [#2](https://github.com/sblaplace/improved_black_scholes/pull/2) | **GREEN** @ `726325d`, run 35514867674 (first green: run 35514609619 @ `2273461`) — `lake build` + `#print axioms` audit + `lint` + `oracle` all pass; ratchet 3 → 0. Reached on the 1st run; see the CI history and correction C4. |
 | — | *(tooling, no brief)* statement pins + the lint's own falsifiers | arena-ai-coding-agent | [#4](https://github.com/sblaplace/improved_black_scholes/pull/4) | **GREEN** @ `341b9f4`, run 35520713909 (tip re-graded green: run 35521215779 @ `0785e90`) — `lake build` + `#print axioms` audit + **Statement pins (elab)** + `lint` + `oracle` all pass. Three-run arc, which is the informative part: run 35519747870 red on an empty `elab` block (by design — a pin that was never produced is not a passing pin) → run 35520154876 red on a parser format bug (`#print axioms` quotes the constant, `#check` does not; the parser refused to half-pin and printed the block instead) → block committed verbatim → run 35520713909 green, the 31 elaborated pairs reproducing identically across two independent checkouts, which is what makes them a pin rather than a transcription. Locally: `test_lint.py` 7/7 (22 cheats killed by named checks, 5 controls green, 1 residual gap asserted open), `test_pins.py` 8/8, `lean_lint` OK (43 decls, 31 pins + 31 elab, cross-layer skew clean), oracle 13/13, mutants 4/4, crosscheck 4/4. No `.lean` file changed; sorry baseline untouched. |
 | 4 | BRIEF_004 (α-stable moment obstruction) | arena-ai-coding-agent | [#5](https://github.com/sblaplace/improved_black_scholes/pull/5) | **GREEN** @ `d61c874`, run 35523250105 — `lake build` + `#print axioms` audit + **Statement pins (elab)** + `lint` + `oracle` all pass. Module authored without a toolchain (four-run arc: two one-line build errors, then build+audit green with an empty `elab` block by design, then the block committed verbatim). The seven new constants are on `[propext, Classical.choice, Quot.sound]` only. Statement strengthened: the theorem holds for **every real α**, superseding the `α < 2` acceptance item (correction C7). The documentation commits that record this row re-grade green as well (run 35523462850 @ `28dda5b`). |
+| — | *(defect repair, no new brief)* BRIEF_002's two recorded crosscheck defects (C6 item 4) | arena-ai-coding-agent | [#6](https://github.com/sblaplace/improved_black_scholes/pull/6) | **GREEN** @ `7d2b2a3`, run 35526035651 (oracle lane run 35526035655) — `lake build` + `#print axioms` audit + **Statement pins (elab)** + `lint` + `oracle` all pass; the crosscheck step ran the real `#eval` against 14-token `CK` lines (both T3 sides) through the new comparator. Locally, before pushing: crosscheck 6/6 (7 comparator mutants, incl. formula-level RHS corruption at the largest-delta point; 13-token lines rejected; the recorded `--run-lean` repro now a loud FAIL with a scrubbed PATH), `test_lint.py` 7/7 (24 mutants — CC1/CC2 killed by `[CROSSCHECK SYNC]`), oracle 13/13, mutants 4/4, pins 8/8. Sorry baseline untouched; no theorem statement changed. See correction C8. |
+| 5 | BRIEF_005 (T6 sub-goal 2: tempered contour absolute convergence) | arena-ai-coding-agent | [#6](https://github.com/sblaplace/improved_black_scholes/pull/6) | **GREEN** @ `386a331`, lean run 35536031936 (oracle lane run 35536031949) — `lake build` + `#print axioms` audit + **Statement pins (elab, all 49)** + `lint` + `oracle` all pass. `ImprovedBS/Fourier.lean` (431 lines) fully elaborates at mathlib v4.34.0: `integrable_exp_neg_abs_rpow`, `cmDenom_u4_le`, `cmDenom_ne_zero`, `carrMadanKernel_integrable`, `carrMadan_price_integrable` and both GBM instances — every new constant on `[propext, Classical.choice, Quot.sound]`, no sorryAx; the CGMY-decay hypothesis appears only as a hypothesis (brief acceptance: no unbacked premise). Eight-run lean arc (seven red, then green), and its shape is the informative part: `d935117` → 35531017611 elaboration errors → round 2 `bedef4e`→`11f47df` (35532227392, 35532974067) → **`2209077` → run 35533637758: build GREEN**, elab-pins step red — then two red runs spent *finding the parse failure's shape*, not fixing assumptions: `3dbaeb2` 35534649501 (wrap hypothesis, wrong), `926637c` 35535082152 (self-diagnosing error dumped the raw block: `#check @q` echoes the `@` when the constant has a binder telescope — first such pin in the tree) → `d379fc5` 35535582258 parses all 49, red by design on the 11 unpinned elab pairs, block printed paste-ready → committed byte-for-byte with identical-merge re-verified → `386a331` green. Sorry baseline: `deferred: {}` added zero entries; no T1–T5 statement changed. |
 
 ## Corrections and co-recorded changes to the ask
 
@@ -426,6 +428,56 @@ a *syntactic* requirement, because the honest answer to "does this proof need
 that survives is the one the repository already uses: pin the statement,
 audit the axioms, and record the correction when the *brief's* statement, not
 the proof, was the thing that was wrong.
+
+### C8 — BRIEF_002's two recorded crosscheck defects, fixed (C6 item 4 closed)
+
+**Date:** 2026-09-20. **Landed:** PR #6, run 35526035651 (build lane),
+35526035655 (oracle lane). **Trigger:** C6 item 4's own escalation — the two
+defects it recorded "deliberately not fixed here … recorded so they are not
+lost" were next in the queue.
+
+1. **The delta identity's RHS is now actually cross-checked.** `runCrosscheck`
+   evaluates *and prints* both sides per grid point (14-token `CK` lines: six
+   parameters + `d1 d2 call put parity deltaLhs deltaRhs`); the Python
+   comparator checks each side against the oracle's independently computed
+   counterpart and the two sides against each other. The interesting part is
+   **where the guard had to live.** A twin that prints the LHS *twice* passes
+   every numeric comparison: the two sides agree to ≤ 7.2e-15 inside the
+   oracle (measured over the grid), an order of magnitude under the 1e-12
+   tolerance, so `internal_delta` reads 0 while `delta_rhs`-vs-oracle reads
+   ≤ 7.2e-15 — both green. No absolute-tolerance comparator can see that
+   cheat at those magnitudes; what sees it is the *source*: `[CROSSCHECK
+   SYNC]` in `scripts/lean_lint.py` now requires `runCrosscheck` to reference
+   `deltaIdentityLhs` and `deltaIdentityRhs`, and `tests/test_lint.py` seeds
+   both halves of the defect class — CC1 (LHS printed twice; numerically
+   invisible, structurally dead) and CC2 (definition deleted). The numeric
+   half was not given up on: the comparator also gained a *formula-level*
+   mutant (RHS recomputed with `φ(d1)` in place of `φ(d2)`), which is caught
+   only at the grid's largest-delta point — at deep-OTM points both T3 sides
+   are ~1e-30, under *any* absolute tolerance, and that fact is now recorded
+   in the test rather than left to a future reader's surprise.
+2. **`--run-lean` can no longer self-skip.** `not sys.stdin.isatty()` claimed
+   the input before the `--run-lean` branch; the recorded repro
+   (`echo -n | python3 tests/test_crosscheck.py --run-lean` → `4/4 crosscheck
+   unit test(s) passed`, exit 0) was reproduced before the fix and is,
+   after it, a loud `FAIL: \`lake\` not found on PATH …` with exit 1. Input
+   sources now take effect in an explicit order (`--run-lean` → `--lean-output`
+   → piped stdin → auto-detect → self-tests); a named source is honored or
+   errors; `--run-lean --lean-output` together is a contradiction, not a
+   precedence rule; missing `lake` names the alternatives. The regression is
+   pinned by `test_run_lean_flag_is_honored`, which scrubs PATH and replays
+   the repro in a subprocess.
+
+**Generalizable:** a cross-verifier has *two* vacuity classes, not one — value
+corruption (a number wrong by more than tolerance) and *formula duplication
+within tolerance* (a required column that is a copy of another). The first
+class is the comparator's job; the second is provably invisible to any
+absolute-tolerance comparator when the duplicated quantity's two sides agree
+below tolerance, and it is the structural lint's job. Decide which class a
+defect belongs to before assigning the guard — a wrong assignment is a guard
+that cannot fire. And the second defect is the small-c interface version of
+row-1-run-5's lesson: a mode that can silently degenerate into a weaker check
+while inheriting the stronger check's PASS is worse than no mode.
 
 ## CI history for row 4 (PR #5)
 

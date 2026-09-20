@@ -186,6 +186,15 @@ jobs:
           #print axioms BSM.exp_moment_infinite_of_tail_lower_bound
           #print axioms BSM.spot_not_integrable_of_tail_lower_bound
           #print axioms BSM.no_drift_makes_spot_integrable
+          -- BRIEF_005: tempered contour integrability (T6 sub-goal 2),
+          -- ImprovedBS/Fourier.lean
+          #print axioms BSM.integrable_exp_neg_abs_rpow
+          #print axioms BSM.cmDenom_u4_le
+          #print axioms BSM.cmDenom_ne_zero
+          #print axioms BSM.carrMadanKernel_integrable
+          #print axioms BSM.carrMadan_price_integrable
+          #print axioms BSM.gbm_carrMadanKernel_integrable
+          #print axioms BSM.gbm_carrMadan_price_integrable
           LEAN
           lake env lean /tmp/Audit.lean 2>&1 | tee lean-audit.log
           if grep -q sorryAx lean-audit.log; then
@@ -215,7 +224,9 @@ jobs:
       - name: Oracle ↔ Lean pointwise cross-verifier (BRIEF_002)
         # Evaluates the golden parameter grid (tests/golden_grid.json) in both
         # the Lean Float evaluator and the Python numeric oracle, asserting
-        # agreement across d1, d2, call, put, parity, and delta identity.
+        # agreement across d1, d2, call, put, parity, and BOTH sides of the
+        # delta identity (each side vs the oracle, and lhs vs rhs internally —
+        # the twin once emitted only the LHS: benchmarks/LEDGER.md C6 item 4).
         run: |
           touch lean-crosscheck.log
           if ! lake env lean ImprovedBS/Crosscheck.lean > lean-eval.log 2>&1; then

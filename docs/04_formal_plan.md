@@ -166,11 +166,19 @@ in increasing strength:
 2. **Behavioural** — `tests/test_mutants.py` seeds bugs into the oracle and
    requires the targeted test to fail, including two vacuity canaries. This is
    the check that a test can fail.
-3. **Pointwise (implemented, BRIEF_002)** — a cross-verifier that evaluates
-   `d1`, `d2`, `bsCall`, `bsPut`, parity and the delta identity at a fixed grid of
-   points in *both* trees and compares. Implemented via `tests/golden_grid.json`,
+3. **Pointwise (implemented, BRIEF_002; both T3 sides since C8)** — a cross-verifier
+   that evaluates
+   `d1`, `d2`, `bsCall`, `bsPut`, parity and *both sides* of the delta identity at a
+   fixed grid of points in *both* trees and compares: each quantity against the
+   oracle's independently computed counterpart, plus the two T3 sides against each
+   other. Implemented via `tests/golden_grid.json`,
    `ImprovedBS/Crosscheck.lean` (`#eval`), `tests/test_crosscheck.py`, and wired into
-   CI. Not a proof — a contradiction detector against code drift.
+   CI. Not a proof — a contradiction detector against code drift. (`runCrosscheck`
+   must *reference* `deltaIdentityRhs`, not merely define it — the twin
+   once shipped the RHS unused, so the comparator cross-checked LHS against the
+   oracle's LHS and T3's equation itself was never tested: ledger C6 item 4,
+   fixed in C8. The requirement is structural in `[CROSSCHECK SYNC]` because the
+   1e-12 numeric tolerance cannot see the two sides' ~7e-15 internal gap.)
 
 4. **Pinned claims** — guards (1)–(3) can all be satisfied by a tree that proves
    the *right equations about the wrong claim*, because none of them reads a
@@ -213,7 +221,7 @@ in increasing strength:
    via `needs:`. That is the "unverified second pillar" this repository is
    exposed to — not the numeric oracle, which no theorem imports and whose removal
    would leave T1–T4 standing (it would leave the *gate* unable to run, which is a
-   different and fixable problem). `tests/test_lint.py` seeds 22 cheats into
+   different and fixable problem). `tests/test_lint.py` seeds 24 cheats into
    throwaway copies of the tree and requires each to be killed by a named check —
    the 11-mutant discipline, turned on the grader — while 5 controls (a marker word
    inside a comment, a re-wrapped statement, parity reproved from `erf_neg`
@@ -248,16 +256,17 @@ local `--elab-check` is a red with a message, never a skip.
 
 Order is chosen so that each brief's acceptance bar is checkable by the time it
 is worked on, and so that no brief depends on a machine-checked result that does
-not yet exist. BRIEF_001 has landed, so 002–004 are all unblocked.
+not yet exist. BRIEF_001–005 have landed, in this order.
 
 | brief | what it lands | depends on | locally checkable? |
 |---|---|---|---|
 | ~~BRIEF_001~~ | **LANDED GREEN** — `lake build` + `#print axioms`; T1/T2/`Phi_add_Phi_neg` machine-checked | — | was CI-only |
 | ~~BRIEF_002~~ | **LANDED GREEN** — oracle ↔ Lean pointwise cross-verifier (39-point golden grid, docs/04 guard 3) | 001 | Python half yes; Lean `#eval` via CI |
 | ~~BRIEF_003~~ | **LANDED GREEN** — T3, T4, T4′ machine-checked; sorry baseline → 0 (run 35514867674) | 001 | was CI-only |
-| BRIEF_004 | α-stable exponential-moment obstruction (T6 sub-goal 1) | none | no — CI only |
+| ~~BRIEF_004~~ | **LANDED GREEN** — α-stable exponential-moment obstruction (T6 sub-goal 1; PR #5, run 35523250105) | none | no — CI only |
+| ~~BRIEF_005~~ | **LANDED GREEN** — T6 sub-goal 2: Carr–Madan absolute convergence on the tempered contour, GBM instance machine-checked (`ImprovedBS/Fourier.lean`; PR #6, run 35536031936) | 004 | no — CI only |
 | *(queued)* | **T5** — closed form solves the BSM PDE, via T3 in `x = Real.log S` coordinates | 003 | no — CI only |
-| *(queued)* | **T6** sub-goals 2–3 — Carr–Madan absolute convergence and agreement with the risk-neutral expectation, for a tempered-stable exponent | 004 | no — CI only |
+| *(queued)* | **T6** sub-goal 3 — Fourier inversion: agreement with the risk-neutral expectation, for a tempered-stable exponent | 005 | no — CI only |
 
 BRIEF_004 is deliberately listed as depending on nothing: it is pure analysis
 (a divergent improper integral), needs none of the BS machinery, and it is the

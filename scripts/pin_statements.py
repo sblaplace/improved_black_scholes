@@ -328,27 +328,45 @@ def check() -> list[str]:
 
 SENTINEL = "@@END@@"
 
-# `#check` echoes the constant bare (`BSM.Phi : ℝ → ℝ`); `#print axioms` quotes it
-# (`'BSM.Phi' depends on axioms: [...]`). Both shapes are real, from run
-# 35519747870 -- see tests/test_pins.py, which replays that output through
-# parse_audit(). Assuming one shape is how a CI-only layer gets silently
-# half-pinned, and a half-pin reads like a checked claim.
+# Observed `#check` echo shapes (recorded in tests/test_pins.py):
+#   * bare:    `BSM.Phi : ℝ → ℝ`                              -- run 35519747870
+#   * @-echo:  `@BSM.carrMadanKernel_integrable : ∀ {φ : ℂ → ℂ} {α : ℝ}, ...`
+#                                                             -- run 35535082152
+# Lean echoes the `@` from `#check @q` verbatim when the constant HAS
+# non-instance-implicit arguments, and drops it when the telescope is empty --
+# so whether a pin's lead line carries `@` depends on the binders, not the
+# toolchain. That is why 44 bare-boundary pins parsed and the first binder-style
+# constant did not. `#print axioms` quotes the name ('BSM.Phi' depends on ...).
 _LEAD_NAME = re.compile(
-    r"^'?(?P<name>[\w.]+)'?(?P<sep>\s*:|\s+depends on|\s+does not depend)"
+    r"^'?@?(?P<name>[\w.]+)'?(?P<sep>\s*:|\s+depends on|\s+does not depend)"
 )
 
 
 def _block_text(block: list[str], q: str) -> str:
     """Payload of one sentinel-delimited block: everything from the line whose
     leading constant name is `q`. Lines naming something else are dropped, so a
-    stray warning does not shift what gets pinned."""
+    stray warning does not shift what gets pinned.
+
+    The lead line is recognized three ways: name with or without a leading `@`
+    followed by a separator on the same line (the two recorded shapes), and the
+    name alone on its own line — a defensive tolerance for a line break further
+    left than any recorded output, which cannot fire spuriously because the line
+    must equal the qualified name exactly. `normalize` rejoins continuation
+    lines byte-identically in all three, and a leading `@` is stripped since it
+    only echoes `audit_source`'s `#check @...` invocation — how the question was
+    asked, not part of the answer. A block whose lines come from an unrelated
+    message still cannot match: its payload would not begin with the constant it
+    claims.
+    """
     for i, ln in enumerate(block):
+        if ln.strip() == q or ln.strip() == "@" + q:
+            return normalize(" ".join(block[i:])).removeprefix("@")
         m = _LEAD_NAME.match(ln)
         if not m:
             continue
         if (m.group("name") or m.group("quoted")) != q:
             continue
-        return normalize(" ".join(block[i:]))
+        return normalize(" ".join(block[i:])).removeprefix("@")
     return ""
 
 
@@ -376,11 +394,20 @@ def parse_audit(stdout: str, qualified: list[str]) -> dict:
         ty = _block_text(blocks[2 * i], q)
         ax = _block_text(blocks[2 * i + 1], q)
         if not ty or not ax:
+            # The sandbox that authors this tree cannot reach Actions logs, so a
+            # bare "could not recover" is a dead end for anyone debugging from
+            # the PR comment. Echo the raw offending blocks (bounded): the next
+            # shape change in `#check`/`#print axioms` output is then diagnosed
+            # from the same message that reported it.
+            raw_ty = " ⏎ ".join(blocks[2 * i])[:600]
+            raw_ax = " ⏎ ".join(blocks[2 * i + 1])[:600]
             raise RuntimeError(
                 f"could not recover both a type and an axiom line for `{q}` "
-                f"(type={ty!r}, axioms={ax!r}). The `#check`/`#print axioms` output "
-                "format is an assumption; repair the parser explicitly rather than "
-                "committing a half-pin."
+                f"(type={ty!r}, axioms={ax!r}). Raw blocks (⏎ = line break, "
+                f"first 600 chars each): type-block={raw_ty!r} "
+                f"axiom-block={raw_ax!r}. The `#check`/`#print axioms` output "
+                "format is an assumption; repair the parser explicitly rather "
+                "than committing a half-pin."
             )
         out[q] = {"type": ty, "axioms": ax}
     return out
