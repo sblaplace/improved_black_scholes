@@ -317,3 +317,69 @@ For a direction → candidate → result:
 
 A model whose "improvement" appears only by adding a constant per option is
 disqualified at step 1.
+
+---
+
+## Beyond BSM-2 — aims past the current program
+
+BSM-2 (§D1) is scoped to one widening: one replacement law, proved to preserve
+the skeleton. Three aims sit past it, in decreasing order of ambition, plus
+one explicit non-aim. None of them displaces the current queue: BSM-2 finishes
+first, the empirical falsifiers run, and the CGMY result becomes the first
+entry in the library described below — which is what retroactively validates
+the framing.
+
+### The library aim: the program as an instrument
+
+BRIEF_009 produced something more general than the brief that commissioned it:
+parity and the no-arbitrage bounds hold at the expectation level for *any*
+terminal-spot law with the drift condition, so a candidate law enters the tree
+by supplying three facts (`Integrable X`, the drift condition, `0 ≤ X`), not
+by re-proof. The BSM-2 kit (§D1, items 1–6) is the rest of the pattern: moment
+strip, drift fix, Fourier triangle, skeleton instantiation, corner recovery,
+empirical falsifiers. The aim past BSM-2 is to run that kit as a standing
+pipeline — a library of increment/state laws, each entering through the same
+graded briefs and each exiting with a *proved domain of validity*: where the
+price exists, what the drift condition is, which corner recoveries hold.
+Tempered-stable is the first entry; tempered-stable-with-stochastic-volatility
+(the D1+D2 combination — where the literature lands, per §D2) is the second;
+a regime-switching law is a third candidate once D3's falsification question
+is settled.
+
+The deliverable shifts from "the improved Black-Scholes" to the machine that
+adjudicates any proposed improvement, on both lanes: formal (the six-item kit)
+and empirical (the falsifiers of §D1). This is also the version a model-risk
+function can consume: risk committees do not adopt models, they adopt
+validated envelopes, and a machine-checked envelope is the one artifact a
+fitted model cannot produce. `ImprovedBS/Levy.lean`'s obstruction theorem is
+already that kind of object — a checked statement of where a martingale price
+cannot exist. The envelope, not the fit, is the capital-facing deliverable.
+
+### The hedging horizon: from pricing to hedging and path-dependence
+
+Everything in the tree prices European claims from a terminal marginal. The
+places model uncertainty strands capital are path-dependent and illiquid —
+American and barrier structures, long-dated tails — and "improvement" there is
+not a price but a hedge. The formal content of this aim: self-financing
+strategies, discrete hedging-error bounds under the widened law, and the Snell
+envelope for American payoffs. The caveat, stated now so nobody budgets it as
+an ordinary brief: this is at mathlib's frontier. Its stochastic-calculus
+coverage at the pinned tag is thin (no Itô formula, no stochastic integral),
+so this aim partly means contributing upstream to mathlib first.
+
+### The cheap one: the D3 falsifier as a theorem
+
+"Under a geometric random walk, the autocorrelation of |log-returns| is zero"
+is a small theorem — no new machinery, no finance — and it converts D3's
+gatekeeping argument (a model that prices from the spot marginal alone is
+ruled out by vol clustering) from a citation into a checked result. It is the
+cheapest item on this page and it guards the framing of everything else; it
+can slot as a small brief at any time.
+
+### The non-aim: the general theory
+
+Not adopted: arbitrary semimartingales, the fundamental theorem of asset
+pricing in full generality. That is a mathlib-lifetime project and it trades
+the program's actual edge — concrete laws, concrete proofs, fast graded
+briefs — for generality nobody is blocked on. The library aim generalizes the
+*kit*, not the mathematics.
