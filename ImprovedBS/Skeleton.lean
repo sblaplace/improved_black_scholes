@@ -286,13 +286,12 @@ at the tag with an AEMeasurable hypothesis -- re-verify per C3), and
 theorem integrable_gaussianReal_iff (f : ℝ → ℝ) :
     Integrable f (ProbabilityTheory.gaussianReal 0 1)
       ↔ Integrable (fun z : ℝ => f z * phi z) := by
-  have hpw : ∀ z : ℝ,
-      (ProbabilityTheory.gaussianPDF 0 1 z).toReal • f z = f z * phi z := by
+  have hpw : ∀ z : ℝ, f z * (ProbabilityTheory.gaussianPDF 0 1 z).toReal = f z * phi z := by
     intro z
-    rw [ProbabilityTheory.toReal_gaussianPDF, smul_eq_mul, phi_eq_gaussianPDFReal z]
-    ring
+    rw [ProbabilityTheory.toReal_gaussianPDF, phi_eq_gaussianPDFReal z]
   rw [ProbabilityTheory.gaussianReal_of_var_ne_zero 0 (one_ne_zero : (1 : NNReal) ≠ 0),
-    MeasureTheory.integrable_withDensity_iff (ProbabilityTheory.measurable_gaussianPDF 0 1)]
+    MeasureTheory.integrable_withDensity_iff (ProbabilityTheory.measurable_gaussianPDF 0 1)
+      (hflt := Filter.Eventually.of_forall fun _ => ProbabilityTheory.gaussianPDF_lt_top)]
   exact ⟨fun h => h.congr (Filter.Eventually.of_forall hpw),
     fun h => h.congr (Filter.Eventually.of_forall (fun z => (hpw z).symm))⟩
 
