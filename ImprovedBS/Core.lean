@@ -750,10 +750,20 @@ theorem hasDerivAt_Phi (x : ℝ) : HasDerivAt Phi (phi x) x := by
     -- anywhere in T5, because the sqrt factors cancel as quotients (`a / sqrt 2 *
     -- sqrt 2 = a`, licensed by `sqrt 2 ≠ 0`), never as squares.
     have hsqrt2pi : Real.sqrt 2 * Real.sqrt Real.pi ≠ 0 := mul_ne_zero h2 hpi
+    -- As in the four division-clearing lemmas below, `field_simp` normalizes what
+    -- it produced and already closes the goal; a following `ring` would be
+    -- `No goals to be solved`.
     field_simp
-    ring
-  have hPhi := hmain.congr_deriv hval
-  simpa only [Phi] using hPhi
+  have hPhi : HasDerivAt (fun y : ℝ => (1 + erf (y / Real.sqrt 2)) / 2) (phi x) x :=
+    hmain.congr_deriv hval
+  -- `Phi` *is* that lambda -- but the goal's occurrence of `Phi` is unapplied, and
+  -- `simp only [Phi]` matches the *applied* equation `Phi y = …`, so it cannot
+  -- rewrite it. Carry the unfolding as an explicit `funext` equation instead.
+  have hfun : Phi = fun y : ℝ => (1 + erf (y / Real.sqrt 2)) / 2 := by
+    funext y
+    simp only [Phi]
+  rw [hfun]
+  exact hPhi
 
 /-- **The spot derivative of the shared `d1`/`d2` shape.** For
 `x : (Real.log (x / K) + c) / (sigma * sqrt tau)` the derivative at `S` is
@@ -831,9 +841,10 @@ theorem hasDerivAt_d_tau (A c tau sigma : ℝ) (htau : 0 < tau) (hsigma : sigma 
       ((hasDerivAt_id' (x := tau)).const_mul c)).congr_deriv (by ring)
   have hden : HasDerivAt (fun u : ℝ => sigma * Real.sqrt u)
       (sigma * (1 / (2 * Real.sqrt tau))) tau :=
-    -- `hasDerivAt_sqrt`'s point is implicit, and `hsqrt : √tau ≠ 0` alone would pin
-    -- it to `√tau`; give it `tau`.
-    (Real.hasDerivAt_sqrt (x := tau) hsqrt).const_mul sigma
+    -- `hasDerivAt_sqrt`'s point is implicit and its hypothesis is `x ≠ 0`, so the
+    -- proof handed in fixes the point: `hsqrt : √tau ≠ 0` would instantiate it at
+    -- `√tau` (derivative `1/(2*√√tau)`), so hand it `htau.ne'` and let `x = tau`.
+    (Real.hasDerivAt_sqrt htau.ne').const_mul sigma
   refine ((hnum.div hden (mul_ne_zero hsigma hsqrt)).congr_deriv ?_)
   exact d_tau_quotient_eq A c sigma (Real.sqrt tau) tau (Real.sq_sqrt htau.le) hsqrt hsigma
 
