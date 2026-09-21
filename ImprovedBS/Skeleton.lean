@@ -133,7 +133,7 @@ theorem integrable_put_payoff {μ : Measure ℝ} (X : ℝ → ℝ) (K : ℝ)
   have h2 : (fun s : ℝ => max (X s - K) 0 - X s + K) = fun s => (max (X s - K) 0 - X s) + K :=
     funext (fun _ => rfl)
   rw [h2]
-  exact h1.add (MeasureTheory.integrable_const)
+  exact h1.add (MeasureTheory.integrable_const K)
 
 /-!
 ---------------------------------------------------------------------------
@@ -161,7 +161,7 @@ theorem model_free_parity_gap {μ : Measure ℝ} [IsProbabilityMeasure μ] (X : 
       integral_congr_ae (Filter.Eventually.of_forall (fun s => hpt s))
     have hb : ∫ s, (max (X s - K) 0 - X s) + K ∂μ
         = ∫ s, max (X s - K) 0 - X s ∂μ + ∫ s, K ∂μ :=
-      integral_add (hcallI.sub hX) (MeasureTheory.integrable_const)
+      integral_add (hcallI.sub hX) (MeasureTheory.integrable_const K)
     have hc : ∫ s, max (X s - K) 0 - X s ∂μ = ∫ s, max (X s - K) 0 ∂μ - ∫ s, X s ∂μ :=
       integral_sub hcallI hX
     rw [ha, hb, hc, hKint]
@@ -238,9 +238,9 @@ theorem model_free_call_bounds {μ : Measure ℝ} [IsProbabilityMeasure μ]
     Filter.Eventually.of_forall (fun s => le_max_left _ _)
   have hKint : ∫ s : ℝ, K ∂μ = K := by simp [MeasureTheory.integral_const]
   have hsub : ∫ s, X s - K ∂μ = ∫ s, X s ∂μ - K := by
-    rw [MeasureTheory.integral_sub hX (MeasureTheory.integrable_const), hKint]
+    rw [MeasureTheory.integral_sub hX (MeasureTheory.integrable_const K), hKint]
   have hmon2 : ∫ s, X s - K ∂μ ≤ ∫ s, max (X s - K) 0 ∂μ :=
-    MeasureTheory.integral_mono_ae (hX.sub (MeasureTheory.integrable_const)) hcallI hlower_pt
+    MeasureTheory.integral_mono_ae (hX.sub (MeasureTheory.integrable_const K)) hcallI hlower_pt
   have hlo : S * Real.exp (-q * tau) - K * Real.exp (-r * tau)
       ≤ modelFreeCall μ X K r tau := by
     unfold modelFreeCall
@@ -294,7 +294,7 @@ theorem integrable_gaussianReal_iff (f : ℝ → ℝ) :
     intro z
     rw [ProbabilityTheory.toReal_gaussianPDF, smul_eq_mul, phi_eq_gaussianPDFReal z]
     ring
-  rw [ProbabilityTheory.gaussianReal_of_var_ne_zero 0 (one_ne_zero : (1 : ℝ≥0) ≠ 0),
+  rw [ProbabilityTheory.gaussianReal_of_var_ne_zero 0 (one_ne_zero : (1 : NNReal) ≠ 0),
     MeasureTheory.integrable_withDensity_iff hw]
   exact ⟨fun h => h.congr (Filter.Eventually.of_forall hpw),
     fun h => h.congr (Filter.Eventually.of_forall (fun z => (hpw z).symm))⟩
