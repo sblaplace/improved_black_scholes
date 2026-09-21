@@ -476,7 +476,11 @@ theorem bsCall_eq_lognormal_expectation (S K tau r q sigma : ℝ)
       = Real.exp (-r * tau) *
         ∫ x, max (S * Real.exp x - K) 0
           ∂(ProbabilityTheory.gaussianReal ((r - q - sigma ^ 2 / 2) * tau) v) := by
-  have hw : (⟨(sigma * Real.sqrt tau) ^ 2, sq_nonneg _⟩ * 1 : NNReal) = v := by
+  -- `NNReal.mk`, not the anonymous constructor: at the tag `NNReal` is a `def`
+  -- over `{r // 0 ≤ r}` with its own protected `mk`, and `⟨_, _⟩` elaborates at
+  -- the subtype, which is not type-correct under `HMul ℝ≥0` (run 35572304805).
+  -- `gaussianReal_map_const_mul` produces exactly `NNReal.mk (c ^ 2) _ * v`.
+  have hw : NNReal.mk ((sigma * Real.sqrt tau) ^ 2) (sq_nonneg _) * 1 = v := by
     apply NNReal.eq
     rw [NNReal.coe_mul, NNReal.coe_mk, NNReal.coe_one, mul_one, hv, mul_pow, Real.sq_sqrt htau.le]
   have hmean : sigma * Real.sqrt tau * 0 + (r - q - sigma ^ 2 / 2) * tau
@@ -486,7 +490,10 @@ theorem bsCall_eq_lognormal_expectation (S K tau r q sigma : ℝ)
         (fun x : ℝ => (r - q - sigma ^ 2 / 2) * tau + x)
       = ProbabilityTheory.gaussianReal ((r - q - sigma ^ 2 / 2) * tau) v := by
     rw [ProbabilityTheory.gaussianReal_map_const_mul, ProbabilityTheory.gaussianReal_map_const_add,
-      hw, hmean]
+      hmean]
+    -- `congrArg` rather than `rw [hw]`: the variance slot is compared by defeq,
+    -- so a different instance path for `*` on `ℝ≥0` cannot make it miss
+    exact congrArg (ProbabilityTheory.gaussianReal ((r - q - sigma ^ 2 / 2) * tau)) hw
   -- `fun_prop` first; the explicit terms are the same proofs spelled out, kept as
   -- the fallback because this file is compiled by CI only
   have hmeas1 : Measurable (fun z : ℝ => sigma * Real.sqrt tau * z) := by
