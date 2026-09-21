@@ -109,7 +109,7 @@ CI-only, so nobody spends a budget discovering this.
 ## Repository layout
 
 ```
-ImprovedBS/         # Lean 4 library, `namespace BSM`: Core.lean (T1..T5), Levy.lean, Fourier.lean, RiskNeutral.lean (T6 sub-goals 1, 2, 3a)
+ImprovedBS/         # Lean 4 library, `namespace BSM`: Core.lean (T1..T5), Levy.lean, Fourier.lean, RiskNeutral.lean, Inversion.lean (T6 sub-goals 1, 2, 3a, 3b)
 ImprovedBS.lean     # library root module
 lakefile.toml       # mathlib pinned by tag; leanOptions (autoImplicit off)
 lean-toolchain      # pinned toolchain — must match lake-manifest.json
@@ -137,7 +137,7 @@ against.
 | T3 | `t3_delta_identity` | `S e^{−qτ} φ(d1) = K e^{−rτ} φ(d2)` | medium | **machine-checked** |
 | T4 | `t4_call_bounds`, `t4_put_bounds` | no-arbitrage price bounds | medium | **machine-checked** |
 | T5 | `t5_bsCall_pde`, `t5_delta`, `t5_gamma`, `t5_tau` | closed form solves the BSM PDE | heavy | **LANDED GREEN** (BRIEF_006) — run 35566569107; `benchmarks/LEDGER.md` row 6 |
-| T6 | sub-goals 1, 2, 3(a): `ImprovedBS/Levy.lean`, `ImprovedBS/Fourier.lean`, `ImprovedBS/RiskNeutral.lean` (`bsCall_eq_riskNeutral_expectation`, `bsPut_eq_riskNeutral_expectation`, `bsCall_eq_lognormal_expectation`) | Fourier kernel survives a tempered-stable increment; the closed form *is* `e^{−rτ}E[(S_T−K)⁺]` | open — 3(b), the Fourier inversion, remains | restated, see docs/03 D1; 3(a) **LANDED GREEN** (BRIEF_007, PR #9, run 35574194681) |
+| T6 | sub-goals 1, 2, 3(a), 3(b): `ImprovedBS/Levy.lean`, `ImprovedBS/Fourier.lean`, `ImprovedBS/RiskNeutral.lean`, `ImprovedBS/Inversion.lean` (`bsCall_eq_riskNeutral_expectation`, `bsCall_eq_lognormal_expectation`, `carrMadan_inversion_eq_bsCall`) | Fourier kernel survives a tempered-stable increment; closed form = discounted expectation = inverted Fourier integral | **LANDED** (3a BRIEF_007, 3b BRIEF_008) | restated, see docs/03 D1; (3a) **LANDED GREEN** (run 35574194681), (3b) landed (BRIEF_008) |
 
 T1–T4 are the warm-up tier, and all four are now machine-checked. T4 turned
 out to be less routine than "algebra and monotonicity": its lower bound is the
@@ -167,8 +167,8 @@ cheapest high-value theorem in the research tier. Details in docs/03 §D1.
 
 | Layer | what | status |
 |---|---|---|
-| Numeric oracle | independent `d1`/`d2`, independent call and put closed forms, PDE residual, delta identity, quadrature of the risk-neutral expectation | verified — 14/14 tests |
-| Oracle is a falsifier | mutation harness: 12 seeded bugs, each killed by its targeted test, incl. 2 vacuity canaries | verified — 4/4 harness tests |
+| Numeric oracle | independent `d1`/`d2`, independent call and put closed forms, PDE residual, delta identity, quadrature of the risk-neutral expectation, Carr–Madan Fourier inversion | verified — 15/15 tests |
+| Oracle is a falsifier | mutation harness: 13 seeded bugs, each killed by its targeted test, incl. 2 vacuity canaries | verified — 4/4 harness tests |
 | Failure modes + research dirs w/ falsifiers | docs/02, docs/03 | written |
 | Lean definitions | `erf`, Φ, φ, d1, d2, bsCall, bsPut — independent, matching the oracle | machine-checked |
 | Lean theorems | `Phi_add_Phi_neg`, T1, T2, T2′ | **GREEN** — `lake build` + `#print axioms` audit, run 35509578689 |
@@ -177,9 +177,10 @@ cheapest high-value theorem in the research tier. Details in docs/03 §D1.
 | Lean theorems | T6 sub-goal 2: tempered-contour absolute convergence (`ImprovedBS/Fourier.lean`, 7 declarations) | **GREEN** — `lake build` + `#print axioms` audit + statement pins, run 35536031936 |
 | Lean theorems | T5: the closed form solves the BSM PDE (`ImprovedBS/Core.lean`, 11 declarations) | **GREEN** — `lake build` + `#print axioms` audit + statement pins (elab, 60), run 35566569107 |
 | Lean theorems | T6 sub-goal 3(a): the closed form is the discounted risk-neutral expectation, plus the `phi`/`Phi` ↔ mathlib-Gaussian bridge (`ImprovedBS/RiskNeutral.lean`, 21 declarations) | **GREEN** — `lake build` + `#print axioms` audit + statement pins (elab, 81), run 35574194681; `benchmarks/LEDGER.md` row 7 |
+| Lean theorems | T6 sub-goal 3(b): Fourier inversion of the Carr–Madan pricing kernel onto the lognormal expectation, and real-valuedness (`ImprovedBS/Inversion.lean`, 13 declarations) | **GREEN** — `lake build` + `#print axioms` audit + statement pins (elab, 94), run 35578278238; `benchmarks/LEDGER.md` row 8 |
 | Deferred | *(nothing)* | ratcheted at 0 `sorry`s — `deferred: {}` |
 | Lint is a falsifier | `tests/test_lint.py`: 25 seeded cheats each killed by a named check, 5 legitimate edits green, 1 residual gap asserted open | verified — 7/7 tests |
-| Pinned claims | `tests/golden_statements.json`: 81 declarations — theorem statements, definition bodies | machine-checked (source level, no toolchain); `#check`/axioms layer runs in the build job |
+| Pinned claims | `tests/golden_statements.json`: 94 declarations — theorem statements, definition bodies | machine-checked (source + elab 94/94); `#check`/axioms layer verified in build job |
 | Grading lane | briefs/ + benchmarks/ + 2 CI workflows + toolchain-free lint + pins | standing |
 | First brief | BRIEF_001, re-scoped to what is actually checkable | see briefs/ |
 

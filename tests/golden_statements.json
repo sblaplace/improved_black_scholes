@@ -66,6 +66,14 @@
       "axioms": "'BSM.bsPut_nonneg' depends on axioms: [propext, Classical.choice, Quot.sound]",
       "type": "BSM.bsPut_nonneg : ∀ (S K tau r q sigma : ℝ), 0 < S → 0 < K → 0 < tau → 0 < sigma → 0 ≤ BSM.bsPut S K tau r q sigma"
     },
+    "BSM.carrMadanInversion": {
+      "axioms": "'BSM.carrMadanInversion' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.carrMadanInversion : (ℂ → ℂ) → ℝ → ℝ → ℝ → ℝ → ℂ"
+    },
+    "BSM.carrMadanInversion_integrand_integrable": {
+      "axioms": "'BSM.carrMadanInversion_integrand_integrable' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.carrMadanInversion_integrand_integrable : ∀ {φ : ℂ → ℂ} {α : ℝ}, 0 < α → (Continuous fun u => φ (↑u + ↑α * Complex.I)) → ∀ {c D Y : ℝ}, 0 < c → 0 ≤ D → 0 < Y → ∀ {u₀ : ℝ}, (∀ (u : ℝ), u₀ ≤ |u| → ‖φ (↑u + ↑α * Complex.I)‖ ≤ D * Real.exp (-c * |u| ^ Y)) → ∀ (r tau k : ℝ), MeasureTheory.Integrable (fun u => ↑(Real.exp (-r * tau) / (2 * Real.pi)) • (BSM.carrMadanPhase (-k) u * BSM.carrMadanKernel φ α u)) MeasureTheory.volume"
+    },
     "BSM.carrMadanKernel": {
       "axioms": "'BSM.carrMadanKernel' depends on axioms: [propext, Classical.choice, Quot.sound]",
       "type": "BSM.carrMadanKernel : (ℂ → ℂ) → ℝ → ℝ → ℂ"
@@ -77,6 +85,26 @@
     "BSM.carrMadanPhase": {
       "axioms": "'BSM.carrMadanPhase' depends on axioms: [propext, Classical.choice, Quot.sound]",
       "type": "BSM.carrMadanPhase : ℝ → ℝ → ℂ"
+    },
+    "BSM.carrMadan_inversion_eq_bsCall": {
+      "axioms": "'BSM.carrMadan_inversion_eq_bsCall' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.carrMadan_inversion_eq_bsCall : ∀ (S K tau r q sigma : ℝ), 0 < S → 0 < K → 0 < tau → 0 < sigma → ∀ (v : NNReal), ↑v = sigma ^ 2 * tau → ∀ (alpha : ℝ) {f : ℝ → ℂ}, (f = fun k => ↑(BSM.dampedCallPrice S v ((r - q - sigma ^ 2 / 2) * tau) r tau alpha k)) → Continuous f → MeasureTheory.Integrable f MeasureTheory.volume → MeasureTheory.Integrable (FourierTransform.fourier f) MeasureTheory.volume → ↑(Real.exp (-alpha * Real.log (K / S))) * FourierTransformInv.fourierInv (FourierTransform.fourier f) (Real.log (K / S)) = ↑(BSM.bsCall S K tau r q sigma)"
+    },
+    "BSM.carrMadan_inversion_eq_lognormal_expectation": {
+      "axioms": "'BSM.carrMadan_inversion_eq_lognormal_expectation' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.carrMadan_inversion_eq_lognormal_expectation : ∀ (S K tau r q sigma : ℝ), 0 < S → 0 < K → 0 < tau → 0 < sigma → ∀ (v : NNReal), ↑v = sigma ^ 2 * tau → ∀ (alpha : ℝ) {f : ℝ → ℂ}, (f = fun k => ↑(BSM.dampedCallPrice S v ((r - q - sigma ^ 2 / 2) * tau) r tau alpha k)) → Continuous f → MeasureTheory.Integrable f MeasureTheory.volume → MeasureTheory.Integrable (FourierTransform.fourier f) MeasureTheory.volume → ↑(Real.exp (-alpha * Real.log (K / S))) * FourierTransformInv.fourierInv (FourierTransform.fourier f) (Real.log (K / S)) = ↑(Real.exp (-r * tau) * ∫ (x : ℝ), max (S * Real.exp x - K) 0 ∂ProbabilityTheory.gaussianReal ((r - q - sigma ^ 2 / 2) * tau) v)"
+    },
+    "BSM.carrMadan_inversion_eq_re": {
+      "axioms": "'BSM.carrMadan_inversion_eq_re' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.carrMadan_inversion_eq_re : ∀ (S K tau r q sigma : ℝ), 0 < S → 0 < K → 0 < tau → 0 < sigma → ∀ (v : NNReal), ↑v = sigma ^ 2 * tau → ∀ (alpha : ℝ) {f : ℝ → ℂ}, (f = fun k => ↑(BSM.dampedCallPrice S v ((r - q - sigma ^ 2 / 2) * tau) r tau alpha k)) → Continuous f → MeasureTheory.Integrable f MeasureTheory.volume → MeasureTheory.Integrable (FourierTransform.fourier f) MeasureTheory.volume → ↑(Real.exp (-alpha * Real.log (K / S))) * FourierTransformInv.fourierInv (FourierTransform.fourier f) (Real.log (K / S)) = ↑(↑(Real.exp (-alpha * Real.log (K / S))) * FourierTransformInv.fourierInv (FourierTransform.fourier f) (Real.log (K / S))).re"
+    },
+    "BSM.carrMadan_inversion_im_eq_zero": {
+      "axioms": "'BSM.carrMadan_inversion_im_eq_zero' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.carrMadan_inversion_im_eq_zero : ∀ (S K tau r q sigma : ℝ), 0 < S → 0 < K → 0 < tau → 0 < sigma → ∀ (v : NNReal), ↑v = sigma ^ 2 * tau → ∀ (alpha : ℝ) {f : ℝ → ℂ}, (f = fun k => ↑(BSM.dampedCallPrice S v ((r - q - sigma ^ 2 / 2) * tau) r tau alpha k)) → Continuous f → MeasureTheory.Integrable f MeasureTheory.volume → MeasureTheory.Integrable (FourierTransform.fourier f) MeasureTheory.volume → (↑(Real.exp (-alpha * Real.log (K / S))) * FourierTransformInv.fourierInv (FourierTransform.fourier f) (Real.log (K / S))).im = 0"
+    },
+    "BSM.carrMadan_inversion_re_eq_bsCall": {
+      "axioms": "'BSM.carrMadan_inversion_re_eq_bsCall' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.carrMadan_inversion_re_eq_bsCall : ∀ (S K tau r q sigma : ℝ), 0 < S → 0 < K → 0 < tau → 0 < sigma → ∀ (v : NNReal), ↑v = sigma ^ 2 * tau → ∀ (alpha : ℝ) {f : ℝ → ℂ}, (f = fun k => ↑(BSM.dampedCallPrice S v ((r - q - sigma ^ 2 / 2) * tau) r tau alpha k)) → Continuous f → MeasureTheory.Integrable f MeasureTheory.volume → MeasureTheory.Integrable (FourierTransform.fourier f) MeasureTheory.volume → (↑(Real.exp (-alpha * Real.log (K / S))) * FourierTransformInv.fourierInv (FourierTransform.fourier f) (Real.log (K / S))).re = BSM.bsCall S K tau r q sigma"
     },
     "BSM.carrMadan_price_integrable": {
       "axioms": "'BSM.carrMadan_price_integrable' depends on axioms: [propext, Classical.choice, Quot.sound]",
@@ -118,6 +146,14 @@
       "axioms": "'BSM.d_tau_quotient_eq' depends on axioms: [propext, Classical.choice, Quot.sound]",
       "type": "BSM.d_tau_quotient_eq : ∀ (A c sigma s tau : ℝ), s ^ 2 = tau → s ≠ 0 → sigma ≠ 0 → (c * (sigma * s) - (A + c * tau) * (sigma * (1 / (2 * s)))) / (sigma * s) ^ 2 = (c - A / tau) / (2 * sigma * s)"
     },
+    "BSM.dampedCallPrice": {
+      "axioms": "'BSM.dampedCallPrice' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.dampedCallPrice : ℝ → NNReal → ℝ → ℝ → ℝ → ℝ → ℝ → ℝ"
+    },
+    "BSM.dampedCallPrice_log_eq": {
+      "axioms": "'BSM.dampedCallPrice_log_eq' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.dampedCallPrice_log_eq : ∀ (S K tau r q sigma : ℝ), 0 < S → 0 < K → 0 < tau → 0 < sigma → ∀ (v : NNReal), ↑v = sigma ^ 2 * tau → ∀ (alpha : ℝ), BSM.dampedCallPrice S v ((r - q - sigma ^ 2 / 2) * tau) r tau alpha (Real.log (K / S)) = Real.exp (alpha * Real.log (K / S)) * BSM.bsCall S K tau r q sigma"
+    },
     "BSM.erf": {
       "axioms": "'BSM.erf' depends on axioms: [propext, Classical.choice, Quot.sound]",
       "type": "BSM.erf : ℝ → ℝ"
@@ -146,9 +182,21 @@
       "axioms": "'BSM.forward_eq' depends on axioms: [propext, Classical.choice, Quot.sound]",
       "type": "BSM.forward_eq : ∀ (S K tau r q : ℝ), 0 < S → 0 < K → K * Real.exp (-r * tau) * Real.exp (Real.log (S / K) + (r - q) * tau) = S * Real.exp (-q * tau)"
     },
+    "BSM.fourierInversion_dampedCallPrice": {
+      "axioms": "'BSM.fourierInversion_dampedCallPrice' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.fourierInversion_dampedCallPrice : ∀ {f : ℝ → ℂ}, Continuous f → MeasureTheory.Integrable f MeasureTheory.volume → MeasureTheory.Integrable (FourierTransform.fourier f) MeasureTheory.volume → FourierTransformInv.fourierInv (FourierTransform.fourier f) = f"
+    },
+    "BSM.fourierInversion_dampedCallPrice_at": {
+      "axioms": "'BSM.fourierInversion_dampedCallPrice_at' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.fourierInversion_dampedCallPrice_at : ∀ {f : ℝ → ℂ}, Continuous f → MeasureTheory.Integrable f MeasureTheory.volume → MeasureTheory.Integrable (FourierTransform.fourier f) MeasureTheory.volume → ∀ (k : ℝ), FourierTransformInv.fourierInv (FourierTransform.fourier f) k = f k"
+    },
     "BSM.gbmCharFactor": {
       "axioms": "'BSM.gbmCharFactor' depends on axioms: [propext, Classical.choice, Quot.sound]",
       "type": "BSM.gbmCharFactor : ℝ → ℝ → ℂ → ℂ"
+    },
+    "BSM.gbm_carrMadanInversion_integrable": {
+      "axioms": "'BSM.gbm_carrMadanInversion_integrable' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.gbm_carrMadanInversion_integrable : ∀ (m s : ℝ), 0 < s → ∀ {α : ℝ}, 0 < α → ∀ (r tau k : ℝ), MeasureTheory.Integrable (fun u => ↑(Real.exp (-r * tau) / (2 * Real.pi)) • (BSM.carrMadanPhase (-k) u * BSM.carrMadanKernel (BSM.gbmCharFactor m s) α u)) MeasureTheory.volume"
     },
     "BSM.gbm_carrMadanKernel_integrable": {
       "axioms": "'BSM.gbm_carrMadanKernel_integrable' depends on axioms: [propext, Classical.choice, Quot.sound]",
@@ -325,6 +373,10 @@
     "BSM.t5_tau": {
       "axioms": "'BSM.t5_tau' depends on axioms: [propext, Classical.choice, Quot.sound]",
       "type": "BSM.t5_tau : ∀ (S K tau r q sigma : ℝ), 0 < S → 0 < K → 0 < tau → sigma ≠ 0 → HasDerivAt (fun u => BSM.bsCall S K u r q sigma) (-q * (S * Real.exp (-q * tau) * BSM.Phi (BSM.d1 S K tau r q sigma)) + r * (K * Real.exp (-r * tau) * BSM.Phi (BSM.d2 S K tau r q sigma)) + sigma / (2 * √tau) * (S * Real.exp (-q * tau) * BSM.phi (BSM.d1 S K tau r q sigma))) tau"
+    },
+    "BSM.undamped_dampedCallPrice": {
+      "axioms": "'BSM.undamped_dampedCallPrice' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.undamped_dampedCallPrice : ∀ (S K tau r q sigma : ℝ), 0 < S → 0 < K → 0 < tau → 0 < sigma → ∀ (v : NNReal), ↑v = sigma ^ 2 * tau → ∀ (alpha : ℝ), Real.exp (-alpha * Real.log (K / S)) * BSM.dampedCallPrice S v ((r - q - sigma ^ 2 / 2) * tau) r tau alpha (Real.log (K / S)) = BSM.bsCall S K tau r q sigma"
     }
   },
   "namespace": "BSM",
@@ -409,6 +461,16 @@
       "kind": "theorem",
       "pin": "theorem bsPut_nonneg (S K tau r q sigma : ℝ) (hS : 0 < S) (hK : 0 < K) (htau : 0 < tau) (hsigma : 0 < sigma) : 0 ≤ bsPut S K tau r q sigma"
     },
+    "BSM.carrMadanInversion": {
+      "file": "ImprovedBS/Inversion.lean",
+      "kind": "def",
+      "pin": "def carrMadanInversion (φ : ℂ → ℂ) (α r tau k : ℝ) : ℂ := ∫ u : ℝ, ((Real.exp (-r * tau) / (2 * Real.pi) : ℝ) : ℂ) • (carrMadanPhase (-k) u * carrMadanKernel φ α u)"
+    },
+    "BSM.carrMadanInversion_integrand_integrable": {
+      "file": "ImprovedBS/Inversion.lean",
+      "kind": "theorem",
+      "pin": "theorem carrMadanInversion_integrand_integrable {φ : ℂ → ℂ} {α : ℝ} (hα : 0 < α) (hcont : Continuous fun u : ℝ => φ (↑u + ↑α * Complex.I)) {c D Y : ℝ} (hc : 0 < c) (hD : 0 ≤ D) (hY : 0 < Y) {u₀ : ℝ} (hdecay : ∀ u : ℝ, u₀ ≤ |u| → ‖φ (↑u + ↑α * Complex.I)‖ ≤ D * Real.exp (-c * |u| ^ Y)) (r tau k : ℝ) : Integrable (fun u : ℝ => ((Real.exp (-r * tau) / (2 * Real.pi) : ℝ) : ℂ) • (carrMadanPhase (-k) u * carrMadanKernel φ α u)) volume"
+    },
     "BSM.carrMadanKernel": {
       "file": "ImprovedBS/Fourier.lean",
       "kind": "def",
@@ -423,6 +485,31 @@
       "file": "ImprovedBS/Fourier.lean",
       "kind": "def",
       "pin": "def carrMadanPhase (tau u : ℝ) : ℂ := Complex.exp (Complex.I * ↑(u * tau))"
+    },
+    "BSM.carrMadan_inversion_eq_bsCall": {
+      "file": "ImprovedBS/Inversion.lean",
+      "kind": "theorem",
+      "pin": "theorem carrMadan_inversion_eq_bsCall (S K tau r q sigma : ℝ) (hS : 0 < S) (hK : 0 < K) (htau : 0 < tau) (hsigma : 0 < sigma) (v : NNReal) (hv : (v : ℝ) = sigma ^ 2 * tau) (alpha : ℝ) {f : ℝ → ℂ} (hf : f = fun k ↦ ↑(dampedCallPrice S v ((r - q - sigma ^ 2 / 2) * tau) r tau alpha k)) (hcont : Continuous f) (hint : Integrable f) (hFint : Integrable (𝓕 f)) : ((Real.exp (-alpha * Real.log (K / S)) : ℝ) : ℂ) * 𝓕⁻ (𝓕 f) (Real.log (K / S)) = ((bsCall S K tau r q sigma : ℝ) : ℂ)"
+    },
+    "BSM.carrMadan_inversion_eq_lognormal_expectation": {
+      "file": "ImprovedBS/Inversion.lean",
+      "kind": "theorem",
+      "pin": "theorem carrMadan_inversion_eq_lognormal_expectation (S K tau r q sigma : ℝ) (hS : 0 < S) (hK : 0 < K) (htau : 0 < tau) (hsigma : 0 < sigma) (v : NNReal) (hv : (v : ℝ) = sigma ^ 2 * tau) (alpha : ℝ) {f : ℝ → ℂ} (hf : f = fun k ↦ ↑(dampedCallPrice S v ((r - q - sigma ^ 2 / 2) * tau) r tau alpha k)) (hcont : Continuous f) (hint : Integrable f) (hFint : Integrable (𝓕 f)) : ((Real.exp (-alpha * Real.log (K / S)) : ℝ) : ℂ) * 𝓕⁻ (𝓕 f) (Real.log (K / S)) = ((Real.exp (-r * tau) * ∫ x, max (S * Real.exp x - K) 0 ∂(ProbabilityTheory.gaussianReal ((r - q - sigma ^ 2 / 2) * tau) v) : ℝ) : ℂ)"
+    },
+    "BSM.carrMadan_inversion_eq_re": {
+      "file": "ImprovedBS/Inversion.lean",
+      "kind": "theorem",
+      "pin": "theorem carrMadan_inversion_eq_re (S K tau r q sigma : ℝ) (hS : 0 < S) (hK : 0 < K) (htau : 0 < tau) (hsigma : 0 < sigma) (v : NNReal) (hv : (v : ℝ) = sigma ^ 2 * tau) (alpha : ℝ) {f : ℝ → ℂ} (hf : f = fun k ↦ ↑(dampedCallPrice S v ((r - q - sigma ^ 2 / 2) * tau) r tau alpha k)) (hcont : Continuous f) (hint : Integrable f) (hFint : Integrable (𝓕 f)) : ((Real.exp (-alpha * Real.log (K / S)) : ℝ) : ℂ) * 𝓕⁻ (𝓕 f) (Real.log (K / S)) = ↑((((Real.exp (-alpha * Real.log (K / S)) : ℝ) : ℂ) * 𝓕⁻ (𝓕 f) (Real.log (K / S))).re)"
+    },
+    "BSM.carrMadan_inversion_im_eq_zero": {
+      "file": "ImprovedBS/Inversion.lean",
+      "kind": "theorem",
+      "pin": "theorem carrMadan_inversion_im_eq_zero (S K tau r q sigma : ℝ) (hS : 0 < S) (hK : 0 < K) (htau : 0 < tau) (hsigma : 0 < sigma) (v : NNReal) (hv : (v : ℝ) = sigma ^ 2 * tau) (alpha : ℝ) {f : ℝ → ℂ} (hf : f = fun k ↦ ↑(dampedCallPrice S v ((r - q - sigma ^ 2 / 2) * tau) r tau alpha k)) (hcont : Continuous f) (hint : Integrable f) (hFint : Integrable (𝓕 f)) : (((Real.exp (-alpha * Real.log (K / S)) : ℝ) : ℂ) * 𝓕⁻ (𝓕 f) (Real.log (K / S))).im = 0"
+    },
+    "BSM.carrMadan_inversion_re_eq_bsCall": {
+      "file": "ImprovedBS/Inversion.lean",
+      "kind": "theorem",
+      "pin": "theorem carrMadan_inversion_re_eq_bsCall (S K tau r q sigma : ℝ) (hS : 0 < S) (hK : 0 < K) (htau : 0 < tau) (hsigma : 0 < sigma) (v : NNReal) (hv : (v : ℝ) = sigma ^ 2 * tau) (alpha : ℝ) {f : ℝ → ℂ} (hf : f = fun k ↦ ↑(dampedCallPrice S v ((r - q - sigma ^ 2 / 2) * tau) r tau alpha k)) (hcont : Continuous f) (hint : Integrable f) (hFint : Integrable (𝓕 f)) : (((Real.exp (-alpha * Real.log (K / S)) : ℝ) : ℂ) * 𝓕⁻ (𝓕 f) (Real.log (K / S))).re = bsCall S K tau r q sigma"
     },
     "BSM.carrMadan_price_integrable": {
       "file": "ImprovedBS/Fourier.lean",
@@ -474,6 +561,16 @@
       "kind": "theorem",
       "pin": "theorem d_tau_quotient_eq (A c sigma s tau : ℝ) (hs : s ^ 2 = tau) (hs0 : s ≠ 0) (hsigma : sigma ≠ 0) : (c * (sigma * s) - (A + c * tau) * (sigma * (1 / (2 * s)))) / (sigma * s) ^ 2 = (c - A / tau) / (2 * sigma * s)"
     },
+    "BSM.dampedCallPrice": {
+      "file": "ImprovedBS/Inversion.lean",
+      "kind": "def",
+      "pin": "def dampedCallPrice (S : ℝ) (v : NNReal) (m r tau alpha : ℝ) (k : ℝ) : ℝ := Real.exp (alpha * k) * (Real.exp (-r * tau) * ∫ x, max (S * Real.exp x - S * Real.exp k) 0 ∂(ProbabilityTheory.gaussianReal m v))"
+    },
+    "BSM.dampedCallPrice_log_eq": {
+      "file": "ImprovedBS/Inversion.lean",
+      "kind": "theorem",
+      "pin": "theorem dampedCallPrice_log_eq (S K tau r q sigma : ℝ) (hS : 0 < S) (hK : 0 < K) (htau : 0 < tau) (hsigma : 0 < sigma) (v : NNReal) (hv : (v : ℝ) = sigma ^ 2 * tau) (alpha : ℝ) : dampedCallPrice S v ((r - q - sigma ^ 2 / 2) * tau) r tau alpha (Real.log (K / S)) = Real.exp (alpha * Real.log (K / S)) * bsCall S K tau r q sigma"
+    },
     "BSM.erf": {
       "file": "ImprovedBS/Core.lean",
       "kind": "def",
@@ -509,10 +606,25 @@
       "kind": "theorem",
       "pin": "theorem forward_eq (S K tau r q : ℝ) (hS : 0 < S) (hK : 0 < K) : K * Real.exp (-r * tau) * Real.exp (Real.log (S / K) + (r - q) * tau) = S * Real.exp (-q * tau)"
     },
+    "BSM.fourierInversion_dampedCallPrice": {
+      "file": "ImprovedBS/Inversion.lean",
+      "kind": "theorem",
+      "pin": "theorem fourierInversion_dampedCallPrice {f : ℝ → ℂ} (hcont : Continuous f) (hint : Integrable f) (hFint : Integrable (𝓕 f)) : 𝓕⁻ (𝓕 f) = f"
+    },
+    "BSM.fourierInversion_dampedCallPrice_at": {
+      "file": "ImprovedBS/Inversion.lean",
+      "kind": "theorem",
+      "pin": "theorem fourierInversion_dampedCallPrice_at {f : ℝ → ℂ} (hcont : Continuous f) (hint : Integrable f) (hFint : Integrable (𝓕 f)) (k : ℝ) : 𝓕⁻ (𝓕 f) k = f k"
+    },
     "BSM.gbmCharFactor": {
       "file": "ImprovedBS/Fourier.lean",
       "kind": "def",
       "pin": "def gbmCharFactor (m s : ℝ) (v : ℂ) : ℂ := Complex.exp (Complex.I * ↑m * v - ↑s * v ^ 2)"
+    },
+    "BSM.gbm_carrMadanInversion_integrable": {
+      "file": "ImprovedBS/Inversion.lean",
+      "kind": "theorem",
+      "pin": "theorem gbm_carrMadanInversion_integrable (m s : ℝ) (hs : 0 < s) {α : ℝ} (hα : 0 < α) (r tau k : ℝ) : Integrable (fun u : ℝ => ((Real.exp (-r * tau) / (2 * Real.pi) : ℝ) : ℂ) • (carrMadanPhase (-k) u * carrMadanKernel (gbmCharFactor m s) α u)) volume"
     },
     "BSM.gbm_carrMadanKernel_integrable": {
       "file": "ImprovedBS/Fourier.lean",
@@ -733,6 +845,11 @@
       "file": "ImprovedBS/Core.lean",
       "kind": "theorem",
       "pin": "theorem t5_tau (S K tau r q sigma : ℝ) (hS : 0 < S) (hK : 0 < K) (htau : 0 < tau) (hsigma : sigma ≠ 0) : HasDerivAt (fun u => bsCall S K u r q sigma) (-q * (S * Real.exp (-q * tau) * Phi (d1 S K tau r q sigma)) + r * (K * Real.exp (-r * tau) * Phi (d2 S K tau r q sigma)) + (sigma / (2 * Real.sqrt tau)) * (S * Real.exp (-q * tau) * phi (d1 S K tau r q sigma))) tau"
+    },
+    "BSM.undamped_dampedCallPrice": {
+      "file": "ImprovedBS/Inversion.lean",
+      "kind": "theorem",
+      "pin": "theorem undamped_dampedCallPrice (S K tau r q sigma : ℝ) (hS : 0 < S) (hK : 0 < K) (htau : 0 < tau) (hsigma : 0 < sigma) (v : NNReal) (hv : (v : ℝ) = sigma ^ 2 * tau) (alpha : ℝ) : Real.exp (-alpha * Real.log (K / S)) * dampedCallPrice S v ((r - q - sigma ^ 2 / 2) * tau) r tau alpha (Real.log (K / S)) = bsCall S K tau r q sigma"
     }
   }
 }

@@ -235,6 +235,20 @@ jobs:
           #print axioms BSM.bsPut_eq_riskNeutral_expectation
           #print axioms BSM.bsCall_eq_gaussianReal_expectation
           #print axioms BSM.bsCall_eq_lognormal_expectation
+          -- BRIEF_008: Fourier inversion of the Carr–Madan pricing kernel (T6 sub-goal 3b),
+          -- ImprovedBS/Inversion.lean. Integrability, Fourier inversion formula,
+          -- landing on bsCall_eq_lognormal_expectation, and real-valuedness.
+          #print axioms BSM.carrMadanInversion_integrand_integrable
+          #print axioms BSM.gbm_carrMadanInversion_integrable
+          #print axioms BSM.dampedCallPrice_log_eq
+          #print axioms BSM.undamped_dampedCallPrice
+          #print axioms BSM.fourierInversion_dampedCallPrice
+          #print axioms BSM.fourierInversion_dampedCallPrice_at
+          #print axioms BSM.carrMadan_inversion_eq_lognormal_expectation
+          #print axioms BSM.carrMadan_inversion_eq_bsCall
+          #print axioms BSM.carrMadan_inversion_im_eq_zero
+          #print axioms BSM.carrMadan_inversion_eq_re
+          #print axioms BSM.carrMadan_inversion_re_eq_bsCall
           LEAN
           lake env lean /tmp/Audit.lean 2>&1 | tee lean-audit.log
           if grep -q sorryAx lean-audit.log; then

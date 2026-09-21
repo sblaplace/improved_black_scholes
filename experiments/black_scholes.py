@@ -48,6 +48,7 @@ silently.
 
 from __future__ import annotations
 
+import cmath
 import math
 
 # ---------------------------------------------------------------- normal
@@ -187,6 +188,80 @@ def forward_by_expectation(S: float, K: float, tau: float, r: float, q: float, s
     forward does not depend on it.)
     """
     return _expectation(lambda x: x, S, K, tau, r, q, s, n=8000)
+
+
+def carr_madan_denom(alpha: float, u: float) -> complex:
+    """The Carr–Madan strike-transform denominator `(α² + α − u²) + i(2α+1)u`."""
+    return complex(alpha * alpha + alpha - u * u, (2.0 * alpha + 1.0) * u)
+
+
+def bs_call_by_fourier_inversion(
+    S: float, K: float, tau: float, r: float, q: float, s: float, alpha: float = 1.5, n: int = 6000
+) -> float:
+    """The call via CARR–MADAN FOURIER INVERSION of the pricing kernel.
+
+    Inverts `carrMadanKernel(gbmCharFactor, alpha)` along the horizontal contour
+    `v = u - i(alpha + 1)`, landing on `bs_call_by_expectation` and the closed
+    form (T6 sub-goal 3b).
+
+    Independent route: no `norm_cdf`, no `_d1d2`, no real-space integration of
+    the payoff. The integral on [0, u_max] equals half the real part of the
+    two-sided integral by Hermitian symmetry.
+    """
+    if alpha <= 0.0:
+        raise ValueError("damping parameter alpha must be > 0")
+    k = math.log(K / S)
+    m = _risk_neutral_drift(tau, r, q, s)
+    half_var = 0.5 * s * s * tau
+    u_max = max(100.0, 10.0 / (s * math.sqrt(tau)))
+
+    def integrand(u: float) -> float:
+        v = complex(u, -(alpha + 1.0))
+        cf = cmath.exp(1j * m * v - half_var * (v * v))
+        denom = carr_madan_denom(alpha, u)
+        kernel = cf / denom
+        phase = cmath.exp(-1j * u * k)
+        return (phase * kernel).real
+
+    h = u_max / n
+    tot = integrand(0.0) + integrand(u_max)
+    for i in range(1, n):
+        u = i * h
+        tot += integrand(u) * (4 if i % 2 == 1 else 2)
+    integral = tot * h / 3.0
+    return math.exp(-r * tau) * S * math.exp(-alpha * k) / math.pi * integral
+
+
+def bs_call_by_fourier_inversion_complex(
+    S: float, K: float, tau: float, r: float, q: float, s: float, alpha: float = 1.5, n: int = 6000
+) -> complex:
+    """Full complex value of the two-sided Fourier inversion integral on [-u_max, u_max].
+
+    Used to assert the real-valuedness theorem: the imaginary part vanishes to
+    machine precision because the integrand's imaginary part is odd in `u`.
+    """
+    if alpha <= 0.0:
+        raise ValueError("damping parameter alpha must be > 0")
+    k = math.log(K / S)
+    m = _risk_neutral_drift(tau, r, q, s)
+    half_var = 0.5 * s * s * tau
+    u_max = max(100.0, 10.0 / (s * math.sqrt(tau)))
+
+    def integrand(u: float) -> complex:
+        v = complex(u, -(alpha + 1.0))
+        cf = cmath.exp(1j * m * v - half_var * (v * v))
+        denom = carr_madan_denom(alpha, u)
+        kernel = cf / denom
+        phase = cmath.exp(-1j * u * k)
+        return phase * kernel
+
+    h = (2.0 * u_max) / n
+    tot = integrand(-u_max) + integrand(u_max)
+    for i in range(1, n):
+        u = -u_max + i * h
+        tot += integrand(u) * (4 if i % 2 == 1 else 2)
+    integral = tot * h / 3.0
+    return math.exp(-r * tau) * S * math.exp(-alpha * k) / (2.0 * math.pi) * integral
 
 
 def bs_price(S, K, T, t, r, s, q=0.0, option="call"):
