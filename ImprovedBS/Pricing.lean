@@ -134,15 +134,13 @@ theorem gbm_cmPriceKernel_integrable (m s : ℝ) (hs : 0 < s) {α : ℝ} (hα : 
 theorem cmDenom_factor (α u : ℝ) :
     cmDenom α u = ((α : ℂ) + ↑u * Complex.I) * ((α + 1 : ℂ) + ↑u * Complex.I) := by
   unfold cmDenom
-  apply Complex.ext
-  · simp only [Complex.add_re, Complex.mul_re, Complex.sub_re, Complex.ofReal_re, Complex.ofReal_im,
-      Complex.I_re, Complex.I_im, Complex.one_re, Complex.one_im, Complex.zero_re, Complex.zero_im,
-      mul_zero, sub_zero, zero_mul, add_zero]
-    ring
-  · simp only [Complex.add_im, Complex.mul_im, Complex.sub_im, Complex.ofReal_re, Complex.ofReal_im,
-      Complex.I_re, Complex.I_im, Complex.one_re, Complex.one_im, Complex.zero_re, Complex.zero_im,
-      mul_zero, sub_zero, zero_mul, add_zero]
-    ring
+  have h1 : (α ^ 2 + α - u ^ 2 : ℝ) = α * (α + 1) - u ^ 2 := by ring
+  rw [h1]
+  push_cast
+  have hI : Complex.I ^ 2 = -1 := by rw [sq, Complex.I_mul_I]
+  ring_nf
+  rw [hI]
+  ring
 
 theorem integral_Ioi_cexp_neg_mul_eq_inv {a : ℂ} (ha : 0 < a.re) :
     ∫ y in Set.Ioi (0 : ℝ), Complex.exp (-(a * ↑y)) = a⁻¹ := by
