@@ -86,6 +86,18 @@
       "axioms": "'BSM.carrMadanPhase' depends on axioms: [propext, Classical.choice, Quot.sound]",
       "type": "BSM.carrMadanPhase : ℝ → ℝ → ℂ"
     },
+    "BSM.carrMadan_eq_modelFreeCall": {
+      "axioms": "'BSM.carrMadan_eq_modelFreeCall' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.carrMadan_eq_modelFreeCall : ∀ {μ : MeasureTheory.Measure ℝ} [MeasureTheory.IsProbabilityMeasure μ] {S K r tau α : ℝ}, 0 < S → 0 < K → 0 < α → ∀ {c D Y u₀ δ : ℝ}, 0 < c → 0 ≤ D → 0 < Y → 0 < δ → (Continuous fun u => BSM.contourCharFun μ (↑u - ↑(α + 1) * Complex.I)) → (∀ (u : ℝ), u₀ ≤ |u| → ‖BSM.contourCharFun μ (↑u - ↑(α + 1) * Complex.I)‖ ≤ D * Real.exp (-c * |u| ^ Y)) → MeasureTheory.Integrable (fun x => Real.exp ((α + 1 + δ) * x)) μ → MeasureTheory.Integrable (fun x => S * Real.exp x) μ → ↑(Real.exp (-α * Real.log (K / S))) * BSM.cmPriceIntegral (BSM.contourCharFun μ) α r tau S (Real.log (K / S)) = ↑(BSM.modelFreeCall μ (fun x => S * Real.exp x) K r tau)"
+    },
+    "BSM.carrMadan_eq_re": {
+      "axioms": "'BSM.carrMadan_eq_re' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.carrMadan_eq_re : ∀ {μ : MeasureTheory.Measure ℝ} [MeasureTheory.IsProbabilityMeasure μ] {S K r tau α : ℝ}, 0 < S → 0 < K → 0 < α → ∀ {c D Y u₀ δ : ℝ}, 0 < c → 0 ≤ D → 0 < Y → 0 < δ → (Continuous fun u => BSM.contourCharFun μ (↑u - ↑(α + 1) * Complex.I)) → (∀ (u : ℝ), u₀ ≤ |u| → ‖BSM.contourCharFun μ (↑u - ↑(α + 1) * Complex.I)‖ ≤ D * Real.exp (-c * |u| ^ Y)) → MeasureTheory.Integrable (fun x => Real.exp ((α + 1 + δ) * x)) μ → MeasureTheory.Integrable (fun x => S * Real.exp x) μ → ↑(Real.exp (-α * Real.log (K / S))) * BSM.cmPriceIntegral (BSM.contourCharFun μ) α r tau S (Real.log (K / S)) = ↑(↑(Real.exp (-α * Real.log (K / S))) * BSM.cmPriceIntegral (BSM.contourCharFun μ) α r tau S (Real.log (K / S))).re"
+    },
+    "BSM.carrMadan_im_eq_zero": {
+      "axioms": "'BSM.carrMadan_im_eq_zero' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.carrMadan_im_eq_zero : ∀ {μ : MeasureTheory.Measure ℝ} [MeasureTheory.IsProbabilityMeasure μ] {S K r tau α : ℝ}, 0 < S → 0 < K → 0 < α → ∀ {c D Y u₀ δ : ℝ}, 0 < c → 0 ≤ D → 0 < Y → 0 < δ → (Continuous fun u => BSM.contourCharFun μ (↑u - ↑(α + 1) * Complex.I)) → (∀ (u : ℝ), u₀ ≤ |u| → ‖BSM.contourCharFun μ (↑u - ↑(α + 1) * Complex.I)‖ ≤ D * Real.exp (-c * |u| ^ Y)) → MeasureTheory.Integrable (fun x => Real.exp ((α + 1 + δ) * x)) μ → MeasureTheory.Integrable (fun x => S * Real.exp x) μ → (↑(Real.exp (-α * Real.log (K / S))) * BSM.cmPriceIntegral (BSM.contourCharFun μ) α r tau S (Real.log (K / S))).im = 0"
+    },
     "BSM.carrMadan_inversion_eq_bsCall": {
       "axioms": "'BSM.carrMadan_inversion_eq_bsCall' depends on axioms: [propext, Classical.choice, Quot.sound]",
       "type": "BSM.carrMadan_inversion_eq_bsCall : ∀ (S K tau r q sigma : ℝ), 0 < S → 0 < K → 0 < tau → 0 < sigma → ∀ (v : NNReal), ↑v = sigma ^ 2 * tau → ∀ (alpha : ℝ) {f : ℝ → ℂ}, (f = fun k => ↑(BSM.dampedCallPrice S v ((r - q - sigma ^ 2 / 2) * tau) r tau alpha k)) → Continuous f → MeasureTheory.Integrable f MeasureTheory.volume → MeasureTheory.Integrable (FourierTransform.fourier f) MeasureTheory.volume → ↑(Real.exp (-alpha * Real.log (K / S))) * FourierTransformInv.fourierInv (FourierTransform.fourier f) (Real.log (K / S)) = ↑(BSM.bsCall S K tau r q sigma)"
@@ -110,9 +122,17 @@
       "axioms": "'BSM.carrMadan_price_integrable' depends on axioms: [propext, Classical.choice, Quot.sound]",
       "type": "BSM.carrMadan_price_integrable : ∀ {φ : ℂ → ℂ} {α : ℝ}, 0 < α → (Continuous fun u => φ (↑u + ↑α * Complex.I)) → ∀ {c D Y : ℝ}, 0 < c → 0 ≤ D → 0 < Y → ∀ {u₀ : ℝ}, (∀ (u : ℝ), u₀ ≤ |u| → ‖φ (↑u + ↑α * Complex.I)‖ ≤ D * Real.exp (-c * |u| ^ Y)) → ∀ (r tau : ℝ), MeasureTheory.Integrable (fun u => ↑(Real.exp (-r * tau) / (2 * Real.pi)) • (BSM.carrMadanPhase tau u * BSM.carrMadanKernel φ α u)) MeasureTheory.volume"
     },
+    "BSM.carrMadan_re_eq_modelFreeCall": {
+      "axioms": "'BSM.carrMadan_re_eq_modelFreeCall' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.carrMadan_re_eq_modelFreeCall : ∀ {μ : MeasureTheory.Measure ℝ} [MeasureTheory.IsProbabilityMeasure μ] {S K r tau α : ℝ}, 0 < S → 0 < K → 0 < α → ∀ {c D Y u₀ δ : ℝ}, 0 < c → 0 ≤ D → 0 < Y → 0 < δ → (Continuous fun u => BSM.contourCharFun μ (↑u - ↑(α + 1) * Complex.I)) → (∀ (u : ℝ), u₀ ≤ |u| → ‖BSM.contourCharFun μ (↑u - ↑(α + 1) * Complex.I)‖ ≤ D * Real.exp (-c * |u| ^ Y)) → MeasureTheory.Integrable (fun x => Real.exp ((α + 1 + δ) * x)) μ → MeasureTheory.Integrable (fun x => S * Real.exp x) μ → (↑(Real.exp (-α * Real.log (K / S))) * BSM.cmPriceIntegral (BSM.contourCharFun μ) α r tau S (Real.log (K / S))).re = BSM.modelFreeCall μ (fun x => S * Real.exp x) K r tau"
+    },
     "BSM.cmDenom": {
       "axioms": "'BSM.cmDenom' depends on axioms: [propext, Classical.choice, Quot.sound]",
       "type": "BSM.cmDenom : ℝ → ℝ → ℂ"
+    },
+    "BSM.cmDenom_factor": {
+      "axioms": "'BSM.cmDenom_factor' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.cmDenom_factor : ∀ (α u : ℝ), BSM.cmDenom α u = (↑α + ↑u * Complex.I) * (↑α + 1 + ↑u * Complex.I)"
     },
     "BSM.cmDenom_ne_zero": {
       "axioms": "'BSM.cmDenom_ne_zero' depends on axioms: [propext, Classical.choice, Quot.sound]",
@@ -121,6 +141,38 @@
     "BSM.cmDenom_u4_le": {
       "axioms": "'BSM.cmDenom_u4_le' depends on axioms: [propext, Classical.choice, Quot.sound]",
       "type": "BSM.cmDenom_u4_le : ∀ (α u : ℝ), u ^ 4 ≤ (α ^ 2 + α - u ^ 2) ^ 2 + ((2 * α + 1) * u) ^ 2"
+    },
+    "BSM.cmPriceIntegral": {
+      "axioms": "'BSM.cmPriceIntegral' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.cmPriceIntegral : (ℂ → ℂ) → ℝ → ℝ → ℝ → ℝ → ℝ → ℂ"
+    },
+    "BSM.cmPriceIntegral_eq_damped_modelFreeCall": {
+      "axioms": "'BSM.cmPriceIntegral_eq_damped_modelFreeCall' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.cmPriceIntegral_eq_damped_modelFreeCall : ∀ {μ : MeasureTheory.Measure ℝ} [MeasureTheory.IsProbabilityMeasure μ] {α r tau S k : ℝ}, 0 < S → 0 < α → ∀ {c D Y u₀ δ : ℝ}, 0 < c → 0 ≤ D → 0 < Y → 0 < δ → (Continuous fun u => BSM.contourCharFun μ (↑u - ↑(α + 1) * Complex.I)) → (∀ (u : ℝ), u₀ ≤ |u| → ‖BSM.contourCharFun μ (↑u - ↑(α + 1) * Complex.I)‖ ≤ D * Real.exp (-c * |u| ^ Y)) → MeasureTheory.Integrable (fun x => Real.exp ((α + 1 + δ) * x)) μ → BSM.cmPriceIntegral (BSM.contourCharFun μ) α r tau S k = ↑(BSM.dampedModelFreeCall μ S r tau α k)"
+    },
+    "BSM.cmPriceIntegrand_reflect": {
+      "axioms": "'BSM.cmPriceIntegrand_reflect' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.cmPriceIntegrand_reflect : ∀ {μ : MeasureTheory.Measure ℝ} [MeasureTheory.IsProbabilityMeasure μ] {α k : ℝ} (u : ℝ), Complex.exp (-(Complex.I * ↑(-u * k))) * BSM.cmPriceKernel (BSM.contourCharFun μ) α (-u) = (starRingEnd ℂ) (Complex.exp (-(Complex.I * ↑(u * k))) * BSM.cmPriceKernel (BSM.contourCharFun μ) α u)"
+    },
+    "BSM.cmPriceKernel": {
+      "axioms": "'BSM.cmPriceKernel' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.cmPriceKernel : (ℂ → ℂ) → ℝ → ℝ → ℂ"
+    },
+    "BSM.cmPriceKernel_eq_shift": {
+      "axioms": "'BSM.cmPriceKernel_eq_shift' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.cmPriceKernel_eq_shift : ∀ (φ : ℂ → ℂ) (α u : ℝ), BSM.cmPriceKernel φ α u = BSM.carrMadanKernel (fun v => φ (v - ↑(2 * α + 1) * Complex.I)) α u"
+    },
+    "BSM.cmPriceKernel_integrable": {
+      "axioms": "'BSM.cmPriceKernel_integrable' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.cmPriceKernel_integrable : ∀ {φ : ℂ → ℂ} {α : ℝ}, 0 < α → (Continuous fun u => φ (↑u - ↑(α + 1) * Complex.I)) → ∀ {c D Y : ℝ}, 0 < c → 0 ≤ D → 0 < Y → ∀ {u₀ : ℝ}, (∀ (u : ℝ), u₀ ≤ |u| → ‖φ (↑u - ↑(α + 1) * Complex.I)‖ ≤ D * Real.exp (-c * |u| ^ Y)) → MeasureTheory.Integrable (BSM.cmPriceKernel φ α) MeasureTheory.volume"
+    },
+    "BSM.continuous_dampedModelFreeCall": {
+      "axioms": "'BSM.continuous_dampedModelFreeCall' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.continuous_dampedModelFreeCall : ∀ {μ : MeasureTheory.Measure ℝ} [MeasureTheory.IsProbabilityMeasure μ] {S r tau α : ℝ}, 0 < S → 0 < α → MeasureTheory.Integrable (fun x => Real.exp ((α + 1) * x)) μ → Continuous fun k => ↑(BSM.dampedModelFreeCall μ S r tau α k)"
+    },
+    "BSM.contourCharFun": {
+      "axioms": "'BSM.contourCharFun' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.contourCharFun : MeasureTheory.Measure ℝ → ℂ → ℂ"
     },
     "BSM.d1": {
       "axioms": "'BSM.d1' depends on axioms: [propext, Classical.choice, Quot.sound]",
@@ -154,6 +206,14 @@
       "axioms": "'BSM.dampedCallPrice_log_eq' depends on axioms: [propext, Classical.choice, Quot.sound]",
       "type": "BSM.dampedCallPrice_log_eq : ∀ (S K tau r q sigma : ℝ), 0 < S → 0 < K → 0 < tau → 0 < sigma → ∀ (v : NNReal), ↑v = sigma ^ 2 * tau → ∀ (alpha : ℝ), BSM.dampedCallPrice S v ((r - q - sigma ^ 2 / 2) * tau) r tau alpha (Real.log (K / S)) = Real.exp (alpha * Real.log (K / S)) * BSM.bsCall S K tau r q sigma"
     },
+    "BSM.dampedModelFreeCall": {
+      "axioms": "'BSM.dampedModelFreeCall' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.dampedModelFreeCall : MeasureTheory.Measure ℝ → ℝ → ℝ → ℝ → ℝ → ℝ → ℝ"
+    },
+    "BSM.dampedModelFreeCall_eq_dampedCallPrice": {
+      "axioms": "'BSM.dampedModelFreeCall_eq_dampedCallPrice' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.dampedModelFreeCall_eq_dampedCallPrice : ∀ {S m r tau α k : ℝ} {v : NNReal}, BSM.dampedModelFreeCall (ProbabilityTheory.gaussianReal m v) S r tau α k = BSM.dampedCallPrice S v m r tau α k"
+    },
     "BSM.erf": {
       "axioms": "'BSM.erf' depends on axioms: [propext, Classical.choice, Quot.sound]",
       "type": "BSM.erf : ℝ → ℝ"
@@ -182,6 +242,22 @@
       "axioms": "'BSM.forward_eq' depends on axioms: [propext, Classical.choice, Quot.sound]",
       "type": "BSM.forward_eq : ∀ (S K tau r q : ℝ), 0 < S → 0 < K → K * Real.exp (-r * tau) * Real.exp (Real.log (S / K) + (r - q) * tau) = S * Real.exp (-q * tau)"
     },
+    "BSM.fourierCM": {
+      "axioms": "'BSM.fourierCM' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.fourierCM : (ℝ → ℂ) → ℝ → ℂ"
+    },
+    "BSM.fourierCM_eq_fourier": {
+      "axioms": "'BSM.fourierCM_eq_fourier' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.fourierCM_eq_fourier : ∀ (f : ℝ → ℂ) (u : ℝ), BSM.fourierCM f u = FourierTransform.fourier f (-u / (2 * Real.pi))"
+    },
+    "BSM.fourierCM_inversion": {
+      "axioms": "'BSM.fourierCM_inversion' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.fourierCM_inversion : ∀ {f : ℝ → ℂ}, Continuous f → MeasureTheory.Integrable f MeasureTheory.volume → MeasureTheory.Integrable (FourierTransform.fourier f) MeasureTheory.volume → ∀ (k : ℝ), (2 * ↑Real.pi)⁻¹ * ∫ (u : ℝ), Complex.exp (-(Complex.I * ↑(u * k))) * BSM.fourierCM f u = f k"
+    },
+    "BSM.fourierDampedModelFreeCall_eq": {
+      "axioms": "'BSM.fourierDampedModelFreeCall_eq' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.fourierDampedModelFreeCall_eq : ∀ {μ : MeasureTheory.Measure ℝ} [MeasureTheory.IsProbabilityMeasure μ] {S r tau α u : ℝ}, 0 < S → 0 < α → MeasureTheory.Integrable (fun x => Real.exp ((α + 1) * x)) μ → ∫ (k : ℝ), Complex.exp (↑(u * k) * Complex.I) * ↑(BSM.dampedModelFreeCall μ S r tau α k) = ↑(Real.exp (-r * tau) * S) * BSM.contourCharFun μ (↑u - ↑(α + 1) * Complex.I) * (BSM.cmDenom α u)⁻¹"
+    },
     "BSM.fourierInversion_dampedCallPrice": {
       "axioms": "'BSM.fourierInversion_dampedCallPrice' depends on axioms: [propext, Classical.choice, Quot.sound]",
       "type": "BSM.fourierInversion_dampedCallPrice : ∀ {f : ℝ → ℂ}, Continuous f → MeasureTheory.Integrable f MeasureTheory.volume → MeasureTheory.Integrable (FourierTransform.fourier f) MeasureTheory.volume → FourierTransformInv.fourierInv (FourierTransform.fourier f) = f"
@@ -194,6 +270,14 @@
       "axioms": "'BSM.gbmCharFactor' depends on axioms: [propext, Classical.choice, Quot.sound]",
       "type": "BSM.gbmCharFactor : ℝ → ℝ → ℂ → ℂ"
     },
+    "BSM.gbmCharFactor_pricing_continuous": {
+      "axioms": "'BSM.gbmCharFactor_pricing_continuous' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.gbmCharFactor_pricing_continuous : ∀ (m s α : ℝ), Continuous fun u => BSM.gbmCharFactor m s (↑u - ↑(α + 1) * Complex.I)"
+    },
+    "BSM.gbmCharFactor_pricing_norm": {
+      "axioms": "'BSM.gbmCharFactor_pricing_norm' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.gbmCharFactor_pricing_norm : ∀ (m s u α : ℝ), ‖BSM.gbmCharFactor m s (↑u - ↑(α + 1) * Complex.I)‖ = Real.exp (s * (α + 1) ^ 2 + (α + 1) * m) * Real.exp (-(s * u ^ 2))"
+    },
     "BSM.gbm_carrMadanInversion_integrable": {
       "axioms": "'BSM.gbm_carrMadanInversion_integrable' depends on axioms: [propext, Classical.choice, Quot.sound]",
       "type": "BSM.gbm_carrMadanInversion_integrable : ∀ (m s : ℝ), 0 < s → ∀ {α : ℝ}, 0 < α → ∀ (r tau k : ℝ), MeasureTheory.Integrable (fun u => ↑(Real.exp (-r * tau) / (2 * Real.pi)) • (BSM.carrMadanPhase (-k) u * BSM.carrMadanKernel (BSM.gbmCharFactor m s) α u)) MeasureTheory.volume"
@@ -202,9 +286,21 @@
       "axioms": "'BSM.gbm_carrMadanKernel_integrable' depends on axioms: [propext, Classical.choice, Quot.sound]",
       "type": "BSM.gbm_carrMadanKernel_integrable : ∀ (m s : ℝ), 0 < s → ∀ {α : ℝ}, 0 < α → MeasureTheory.Integrable (BSM.carrMadanKernel (BSM.gbmCharFactor m s) α) MeasureTheory.volume"
     },
+    "BSM.gbm_carrMadan_eq_bsCall": {
+      "axioms": "'BSM.gbm_carrMadan_eq_bsCall' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.gbm_carrMadan_eq_bsCall : ∀ {S K tau r q sigma : ℝ}, 0 < S → 0 < K → 0 < tau → 0 < sigma → ∀ (v : NNReal), ↑v = sigma ^ 2 * tau → ∀ (α : ℝ), 0 < α → ↑(Real.exp (-α * Real.log (K / S))) * BSM.cmPriceIntegral (BSM.contourCharFun (ProbabilityTheory.gaussianReal ((r - q - sigma ^ 2 / 2) * tau) v)) α r tau S (Real.log (K / S)) = ↑(BSM.bsCall S K tau r q sigma)"
+    },
     "BSM.gbm_carrMadan_price_integrable": {
       "axioms": "'BSM.gbm_carrMadan_price_integrable' depends on axioms: [propext, Classical.choice, Quot.sound]",
       "type": "BSM.gbm_carrMadan_price_integrable : ∀ (m s : ℝ), 0 < s → ∀ {α : ℝ}, 0 < α → ∀ (r tau : ℝ), MeasureTheory.Integrable (fun u => ↑(Real.exp (-r * tau) / (2 * Real.pi)) • (BSM.carrMadanPhase tau u * BSM.carrMadanKernel (BSM.gbmCharFactor m s) α u)) MeasureTheory.volume"
+    },
+    "BSM.gbm_cmPriceKernel_integrable": {
+      "axioms": "'BSM.gbm_cmPriceKernel_integrable' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.gbm_cmPriceKernel_integrable : ∀ (m s : ℝ), 0 < s → ∀ {α : ℝ}, 0 < α → MeasureTheory.Integrable (BSM.cmPriceKernel (BSM.gbmCharFactor m s) α) MeasureTheory.volume"
+    },
+    "BSM.gbm_contourCharFun_eq": {
+      "axioms": "'BSM.gbm_contourCharFun_eq' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.gbm_contourCharFun_eq : ∀ {m : ℝ} {v : NNReal} {w : ℂ}, BSM.contourCharFun (ProbabilityTheory.gaussianReal m v) w = BSM.gbmCharFactor m (↑v / 2) w"
     },
     "BSM.hasDerivAt_Phi": {
       "axioms": "'BSM.hasDerivAt_Phi' depends on axioms: [propext, Classical.choice, Quot.sound]",
@@ -225,6 +321,10 @@
     "BSM.integrable_call_payoff": {
       "axioms": "'BSM.integrable_call_payoff' depends on axioms: [propext, Classical.choice, Quot.sound]",
       "type": "BSM.integrable_call_payoff : ∀ {μ : MeasureTheory.Measure ℝ} [MeasureTheory.IsProbabilityMeasure μ] (X : ℝ → ℝ) (K : ℝ), MeasureTheory.Integrable X μ → MeasureTheory.Integrable (fun s => max (X s - K) 0) μ"
+    },
+    "BSM.integrable_dampedModelFreeCall_of_exp_moment": {
+      "axioms": "'BSM.integrable_dampedModelFreeCall_of_exp_moment' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.integrable_dampedModelFreeCall_of_exp_moment : ∀ {μ : MeasureTheory.Measure ℝ} [MeasureTheory.IsProbabilityMeasure μ] {S r tau α : ℝ}, 0 < S → 0 < α → ∀ {δ : ℝ}, 0 < δ → MeasureTheory.Integrable (fun x => Real.exp ((α + 1 + δ) * x)) μ → MeasureTheory.Integrable (fun k => ↑(BSM.dampedModelFreeCall μ S r tau α k)) MeasureTheory.volume"
     },
     "BSM.integrable_exp_mul_phi": {
       "axioms": "'BSM.integrable_exp_mul_phi' depends on axioms: [propext, Classical.choice, Quot.sound]",
@@ -249,6 +349,14 @@
     "BSM.integrable_spot_mul_phi": {
       "axioms": "'BSM.integrable_spot_mul_phi' depends on axioms: [propext, Classical.choice, Quot.sound]",
       "type": "BSM.integrable_spot_mul_phi : ∀ (S tau r q sigma : ℝ), MeasureTheory.Integrable (fun z => S * Real.exp ((r - q - sigma ^ 2 / 2) * tau + sigma * √tau * z) * BSM.phi z) MeasureTheory.volume"
+    },
+    "BSM.integrable_strikeTransform": {
+      "axioms": "'BSM.integrable_strikeTransform' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.integrable_strikeTransform : ∀ {S α x u : ℝ}, 0 ≤ S → 0 < α → MeasureTheory.Integrable (fun k => Complex.exp (Complex.I * ↑(u * k)) * ↑(Real.exp (α * k)) * ↑(max (S * Real.exp x - S * Real.exp k) 0)) MeasureTheory.volume"
+    },
+    "BSM.integral_Ioi_cexp_neg_mul_eq_inv": {
+      "axioms": "'BSM.integral_Ioi_cexp_neg_mul_eq_inv' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.integral_Ioi_cexp_neg_mul_eq_inv : ∀ {a : ℂ}, 0 < a.re → ∫ (y : ℝ) in Set.Ioi 0, Complex.exp (-(a * ↑y)) = a⁻¹"
     },
     "BSM.integral_exp_mul_phi": {
       "axioms": "'BSM.integral_exp_mul_phi' depends on axioms: [propext, Classical.choice, Quot.sound]",
@@ -338,6 +446,14 @@
       "axioms": "'BSM.no_drift_makes_spot_integrable' depends on axioms: [propext, Classical.choice, Quot.sound]",
       "type": "BSM.no_drift_makes_spot_integrable : ∀ (μ : MeasureTheory.Measure ℝ) [MeasureTheory.IsProbabilityMeasure μ] (α c x₀ S₀ d : ℝ), 0 < S₀ → 0 < c → (∀ x ≥ x₀, ENNReal.ofReal (c * x ^ (-α)) ≤ μ (Set.Ici x)) → ¬MeasureTheory.Integrable (fun x => S₀ * Real.exp (x + d)) μ"
     },
+    "BSM.norm_cexp_I_mul_ofReal": {
+      "axioms": "'BSM.norm_cexp_I_mul_ofReal' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.norm_cexp_I_mul_ofReal : ∀ (t : ℝ), ‖Complex.exp (↑t * Complex.I)‖ = 1"
+    },
+    "BSM.ofReal_exp_eq_cexp": {
+      "axioms": "'BSM.ofReal_exp_eq_cexp' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.ofReal_exp_eq_cexp : ∀ (r : ℝ), ↑(Real.exp r) = Complex.exp ↑r"
+    },
     "BSM.ofReal_mul_tail_le_lintegral_exp_add": {
       "axioms": "'BSM.ofReal_mul_tail_le_lintegral_exp_add' depends on axioms: [propext, Classical.choice, Quot.sound]",
       "type": "BSM.ofReal_mul_tail_le_lintegral_exp_add : ∀ (μ : MeasureTheory.Measure ℝ) (d α c x : ℝ), ENNReal.ofReal (c * x ^ (-α)) ≤ μ (Set.Ici x) → ENNReal.ofReal (Real.exp (x + d) * (c * x ^ (-α))) ≤ ∫⁻ (y : ℝ), ENNReal.ofReal (Real.exp (y + d)) ∂μ"
@@ -377,6 +493,14 @@
     "BSM.spot_sub_strike_eq": {
       "axioms": "'BSM.spot_sub_strike_eq' depends on axioms: [propext, Classical.choice, Quot.sound]",
       "type": "BSM.spot_sub_strike_eq : ∀ (S K m s d z : ℝ), 0 < S → 0 < K → s * d = Real.log (S / K) + m → S * Real.exp (m + s * z) - K = K * (Real.exp (s * (z + d)) - 1)"
+    },
+    "BSM.strikeTransform": {
+      "axioms": "'BSM.strikeTransform' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.strikeTransform : ℝ → ℝ → ℝ → ℝ → ℂ"
+    },
+    "BSM.strikeTransform_eq": {
+      "axioms": "'BSM.strikeTransform_eq' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.strikeTransform_eq : ∀ {S x u α : ℝ}, 0 ≤ S → 0 < α → BSM.strikeTransform S α x u = ↑(S * Real.exp (x * (α + 1))) * Complex.exp (↑(x * u) * Complex.I) * (BSM.cmDenom α u)⁻¹"
     },
     "BSM.t1_d1_minus_d2": {
       "axioms": "'BSM.t1_d1_minus_d2' depends on axioms: [propext, Classical.choice, Quot.sound]",
