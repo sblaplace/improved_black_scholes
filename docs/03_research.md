@@ -128,13 +128,16 @@ one above — **in the same tree, under the same skeleton**, with all six of:
    and is real-valued — the full pricing claim where no closed form exists.
 5. **The skeleton is preserved.** Put-call parity and the no-arbitrage bounds
    hold at the new law — by *instantiation* of the model-free layer
-   (`ImprovedBS/Skeleton.lean`, BRIEF_009), not by re-proof. This item's
-   machinery lands first, while GBM is still the only law in the tree: parity
-   and bounds are lifted off the closed form onto `e^{−rτ}·E[(S_T − K)⁺]` for
-   any law with the drift condition, and the GBM instance re-derives T2′ and
-   T4 through the new layer — so "the widening preserves the skeleton" is a
-   theorem schema now, and every later law inherits T2/T4 by supplying three
-   facts (`Integrable X`, the drift condition, `0 ≤ X`) and plugging in.
+   (`ImprovedBS/Skeleton.lean`, BRIEF_009), not by re-proof. **This item's
+   machinery has landed green** (PR #11), while GBM is still the only law in
+   the tree: parity and bounds are lifted off the closed form onto
+   `e^{−rτ}·E[(S_T − K)⁺]` for any law with the drift condition, and the GBM
+   instance re-derives T2′ and T4 through the new layer
+   (`t2_spread_via_skeleton`, `t4_call_bounds_via_skeleton`, graded to
+   consume the model-free proofs and not the closed-form ones) — so "the
+   widening preserves the skeleton" is a theorem schema now, and every later
+   law inherits T2/T4 by supplying three facts (`Integrable X`, the drift
+   condition, `0 ≤ X`) and plugging in.
 6. **GBM comes back at the corner.** `ψ_CGMY → ψ_GBM` as `Y → 2` (or
    `G, M → σ²/2`), at least pointwise in the exponent. Convergence of prices
    is a recorded deferral, not a hostage.

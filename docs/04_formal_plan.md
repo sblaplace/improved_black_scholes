@@ -329,8 +329,7 @@ local `--elab-check` is a red with a message, never a skip.
 
 Order is chosen so that each brief's acceptance bar is checkable by the time it
 is worked on, and so that no brief depends on a machine-checked result that does
-not yet exist. BRIEF_001–008 have landed, in this order; BRIEF_009 is issued
-and unclaimed.
+not yet exist. BRIEF_001–009 have landed, in this order.
 
 | brief | what it lands | depends on | locally checkable? |
 |---|---|---|---|
@@ -342,7 +341,7 @@ and unclaimed.
 | ~~BRIEF_006~~ | **LANDED GREEN** — T5, the closed form solves the BSM PDE, directly in `(S, τ)` via T3 + chain rule + `Φ′ = φ`; 11 declarations in `ImprovedBS/Core.lean`, `[SPINE]` check + mutant, statement pins 49 → 60 with the existing 49 unchanged (PR #8, run 35566569107) | 003 | no — CI only |
 | ~~BRIEF_007~~ | **LANDED GREEN** (PR #9, run 35574194681) — T6 sub-goal 3(a): the closed form *is* the discounted risk-neutral expectation, `bsCall_eq_riskNeutral_expectation` / `bsPut_eq_riskNeutral_expectation`, the Gaussian bridge `phi`/`Phi` ↔ `gaussianPDFReal 0 1`/`gaussianReal 0 1`, the drift condition and the lognormal form; 21 declarations in `ImprovedBS/RiskNeutral.lean`, statement pins 60 → 81 with the existing 60 unchanged, oracle expectation route + mutant M11 | 005, 006 | no — CI only |
 | ~~BRIEF_008~~ | **LANDED GREEN** — T6 sub-goal 3(b): Fourier inversion of the Carr–Madan pricing kernel (`carrMadan_inversion_eq_lognormal_expectation`, `carrMadan_inversion_eq_bsCall`, `carrMadan_inversion_im_eq_zero`); 13 declarations in `ImprovedBS/Inversion.lean`, statement pins 81 → 94, oracle Fourier inversion route + mutant M12, CI run 35578278238 | 005, 007 | no — CI only |
-| BRIEF_009 | **ISSUED**, no PR yet — the model-free skeleton: parity and the no-arbitrage bounds lifted off the closed form onto `e^{−rτ}·E[(S_T−K)⁺]` for any terminal-spot law with the drift condition (`ImprovedBS/Skeleton.lean`, 14 declarations: `modelFreeCall`/`modelFreePut`, `model_free_parity_gap`/`model_free_put_call_parity`, `model_free_call_bounds`/`model_free_put_bounds`, the GBM instance, and the T2′/T4 re-derivations `*_via_skeleton` that guard the abstraction against vacuity), statement pins 94 → 108, `[SKELETON]` route checks, oracle model-free route + mutants M13/M14. Item 5 of the BSM-2 kit (`docs/03` §D1): landed *before* the law is widened, so "the widening preserves the skeleton" is instantiation, not re-proof | 007 | no — CI only |
+| ~~BRIEF_009~~ | **LANDED GREEN** — the model-free skeleton: parity and the no-arbitrage bounds lifted off the closed form onto `e^{−rτ}·E[(S_T−K)⁺]` for any terminal-spot law with the drift condition (`ImprovedBS/Skeleton.lean`, 14 declarations: `modelFreeCall`/`modelFreePut`, `model_free_parity_gap`/`model_free_put_call_parity`, `model_free_call_bounds`/`model_free_put_bounds`, the GBM instance, and the T2′/T4 re-derivations `*_via_skeleton` that guard the abstraction against vacuity), statement pins 94 → 108, `[SKELETON]` route checks, oracle model-free route + mutants M13/M14, PR #11, CI run 35589005865. Item 5 of the BSM-2 kit (`docs/03` §D1): landed *before* the law is widened, so "the widening preserves the skeleton" is instantiation, not re-proof | 007 | no — CI only |
 
 BRIEF_010+ are **not yet issued**. Their scope is committed as the BSM-2 kit
 in `docs/03` §D1 ("What extends"): the concrete CGMY exponent and its moment
