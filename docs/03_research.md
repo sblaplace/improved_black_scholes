@@ -97,6 +97,58 @@ rather than into an elastic volatility**, so hedging stays a single-martingale
 principle, and maturity-mispecification and moneyness-mispecification become
 one instability instead of two hidden ones.
 
+### BSM 2 — what "widened" has to mean, precisely
+
+The repository needs a commit criterion for the word "improved", or the thesis
+above stays prose. Here it is.
+
+**BSM 1** is the tree as of BRIEF_008: one increment law — Gaussian
+log-increments, constant σ — machine-checked end to end. T1–T5 are theorems
+about the closed form; T6's triangle (closed form = discounted risk-neutral
+expectation = inverted Carr–Madan integral) is machine-checked at the
+lognormal instance; the moment obstruction for the naive widening is
+machine-checked (`Levy.lean`).
+
+**BSM 2** is a *second* concrete increment law — the tempered-stable / CGMY
+one above — **in the same tree, under the same skeleton**, with all six of:
+
+1. **The law exists in the tree.** The concrete CGMY characteristic exponent
+   (the `cpow`/branch work BRIEF_005 deferred and named), shown to arise from
+   a valid Lévy measure (`∫ (1 ∧ x²) ν < ∞`) and affine in τ.
+2. **Its moment strip is a theorem.** Tempering *restores*
+   `E[e^{u·X_τ}] < ∞` on the interior of `(−G, M)`, and that interior contains
+   the pricing contour and the numéraire point — the positive twin of
+   `Levy.lean`'s obstruction theorem, and the point at which the tempered
+   repair stops being asserted.
+3. **The drift is fixed by the martingale condition** and
+   `E[S_T] = S·e^{(r−q)τ}` is proved at the new law (the CGMY twin of
+   `integral_spot_mul_phi_eq_forward`).
+4. **T6's triangle holds at the new exponent.** The Carr–Madan integral
+   converges absolutely on the contour, inverts to `e^{−rτ}·E[(S_T − K)⁺]`,
+   and is real-valued — the full pricing claim where no closed form exists.
+5. **The skeleton is preserved.** Put-call parity and the no-arbitrage bounds
+   hold at the new law — by *instantiation* of the model-free layer
+   (`ImprovedBS/Skeleton.lean`, BRIEF_009), not by re-proof. This item's
+   machinery lands first, while GBM is still the only law in the tree: parity
+   and bounds are lifted off the closed form onto `e^{−rτ}·E[(S_T − K)⁺]` for
+   any law with the drift condition, and the GBM instance re-derives T2′ and
+   T4 through the new layer — so "the widening preserves the skeleton" is a
+   theorem schema now, and every later law inherits T2/T4 by supplying three
+   facts (`Integrable X`, the drift condition, `0 ≤ X`) and plugging in.
+6. **GBM comes back at the corner.** `ψ_CGMY → ψ_GBM` as `Y → 2` (or
+   `G, M → σ²/2`), at least pointwise in the exponent. Convergence of prices
+   is a recorded deferral, not a hostage.
+
+Items 1–3 are the new analysis. Items 4–6 are the widening being *proved*
+rather than fitted. Until all six land, "improving BS" is this document's
+hypothesis, not the repository's theorem — and even after they land, the
+falsifiers below (fitted α concentrating in `(1.3, 1.9)` and materially less
+moneyness-dependent than the σ it replaces; out-of-sample hedging variance per
+parameter) remain the market-facing test that separates BSM 2-as-theorem from
+BSM 2-as-improvement. The formal kit is necessary and not sufficient; it is
+also what makes the empirical claim falsifiable against a fixed object
+instead of a moving fit.
+
 ### Falsifier (must show both)
 
 Fit `(C, G, M, Y)` — or the reparametrized `(α, σ_α, λ)` — on an S&P 500 / FX
