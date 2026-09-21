@@ -329,8 +329,7 @@ local `--elab-check` is a red with a message, never a skip.
 
 Order is chosen so that each brief's acceptance bar is checkable by the time it
 is worked on, and so that no brief depends on a machine-checked result that does
-not yet exist. BRIEF_001–009 have landed, in this order; BRIEF_010 is **issued** and not yet
-worked.
+not yet exist. BRIEF_001–010 have landed, in this order.
 
 | brief | what it lands | depends on | locally checkable? |
 |---|---|---|---|
@@ -344,22 +343,22 @@ worked.
 | ~~BRIEF_008~~ | **LANDED GREEN** — T6 sub-goal 3(b): Fourier inversion of the Carr–Madan pricing kernel (`carrMadan_inversion_eq_lognormal_expectation`, `carrMadan_inversion_eq_bsCall`, `carrMadan_inversion_im_eq_zero`); 13 declarations in `ImprovedBS/Inversion.lean`, statement pins 81 → 94, oracle Fourier inversion route + mutant M12, CI run 35578278238 | 005, 007 | no — CI only |
 | ~~BRIEF_009~~ | **LANDED GREEN** — the model-free skeleton: parity and the no-arbitrage bounds lifted off the closed form onto `e^{−rτ}·E[(S_T−K)⁺]` for any terminal-spot law with the drift condition (`ImprovedBS/Skeleton.lean`, 14 declarations: `modelFreeCall`/`modelFreePut`, `model_free_parity_gap`/`model_free_put_call_parity`, `model_free_call_bounds`/`model_free_put_bounds`, the GBM instance, and the T2′/T4 re-derivations `*_via_skeleton` that guard the abstraction against vacuity), statement pins 94 → 108, `[SKELETON]` route checks, oracle model-free route + mutants M13/M14, PR #11, CI run 35589005865. Item 5 of the BSM-2 kit (`docs/03` §D1): landed *before* the law is widened, so "the widening preserves the skeleton" is instantiation, not re-proof | 007 | no — CI only |
 
-| **BRIEF_010** | **ISSUED** — T6's triangle at *any* strip law: the Carr–Madan kernel on the pricing contour (`cmPriceKernel`, correcting the line `ImprovedBS/Fourier.lean` describes — ledger C12), the strike transform, the Fubini exchange that identifies `𝓕(damped price)` with the kernel, inversion in the tree's own normalization, and the pricing identity landing on BRIEF_009's `modelFreeCall`; the GBM instance closes the triangle, and the CGMY exponent's decay enters as the one recorded hypothesis (item 4, re-scoped). Expected: ~28 declarations in `ImprovedBS/Pricing.lean`, pins 108 → ~136, oracle + M15/M16, `[CONTOUR]` route check | 005, 007, 008, 009 | no — CI only |
+| ~~BRIEF_010~~ | **LANDED GREEN** — T6's triangle at *any* strip law: the Carr–Madan kernel on the pricing contour (`cmPriceKernel`, implementing the C12 correction), the strike transform, the Fubini exchange that identifies `𝓕(damped price)` with the kernel, inversion in the tree's own normalization, and the pricing identity landing on BRIEF_009's `modelFreeCall`; the GBM instance closes the triangle (`gbm_carrMadan_eq_bsCall`), and the CGMY exponent's decay enters as the one recorded hypothesis (item 4, re-scoped). Landed: 31 declarations in `ImprovedBS/Pricing.lean` (6 defs + 25 audited theorems, all in `REQUIRED` + `PROTECTED`), statement pins 108 → 139 in both layers with the 108 pre-existing entries byte-identical, `[CONTOUR]` route check with its cheat killed by name, oracle `carr_madan_by_law` + `test_carr_madan_free_law` + mutants M15 (kernel on the wrong contour) / M16 (strike transform) killed by that test alone, PR #16, CI run 35646623031 — green on the 9th lean run after eight red (all elaboration/API shape at the tag, incl. the by-design elab-pin bootstrap and one batch-edit race; `benchmarks/LEDGER.md` row 10 and its CI history) | 005, 007, 008, 009 | no — CI only |
 
-BRIEF_011+ are **not yet issued**: BRIEF_010 takes item 4 under the re-scope
-option below, so what remains of the BSM-2 kit in `docs/03` §D1 ("What extends")
-is the concrete CGMY exponent and its moment strip (items 1–2 — the named
-successor, `BRIEF_011`), the drift fix at the new law (item 3), and the corner
-recovery of GBM (item 6). The order constraint for whoever issues them holds:
-items 1–3 are the new analysis and can be split further (the exponent's
-`cpow`/branch work is a brief on its own); item 4's exponent↔law connection was
-the known risky step and it took BRIEF_004's re-scope option — the law is
-abstracted behind a hypothesis the way the decay bound is already abstracted,
-and the hypothesis is recorded rather than assumed (`docs/03` §D1 item 4 now
-reads that way). BRIEF_011's acceptance bar is already shaped: it must supply
-the CGMY factor's continuity and decay on the contour `u ↦ u − i(α+1)` for
-`0 < α`, `α + 1 < min(G, M)`, which instantiates BRIEF_010 §5's hypothesis and
-so lands item 4 at the concrete exponent without re-proving it.
+BRIEF_011+ are **not yet issued**: what remains of the BSM-2 kit in `docs/03`
+§D1 ("What extends") is the concrete CGMY exponent and its moment strip
+(items 1–2 — the named successor, `BRIEF_011`), the drift fix at the new law
+(item 3), and the corner recovery of GBM (item 6). The order constraint for
+whoever issues them holds: items 1–3 are the new analysis and can be split
+further (the exponent's `cpow`/branch work is a brief on its own); item 4's
+exponent↔law connection was the known risky step and it took BRIEF_004's
+re-scope option — BRIEF_010 landed it with the law abstracted behind a
+hypothesis the way the decay bound is already abstracted, and the hypothesis
+recorded rather than assumed (`docs/03` §D1 item 4 now reads that way).
+BRIEF_011's acceptance bar is already shaped: it must supply the CGMY factor's
+continuity and decay on the contour `u ↦ u − i(α+1)` for `0 < α`,
+`α + 1 < min(G, M)`, which instantiates BRIEF_010 §5's hypothesis and so lands
+item 4 at the concrete exponent without re-proving it.
 
 BRIEF_004 is deliberately listed as depending on nothing: it is pure analysis
 (a divergent improper integral), needs none of the BS machinery, and it is the

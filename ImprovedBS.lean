@@ -4,6 +4,7 @@ import ImprovedBS.Fourier
 import ImprovedBS.RiskNeutral
 import ImprovedBS.Inversion
 import ImprovedBS.Skeleton
+import ImprovedBS.Pricing
 
 /-!
 # ImprovedBS
@@ -39,6 +40,14 @@ Root module of the `ImprovedBS` library. Modules imported here are built by
   §4 the no-arbitrage bounds and their put twin through parity, §5 the GBM
   instance (`lognormal_parity_gap`, `lognormal_call_bounds`), §6 the T2′/T4
   re-derivations (`*_via_skeleton`) that grade the abstraction for vacuity.
+* `ImprovedBS.Pricing` — BRIEF_010: T6 at any strip law. §1 the pricing kernel
+  `cmPriceKernel` on the corrected contour `v = u − i(α+1)` (C12) and its
+  integrability by reuse of `carrMadanKernel_integrable`, §2 the strike
+  transform (model-free) and its factorization `cmDenom_factor`, §3 the damped
+  price and its Fourier transform by Fubini, §4 inversion in the tree's own
+  normalization `fourierCM`, §5 the triangle at a general law landing on
+  `modelFreeCall` and the GBM instance `gbm_carrMadan_eq_bsCall` closing the
+  triangle through the kernel route.
 
 ## Why the module is not called `Lean.*`
 

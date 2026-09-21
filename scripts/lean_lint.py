@@ -64,6 +64,11 @@ Checks
                   re-derive -- otherwise "the widening preserves the skeleton"
                   would be graded by the very theorems it underpins, and a green
                   build would certify nothing. Two mutants in tests/test_lint.py.
+12. CONTOUR       BRIEF_010's correction C12: the pricing kernel `cmPriceKernel`
+                  must be on the pricing line `u − i(α+1)`, not the `u + iα`
+                  line of `carrMadanKernel`, and `cmPriceIntegral` must be the
+                  thing `carrMadan_eq_modelFreeCall` consumes. One mutant in
+                  tests/test_lint.py.
 
 Exit status is non-zero on any failure, with every failure printed.
 
@@ -239,6 +244,38 @@ REQUIRED = {
     "lognormal_call_bounds": "ImprovedBS/Skeleton.lean",
     "t2_spread_via_skeleton": "ImprovedBS/Skeleton.lean",
     "t4_call_bounds_via_skeleton": "ImprovedBS/Skeleton.lean",
+    # BRIEF_010: T6 at any strip law + contour correction C12
+    "cmPriceKernel": "ImprovedBS/Pricing.lean",
+    "contourCharFun": "ImprovedBS/Pricing.lean",
+    "cmPriceIntegral": "ImprovedBS/Pricing.lean",
+    "strikeTransform": "ImprovedBS/Pricing.lean",
+    "dampedModelFreeCall": "ImprovedBS/Pricing.lean",
+    "fourierCM": "ImprovedBS/Pricing.lean",
+    "cmPriceKernel_eq_shift": "ImprovedBS/Pricing.lean",
+    "gbm_contourCharFun_eq": "ImprovedBS/Pricing.lean",
+    "gbmCharFactor_pricing_continuous": "ImprovedBS/Pricing.lean",
+    "gbmCharFactor_pricing_norm": "ImprovedBS/Pricing.lean",
+    "cmPriceKernel_integrable": "ImprovedBS/Pricing.lean",
+    "gbm_cmPriceKernel_integrable": "ImprovedBS/Pricing.lean",
+    "cmDenom_factor": "ImprovedBS/Pricing.lean",
+    "integral_Ioi_cexp_neg_mul_eq_inv": "ImprovedBS/Pricing.lean",
+    "ofReal_exp_eq_cexp": "ImprovedBS/Pricing.lean",
+    "norm_cexp_I_mul_ofReal": "ImprovedBS/Pricing.lean",
+    "strikeTransform_eq": "ImprovedBS/Pricing.lean",
+    "integrable_strikeTransform": "ImprovedBS/Pricing.lean",
+    "dampedModelFreeCall_eq_dampedCallPrice": "ImprovedBS/Pricing.lean",
+    "continuous_dampedModelFreeCall": "ImprovedBS/Pricing.lean",
+    "integrable_dampedModelFreeCall_of_exp_moment": "ImprovedBS/Pricing.lean",
+    "fourierDampedModelFreeCall_eq": "ImprovedBS/Pricing.lean",
+    "fourierCM_eq_fourier": "ImprovedBS/Pricing.lean",
+    "fourierCM_inversion": "ImprovedBS/Pricing.lean",
+    "cmPriceIntegral_eq_damped_modelFreeCall": "ImprovedBS/Pricing.lean",
+    "carrMadan_eq_modelFreeCall": "ImprovedBS/Pricing.lean",
+    "cmPriceIntegrand_reflect": "ImprovedBS/Pricing.lean",
+    "carrMadan_im_eq_zero": "ImprovedBS/Pricing.lean",
+    "carrMadan_eq_re": "ImprovedBS/Pricing.lean",
+    "carrMadan_re_eq_modelFreeCall": "ImprovedBS/Pricing.lean",
+    "gbm_carrMadan_eq_bsCall": "ImprovedBS/Pricing.lean",
 }
 
 # Zero deferred-proof markers allowed. The T1/T2 node per BRIEF_001; the T3/T4
@@ -362,6 +399,38 @@ PROTECTED = {
     "lognormal_call_bounds",
     "t2_spread_via_skeleton",
     "t4_call_bounds_via_skeleton",
+    # BRIEF_010: T6 at any strip law + contour correction C12
+    "cmPriceKernel",
+    "contourCharFun",
+    "cmPriceIntegral",
+    "strikeTransform",
+    "dampedModelFreeCall",
+    "fourierCM",
+    "cmPriceKernel_eq_shift",
+    "gbm_contourCharFun_eq",
+    "gbmCharFactor_pricing_continuous",
+    "gbmCharFactor_pricing_norm",
+    "cmPriceKernel_integrable",
+    "gbm_cmPriceKernel_integrable",
+    "cmDenom_factor",
+    "integral_Ioi_cexp_neg_mul_eq_inv",
+    "ofReal_exp_eq_cexp",
+    "norm_cexp_I_mul_ofReal",
+    "strikeTransform_eq",
+    "integrable_strikeTransform",
+    "dampedModelFreeCall_eq_dampedCallPrice",
+    "continuous_dampedModelFreeCall",
+    "integrable_dampedModelFreeCall_of_exp_moment",
+    "fourierDampedModelFreeCall_eq",
+    "fourierCM_eq_fourier",
+    "fourierCM_inversion",
+    "cmPriceIntegral_eq_damped_modelFreeCall",
+    "carrMadan_eq_modelFreeCall",
+    "cmPriceIntegrand_reflect",
+    "carrMadan_im_eq_zero",
+    "carrMadan_eq_re",
+    "carrMadan_re_eq_modelFreeCall",
+    "gbm_carrMadan_eq_bsCall",
 }
 
 # The T5 node, in dependency order, and the two citations docs/04's spine
@@ -896,6 +965,71 @@ def main() -> int:
             "[SKELETON] `model_free_put_bounds` rides parity; the `via_skeleton` "
             "nodes consume the model-free layer and not the closed-form proofs"
         )
+
+    # 12. contour -- BRIEF_010's correction C12. The pricing kernel must be on
+    #     the pricing line `u − i(α+1)`, not the `u + iα` line of `carrMadanKernel`.
+    #     And `cmPriceIntegral` must be the thing `carrMadan_eq_modelFreeCall`
+    #     consumes, otherwise the triangle would be proved at the wrong line.
+    contour_failures: list[str] = []
+    pricing_path = os.path.join(ROOT, "ImprovedBS", "Pricing.lean")
+    if os.path.exists(pricing_path):
+        pricing_src = open(pricing_path, encoding="utf-8").read()
+        pricing_clean = strip_comments(pricing_src)
+        pricing_decls = declarations(pricing_clean)
+        pricing_bodies = {name: body for _, name, _, body in pricing_decls}
+        cm_body = pricing_bodies.get("cmPriceKernel", "")
+        if cm_body == "":
+            contour_failures.append("[CONTOUR] `cmPriceKernel` not found in ImprovedBS/Pricing.lean")
+        else:
+            # Must be defined with `- ↑(α + 1) * Complex.I` (pricing line) and NOT `+ ↑α * Complex.I`
+            # Check for the pricing line pattern: minus and (α + 1) and Complex.I
+            if not re.search(r"-\s*↑\s*\(\s*α\s*\+\s*1\s*\)\s*\*\s*Complex\.I", cm_body):
+                contour_failures.append(
+                    "[CONTOUR] `cmPriceKernel` must be defined with `- ↑(α + 1) * Complex.I` "
+                    "(the pricing contour `v = u − i(α+1)`), not `+ ↑α * Complex.I` (C12). "
+                    f"Body: {cm_body[:200]}"
+                )
+            if re.search(r"\+\s*↑α\s*\*\s*Complex\.I", cm_body) and "2 * α + 1" not in cm_body:
+                # Allow the shift identity to mention +α in its RHS, but not in cmPriceKernel's own RHS
+                # The def body is `φ (↑u - ↑(α+1)*I) * ...` so it should NOT contain `+ ↑α * I`
+                # as the contour. We already checked for minus pattern, but also forbid plus alone.
+                if "- ↑(α + 1)" not in cm_body:
+                    contour_failures.append(
+                        "[CONTOUR] `cmPriceKernel` appears to use `+ ↑α * Complex.I` "
+                        "instead of the pricing line (C12)."
+                    )
+        # cmPriceIntegral must be consumed by carrMadan_eq_modelFreeCall
+        eq_body = pricing_bodies.get("carrMadan_eq_modelFreeCall", "")
+        if eq_body == "":
+            contour_failures.append("[CONTOUR] `carrMadan_eq_modelFreeCall` not found")
+        else:
+            if "cmPriceIntegral" not in eq_body:
+                contour_failures.append(
+                    "[CONTOUR] `carrMadan_eq_modelFreeCall` must consume `cmPriceIntegral` "
+                    "(the pricing integral in tree's normalization), otherwise the triangle "
+                    "is not proved at the corrected contour."
+                )
+        # carrMadanKernel must still be on the old line (guard against editing landed def)
+        fourier_path = os.path.join(ROOT, "ImprovedBS", "Fourier.lean")
+        if os.path.exists(fourier_path):
+            fourier_src = open(fourier_path, encoding="utf-8").read()
+            fourier_clean = strip_comments(fourier_src)
+            fourier_decls = declarations(fourier_clean)
+            fourier_bodies = {name: body for _, name, _, body in fourier_decls}
+            old_body = fourier_bodies.get("carrMadanKernel", "")
+            if old_body != "" and "↑α * Complex.I" not in old_body:
+                contour_failures.append(
+                    "[CONTOUR] `carrMadanKernel` in Fourier.lean no longer contains "
+                    "`↑α * Complex.I` — it must stay on the old line; only `cmPriceKernel` "
+                    "is on the pricing line (C12)."
+                )
+    else:
+        contour_failures.append("[CONTOUR] ImprovedBS/Pricing.lean not found")
+
+    if contour_failures:
+        failures.extend(contour_failures)
+    else:
+        notes.append("[CONTOUR] pricing kernel on `u − i(α+1)` and consumed by triangle")
 
     if "--write-baseline" in sys.argv:
         if failures:

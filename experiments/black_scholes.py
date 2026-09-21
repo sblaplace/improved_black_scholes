@@ -294,6 +294,52 @@ def bs_call_by_fourier_inversion_complex(
     return math.exp(-r * tau) * S * math.exp(-alpha * k) / (2.0 * math.pi) * integral
 
 
+def carr_madan_by_law(probs, spots, S, r, tau, alpha, k, u_max, n) -> complex:
+    """Carr–Madan inversion at an ARBITRARY DISCRETE law `P(S_T = s_i) = p_i`.
+
+    The numeric shadow of Lean's `cmPriceIntegral (contourCharFun μ)`
+    (ImprovedBS/Pricing.lean, BRIEF_010): the characteristic function of
+    `X = log(S_T/S)` is the sum `φ(v) = Σ p_j e^{i v log(s_j/S)}`, and the
+    price is `e^{-rτ} S e^{-αk}/(2π) ∫_{-u_max}^{u_max} e^{-iuk}
+    φ(u-i(α+1))/cmDenom(α,u) du` by Simpson. Conventions match
+    `model_free_prices` (discrete `probs`/`spots`, no density, no `norm_cdf`).
+
+    A discrete law's `φ` does not decay, so the error is truncation and the
+    test tolerance is `1e-4`, not the GBM route's `2e-11` -- see
+    `tests/test_bs.py::test_carr_madan_free_law`. An atom at `s <= 0`
+    contributes `0` on the pricing contour (`e^{(α+1)X} → 0` as `X → -∞`).
+    `tests/test_mutants.py` M16 (the `-(α+1)` shift off by one) is killed by
+    the free-law test alone.
+    """
+    if alpha <= 0.0:
+        raise ValueError("damping parameter alpha must be > 0")
+    if n % 2:
+        n += 1
+    xs = [None if s <= 0.0 else math.log(s / S) for s in spots]
+
+    def cf(v: complex) -> complex:
+        tot = 0j
+        for p, x in zip(probs, xs):
+            if x is None:
+                continue
+            tot += p * cmath.exp(1j * v * x)
+        return tot
+
+    def integrand(u: float) -> complex:
+        v = complex(u, -(alpha+1.0))
+        kernel = cf(v) / carr_madan_denom(alpha, u)
+        phase = cmath.exp(-1j * u * k)
+        return phase * kernel
+
+    h = (2.0 * u_max) / n
+    tot = integrand(-u_max) + integrand(u_max)
+    for i in range(1, n):
+        u = -u_max + i * h
+        tot += integrand(u) * (4 if i % 2 == 1 else 2)
+    integral = tot * h / 3.0
+    return math.exp(-r * tau) * S * math.exp(-alpha * k) / (2.0 * math.pi) * integral
+
+
 def bs_price(S, K, T, t, r, s, q=0.0, option="call"):
     """BSM European price. Raises ValueError on illegal (tau,s).
 

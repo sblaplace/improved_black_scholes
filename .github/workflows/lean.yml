@@ -249,6 +249,33 @@ jobs:
           #print axioms BSM.carrMadan_inversion_im_eq_zero
           #print axioms BSM.carrMadan_inversion_eq_re
           #print axioms BSM.carrMadan_inversion_re_eq_bsCall
+          -- BRIEF_010: T6 at any strip law + contour correction C12,
+          -- ImprovedBS/Pricing.lean
+          #print axioms BSM.cmPriceKernel_eq_shift
+          #print axioms BSM.gbm_contourCharFun_eq
+          #print axioms BSM.gbmCharFactor_pricing_continuous
+          #print axioms BSM.gbmCharFactor_pricing_norm
+          #print axioms BSM.cmPriceKernel_integrable
+          #print axioms BSM.gbm_cmPriceKernel_integrable
+          #print axioms BSM.cmDenom_factor
+          #print axioms BSM.integral_Ioi_cexp_neg_mul_eq_inv
+          #print axioms BSM.ofReal_exp_eq_cexp
+          #print axioms BSM.norm_cexp_I_mul_ofReal
+          #print axioms BSM.strikeTransform_eq
+          #print axioms BSM.integrable_strikeTransform
+          #print axioms BSM.dampedModelFreeCall_eq_dampedCallPrice
+          #print axioms BSM.continuous_dampedModelFreeCall
+          #print axioms BSM.integrable_dampedModelFreeCall_of_exp_moment
+          #print axioms BSM.fourierDampedModelFreeCall_eq
+          #print axioms BSM.fourierCM_eq_fourier
+          #print axioms BSM.fourierCM_inversion
+          #print axioms BSM.cmPriceIntegral_eq_damped_modelFreeCall
+          #print axioms BSM.carrMadan_eq_modelFreeCall
+          #print axioms BSM.cmPriceIntegrand_reflect
+          #print axioms BSM.carrMadan_im_eq_zero
+          #print axioms BSM.carrMadan_eq_re
+          #print axioms BSM.carrMadan_re_eq_modelFreeCall
+          #print axioms BSM.gbm_carrMadan_eq_bsCall
           LEAN
           lake env lean /tmp/Audit.lean 2>&1 | tee lean-audit.log
           if grep -q sorryAx lean-audit.log; then
@@ -353,6 +380,14 @@ jobs:
               grep -nE "error|sorryAx|unknown identifier|no such|Core\.lean" "$log" \
                 | head -60 || echo "(no lines matched; see the tail below)"
               echo '```'
+              echo
+              echo "<details><summary>\`$log\` — each error with its goal context</summary>"
+              echo
+              echo '```'
+              grep -E "^error:" -A 6 "$log" | head -400 || true
+              echo '```'
+              echo
+              echo "</details>"
               echo
               echo "<details><summary>\`$log\` tail (last 25k characters)</summary>"
               echo

@@ -15,6 +15,15 @@
 
       V = e^{-rτ}/(2π) · ∫_ℝ e^{-iuτ} · φ(u + iα) / (α² + α − u² + i(2α+1)u) du
 
+  **CORRECTION C12 (BRIEF_010):** the formula above with `φ(u + iα)` (line
+  `Im v = +α`) is NOT the pricing contour. The price the tree actually damps
+  (`dampedCallPrice`, BRIEF_008) inverts from `φ(u − i(α+1))` (line
+  `Im v = −(α+1)`), defined as `cmPriceKernel` in `ImprovedBS/Pricing.lean`.
+  The two lines coincide only at `α = −1/2`, which `0 < α` excludes. The
+  integrability theorem below is true on either line because its hypothesis
+  names its own contour, so no pinned statement moves — see
+  `benchmarks/LEDGER.md` C12 and `briefs/BRIEF_010_t6_free_law_pricing.md`.
+
   with `φ(v) = E[exp (i v X_τ)]` the analytic continuation of the log-price's
   characteristic function at a fixed maturity (the model's `exp (τ ψ)` is
   already inside `φ`), and `0 < α` the damping that keeps the strike
@@ -234,10 +243,12 @@ theorem cmDenom_inv_norm_mul_sq_le (α : ℝ) (hα : 0 < α) {u : ℝ} :
 --------------------------------------------------------------------------
 -/
 
-/-- The Carr–Madan pricing kernel on the contour `v = u + iα`: the model
-factor `φ` (the log-price characteristic function at a fixed maturity, times
-whatever real discount prefactors one keeps inside it) divided by the
-strike-transform denominator. -/
+/-- The Carr–Madan kernel on the contour `v = u + iα`: the model factor `φ`
+divided by the strike-transform denominator. **Not the pricing contour:**
+`cmPriceKernel` in `Pricing.lean` is the kernel on the pricing line
+`v = u − i(α+1)` (C12); this def's shape is the shifted one and its
+integrability theorem is true on either line because the hypothesis names its
+own contour. -/
 def carrMadanKernel (φ : ℂ → ℂ) (α : ℝ) (u : ℝ) : ℂ :=
   φ (↑u + ↑α * Complex.I) * (cmDenom α u)⁻¹
 

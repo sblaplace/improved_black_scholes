@@ -154,13 +154,14 @@ one above — **in the same tree, under the same skeleton**, with all seven of:
 4. **T6's triangle holds at the new exponent.** The Carr–Madan integral
    converges absolutely on the contour, inverts to `e^{−rτ}·E[(S_T − K)⁺]`,
    and is real-valued — the full pricing claim where no closed form exists.
-   **Issued as BRIEF_010, re-scoped** (`docs/04`'s queue records it): the
-   pricing identity is proved at *any* law satisfying the strip conditions, and
-   instantiated at GBM, which closes the triangle at the lognormal instance
-   through the kernel route; the concrete exponent's continuity and decay enter
-   as the one recorded hypothesis and become BRIEF_011's deliverable. Note the
-   contour it is stated on — `v = u − i(α+1)`, not `φ(u + iα)`; ledger C12
-   records why, and what the difference costs.
+   **Landed as BRIEF_010, re-scoped** (PR #16, run 35646623031; `docs/04`'s
+   queue row 10): the pricing identity is proved at *any* law satisfying the
+   strip conditions, and instantiated at GBM, which closes the triangle at the
+   lognormal instance through the kernel route; the concrete exponent's
+   continuity and decay enter as the one recorded hypothesis and are
+   BRIEF_011's deliverable. Note the contour it is stated on —
+   `v = u − i(α+1)`, not `φ(u + iα)`; ledger C12 records why, and what the
+   difference costs.
 5. **The skeleton is preserved.** Put-call parity and the no-arbitrage bounds
    hold at the new law — by *instantiation* of the model-free layer
    (`ImprovedBS/Skeleton.lean`, BRIEF_009), not by re-proof. **This item's
