@@ -1,6 +1,7 @@
 import ImprovedBS.Core
 import ImprovedBS.Levy
 import ImprovedBS.Fourier
+import ImprovedBS.RiskNeutral
 
 /-!
 # ImprovedBS
@@ -18,6 +19,13 @@ Root module of the `ImprovedBS` library. Modules imported here are built by
   integrability, §2 the exact quartic lower bound of the strike-transform
   denominator, §3 the joining domination argument, §4 the fully
   machine-checked GBM instance of classical Fourier pricing.
+* `ImprovedBS.RiskNeutral` — BRIEF_007: the closed form is the discounted
+  risk-neutral expectation (T6 sub-goal 3a). §1 is the Gaussian bridge that
+  identifies `phi`/`Phi` with mathlib's `gaussianPDFReal 0 1`/`gaussianReal 0 1`
+  without touching the pinned definitions, §2 the tilted Gaussian integrals,
+  §3 the payoff as the indicator of the exercise region, §4 the call and put
+  identities, the drift condition and the same identity against mathlib's
+  standard-normal and lognormal laws.
 
 ## Why the module is not called `Lean.*`
 

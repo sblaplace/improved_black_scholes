@@ -211,6 +211,30 @@ jobs:
           #print axioms BSM.t5_tau
           #print axioms BSM.t5_bsCall_pde_tau
           #print axioms BSM.t5_bsCall_pde
+          -- BRIEF_007: the closed form is the discounted risk-neutral expectation
+          -- (T6 sub-goal 3a), ImprovedBS/RiskNeutral.lean. The Gaussian bridge,
+          -- the tilted integrals, the payoff lemmas and the four theorems.
+          #print axioms BSM.phi_eq_gaussianPDFReal
+          #print axioms BSM.Phi_eq_gaussianReal_Iic
+          #print axioms BSM.integral_gaussianReal_eq_integral_mul_phi
+          #print axioms BSM.integral_phi
+          #print axioms BSM.exp_mul_phi_eq
+          #print axioms BSM.integrable_exp_mul_phi
+          #print axioms BSM.integral_exp_mul_phi
+          #print axioms BSM.integral_phi_Ioi
+          #print axioms BSM.integral_phi_sub_Ioi
+          #print axioms BSM.integral_exp_mul_phi_Ioi
+          #print axioms BSM.sigma_sqrt_tau_mul_d2
+          #print axioms BSM.spot_sub_strike_eq
+          #print axioms BSM.max_spot_sub_strike_mul_phi
+          #print axioms BSM.max_sub_swap_eq
+          #print axioms BSM.integrable_spot_mul_phi
+          #print axioms BSM.integral_spot_mul_phi_eq_forward
+          #print axioms BSM.integrable_max_spot_sub_strike_mul_phi
+          #print axioms BSM.bsCall_eq_riskNeutral_expectation
+          #print axioms BSM.bsPut_eq_riskNeutral_expectation
+          #print axioms BSM.bsCall_eq_gaussianReal_expectation
+          #print axioms BSM.bsCall_eq_lognormal_expectation
           LEAN
           lake env lean /tmp/Audit.lean 2>&1 | tee lean-audit.log
           if grep -q sorryAx lean-audit.log; then

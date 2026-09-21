@@ -119,6 +119,76 @@ def bs_put_by_parity(S: float, K: float, tau: float, r: float, q: float, s: floa
     return bs_call(S, K, tau, r, q, s) - S * math.exp(-q * tau) + K * math.exp(-r * tau)
 
 
+# ------------------------------------------------- risk-neutral expectation
+
+
+def _simpson(f, a: float, b: float, n: int = 4000) -> float:
+    """Composite Simpson on [a, b] (n even); stdlib only, no numpy."""
+    if n % 2:
+        n += 1
+    h = (b - a) / n
+    acc = f(a) + f(b)
+    for i in range(1, n):
+        acc += (4 if i % 2 else 2) * f(a + i * h)
+    return acc * h / 3.0
+
+
+def _risk_neutral_drift(tau: float, r: float, q: float, s: float) -> float:
+    """The risk-neutral log-drift over the tenor, `(r - q - s^2/2) tau`.
+
+    This is the ONE place the drift enters the expectation route; it is what
+    makes `S e^{drift + s sqrt(tau) Z}` have mean `S e^{(r-q) tau}` (the
+    martingale condition, Lean `integral_spot_mul_phi_eq_forward`). Written
+    as `s * s / 2.0` rather than `0.5 * s * s` on purpose, so the mutation
+    anchor for the `_d1d2` drift (tests/test_mutants.py M8b) does not also
+    hit this line.
+    """
+    return (r - q - s * s / 2.0) * tau
+
+
+def _expectation(payoff, S: float, K: float, tau: float, r: float, q: float, s: float,
+                 n: int = 4000) -> float:
+    """`E[payoff(S e^{m + s sqrt(tau) Z})]` for `Z ~ N(0,1)`, by Simpson against `norm_pdf`.
+
+    The kink of the payoff sits at `z* = (ln(K/S) - m) / (s sqrt tau)` (this is
+    `-d2`, computed here from scratch rather than through `_d1d2`, so the route
+    does not lean on the closed form's own ingredients); the quadrature is split
+    there so Simpson keeps its order. `[-12, 12]` truncates a tail below 1e-30.
+    """
+    m = _risk_neutral_drift(tau, r, q, s)
+    sd = s * math.sqrt(tau)
+    kink = (math.log(K / S) - m) / sd
+    kink = min(max(kink, -12.0), 12.0)
+    f = lambda z: payoff(S * math.exp(m + sd * z)) * norm_pdf(z)  # noqa: E731
+    return _simpson(f, -12.0, kink, n) + _simpson(f, kink, 12.0, n)
+
+
+def bs_call_by_expectation(S: float, K: float, tau: float, r: float, q: float, s: float) -> float:
+    """The call as the DISCOUNTED RISK-NEUTRAL EXPECTATION `e^{-r tau} E[(S_T - K)^+]`.
+
+    Independent of `bs_call` (no `norm_cdf`, no `_d1d2`): an integral of the
+    payoff against the density, which is the right-hand side of Lean's
+    `bsCall_eq_riskNeutral_expectation` (T6 sub-goal 3a). The two routes agree
+    to ~1e-14 on the test grid; that agreement is the numerical content of the
+    theorem, and `tests/test_mutants.py` M11 shows the comparison can fail.
+    """
+    return math.exp(-r * tau) * _expectation(lambda x: max(x - K, 0.0), S, K, tau, r, q, s)
+
+
+def bs_put_by_expectation(S: float, K: float, tau: float, r: float, q: float, s: float) -> float:
+    """The put as `e^{-r tau} E[(K - S_T)^+]`; Lean `bsPut_eq_riskNeutral_expectation`."""
+    return math.exp(-r * tau) * _expectation(lambda x: max(K - x, 0.0), S, K, tau, r, q, s)
+
+
+def forward_by_expectation(S: float, K: float, tau: float, r: float, q: float, s: float) -> float:
+    """`E[S_T]`, which the risk-neutral drift makes equal to `S e^{(r-q) tau}`.
+
+    (`K` is accepted only so the signature matches the other routes; the
+    forward does not depend on it.)
+    """
+    return _expectation(lambda x: x, S, K, tau, r, q, s, n=8000)
+
+
 def bs_price(S, K, T, t, r, s, q=0.0, option="call"):
     """BSM European price. Raises ValueError on illegal (tau,s).
 

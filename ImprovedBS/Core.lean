@@ -1223,7 +1223,8 @@ theorem t5_bsCall_pde (S K T t r q sigma : ℝ)
 T6  [IN PROGRESS — research]  the Fourier pricing kernel survives a wider
                        increment law — sub-goal (b) below LANDED GREEN as
                        BRIEF_005 (PR #6, run 35536031936): see
-                       ImprovedBS/Fourier.lean
+                       ImprovedBS/Fourier.lean; sub-goal (c)'s expectation
+                       half is BRIEF_007 (PR #9): see ImprovedBS/RiskNeutral.lean
 --------------------------------------------------------------------------
 
 RESTATED. The previous formulation ("transport (Fourier) kernel survives
@@ -1276,7 +1277,18 @@ Provable sub-goals, in increasing order of commitment:
       two GBM instances in ImprovedBS/Fourier.lean, with the CGMY-decay
       hypothesis appearing only as a hypothesis;
   (c) agreement with the risk-neutral expectation, i.e. Fourier inversion
-      against the payoff transform.
+      against the payoff transform. Split in two by BRIEF_007:
+      (c-i)  the expectation itself — `bsCall S K tau r q sigma =
+             e^{-r*tau} * ∫ max (S * exp ((r-q-sigma^2/2)*tau + sigma*√tau*z) - K) 0
+             * phi z`, the put analogue, the drift condition `E[S_T] = S e^{(r-q)tau}`,
+             and the same identity against mathlib's `gaussianReal` in
+             standard-normal and lognormal form — `bsCall_eq_riskNeutral_expectation`,
+             `bsPut_eq_riskNeutral_expectation`, `bsCall_eq_lognormal_expectation`
+             in ImprovedBS/RiskNeutral.lean (BRIEF_007, PR #9). This is the GBM
+             instance of the target's right-hand side; before it, no theorem in
+             this tree connected the closed form to the expectation it prices.
+      (c-ii) Fourier inversion (`Integrable.fourier_inversion` against
+             `carrMadanKernel`) landing on (c-i) — open.
 
 See docs/03_research.md D1, which carries the falsifier (fitted `alpha`
 concentrating in `(1.3, 1.9)` and being materially *less* moneyness-dependent

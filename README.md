@@ -51,7 +51,7 @@ both trees, and the property is enforced mechanically:
 - `scripts/lean_lint.py` fails CI if `d2` is defined from `d1`, if `bsPut` is
   defined from `bsCall`, or if `t2_put_call_parity` stops citing
   `Phi_add_Phi_neg`. It needs no Lean toolchain to do this.
-- `tests/test_mutants.py` seeds 11 bugs into the oracle and requires each to be
+- `tests/test_mutants.py` seeds 12 bugs into the oracle and requires each to be
   killed by the test meant to kill it. Two of them exist purely to prove the
   parity and `d1 − d2` tests can fail.
 
@@ -63,7 +63,7 @@ A third lane closes a gap neither of those could see. `lake build` proves a proo
 
 and it builds, shows no `sorryAx` — because `True` really is provable, which is what
 makes it a *sound* way to say nothing — keeps its name for the lint's `REQUIRED`
-check, and leaves the oracle suite at 13/13, since the oracle has no idea what a
+check, and leaves the oracle suite at 14/14, since the oracle has no idea what a
 Lean statement is. So every declaration in the protected stack is pinned in
 `tests/golden_statements.json`: a theorem by its **statement**, a definition by its
 **body** (a definition *is* the specification). `scripts/pin_statements.py`
@@ -109,7 +109,7 @@ CI-only, so nobody spends a budget discovering this.
 ## Repository layout
 
 ```
-ImprovedBS/         # Lean 4 library: Core.lean, `namespace BSM`, stack T1..T6
+ImprovedBS/         # Lean 4 library, `namespace BSM`: Core.lean (T1..T5), Levy.lean, Fourier.lean, RiskNeutral.lean (T6 sub-goals 1, 2, 3a)
 ImprovedBS.lean     # library root module
 lakefile.toml       # mathlib pinned by tag; leanOptions (autoImplicit off)
 lean-toolchain      # pinned toolchain — must match lake-manifest.json
@@ -137,7 +137,7 @@ against.
 | T3 | `t3_delta_identity` | `S e^{−qτ} φ(d1) = K e^{−rτ} φ(d2)` | medium | **machine-checked** |
 | T4 | `t4_call_bounds`, `t4_put_bounds` | no-arbitrage price bounds | medium | **machine-checked** |
 | T5 | `t5_bsCall_pde`, `t5_delta`, `t5_gamma`, `t5_tau` | closed form solves the BSM PDE | heavy | **LANDED GREEN** (BRIEF_006) — run 35566569107; `benchmarks/LEDGER.md` row 6 |
-| T6 | *(not declared)* | Fourier kernel survives a tempered-stable increment | open | restated, see docs/03 D1 |
+| T6 | sub-goals 1, 2, 3(a): `ImprovedBS/Levy.lean`, `ImprovedBS/Fourier.lean`, `ImprovedBS/RiskNeutral.lean` (`bsCall_eq_riskNeutral_expectation`, `bsPut_eq_riskNeutral_expectation`, `bsCall_eq_lognormal_expectation`) | Fourier kernel survives a tempered-stable increment; the closed form *is* `e^{−rτ}E[(S_T−K)⁺]` | open — 3(b), the Fourier inversion, remains | restated, see docs/03 D1; 3(a) is BRIEF_007 (PR #9, pending CI) |
 
 T1–T4 are the warm-up tier, and all four are now machine-checked. T4 turned
 out to be less routine than "algebra and monotonicity": its lower bound is the
@@ -167,8 +167,8 @@ cheapest high-value theorem in the research tier. Details in docs/03 §D1.
 
 | Layer | what | status |
 |---|---|---|
-| Numeric oracle | independent `d1`/`d2`, independent call and put closed forms, PDE residual, delta identity | verified — 13/13 tests |
-| Oracle is a falsifier | mutation harness: 11 seeded bugs, each killed by its targeted test, incl. 2 vacuity canaries | verified — 4/4 harness tests |
+| Numeric oracle | independent `d1`/`d2`, independent call and put closed forms, PDE residual, delta identity, quadrature of the risk-neutral expectation | verified — 14/14 tests |
+| Oracle is a falsifier | mutation harness: 12 seeded bugs, each killed by its targeted test, incl. 2 vacuity canaries | verified — 4/4 harness tests |
 | Failure modes + research dirs w/ falsifiers | docs/02, docs/03 | written |
 | Lean definitions | `erf`, Φ, φ, d1, d2, bsCall, bsPut — independent, matching the oracle | machine-checked |
 | Lean theorems | `Phi_add_Phi_neg`, T1, T2, T2′ | **GREEN** — `lake build` + `#print axioms` audit, run 35509578689 |
@@ -176,9 +176,10 @@ cheapest high-value theorem in the research tier. Details in docs/03 §D1.
 | Lean theorems | T6 sub-goal 1: the moment obstruction (`ImprovedBS/Levy.lean`, 7 declarations) | **GREEN** — `lake build` + `#print axioms` audit + statement pins, run 35523250105 |
 | Lean theorems | T6 sub-goal 2: tempered-contour absolute convergence (`ImprovedBS/Fourier.lean`, 7 declarations) | **GREEN** — `lake build` + `#print axioms` audit + statement pins, run 35536031936 |
 | Lean theorems | T5: the closed form solves the BSM PDE (`ImprovedBS/Core.lean`, 11 declarations) | **GREEN** — `lake build` + `#print axioms` audit + statement pins (elab, 60), run 35566569107 |
+| Lean theorems | T6 sub-goal 3(a): the closed form is the discounted risk-neutral expectation, plus the `phi`/`Phi` ↔ mathlib-Gaussian bridge (`ImprovedBS/RiskNeutral.lean`, 21 declarations) | **PENDING** — BRIEF_007, PR #9; `benchmarks/LEDGER.md` row 7 |
 | Deferred | *(nothing)* | ratcheted at 0 `sorry`s — `deferred: {}` |
 | Lint is a falsifier | `tests/test_lint.py`: 25 seeded cheats each killed by a named check, 5 legitimate edits green, 1 residual gap asserted open | verified — 7/7 tests |
-| Pinned claims | `tests/golden_statements.json`: 60 declarations — theorem statements, definition bodies | machine-checked (source level, no toolchain); `#check`/axioms layer runs in the build job |
+| Pinned claims | `tests/golden_statements.json`: 81 declarations — theorem statements, definition bodies | machine-checked (source level, no toolchain); `#check`/axioms layer runs in the build job |
 | Grading lane | briefs/ + benchmarks/ + 2 CI workflows + toolchain-free lint + pins | standing |
 | First brief | BRIEF_001, re-scoped to what is actually checkable | see briefs/ |
 
@@ -190,6 +191,27 @@ coordinates and without a `sorry` — the one genuinely new analytic input is
 `[propext, Classical.choice, Quot.sound]`, and the pins grew 49 → 60 with the
 49 pre-existing entries unchanged. Its verdict, and the four-run elaboration
 arc that got there, are recorded in `benchmarks/LEDGER.md` row 6.
+
+**T6 sub-goal 3(a) is in flight** (BRIEF_007, PR #9): until now every Lean
+theorem in the tree was a theorem *about the closed form* — its parity, its
+bounds, its PDE — and nothing connected the closed form to the expectation it
+is supposed to be. `ImprovedBS/RiskNeutral.lean` states and proves that
+connection for the GBM instance: with `log(S_T/S) ~ N((r−q−σ²/2)τ, σ²τ)`,
+`bsCall = e^{−rτ}·E[(S_T−K)⁺]` and `bsPut = e^{−rτ}·E[(K−S_T)⁺]`, as a
+Lebesgue integral against the repository's `phi` and, through three bridge
+lemmas (`phi = gaussianPDFReal 0 1`, `Phi x = gaussianReal 0 1 (Iic x)`,
+`∫ f ∂gaussianReal 0 1 = ∫ f·phi`), against mathlib's `gaussianReal` in both
+the standard-normal and the lognormal form; the drift condition
+`E[S_T] = S e^{(r−q)τ}` comes with it. The whole analytic content is one
+Gaussian integral, `∫_{(a,∞)} e^{sz} φ(z) dz = e^{s²/2} Φ(s − a)`, which is
+T3's tilting identity integrated over a half-line — the same identity T4's
+lower bound already used. The oracle grew a quadrature route
+(`bs_call_by_expectation`, no `norm_cdf` and no `d1`/`d2` in it) that agrees
+with the closed form to 1.6e-12 on the golden grid, and mutant M11 shows the
+new test can fail. `0 < σ` is load-bearing: at `−σ` the closed form is
+`−bsPut(σ)` while the expectation does not move, and the test asserts exactly
+that, so the theorem is not being claimed for a sign it is false at. Verdict:
+`benchmarks/LEDGER.md` row 7, once CI has spoken.
 
 **T1 through T4 are machine-checked.** `lake build` is green against mathlib
 v4.34.0 / Lean v4.34.0 and the `#print axioms` audit confirms that all 25
@@ -246,12 +268,12 @@ is the formal, machine-checked restatement and the widening question.
 All three are dependency-free Python; none needs a Lean toolchain.
 
 ```sh
-python3 tests/test_bs.py          # 13/13 — the oracle satisfies the claimed identities
-python3 tests/test_mutants.py     #  4/4  — and those tests can actually fail (11 mutants)
+python3 tests/test_bs.py          # 14/14 — the oracle satisfies the claimed identities
+python3 tests/test_mutants.py     #  4/4  — and those tests can actually fail (12 mutants)
 python3 tests/test_lint.py        #  7/7  — the linter can fail too (25 cheats, 5 controls)
 python3 tests/test_pins.py        # 10/10 — and the pins that back it parse real CI output
 python3 scripts/lean_lint.py      #  OK   — no sorry in the protected node, ratchet, independence, pins, spine
-python3 scripts/pin_statements.py --check   # 60 statements match tests/golden_statements.json
+python3 scripts/pin_statements.py --check   # 81 statements match tests/golden_statements.json
 python3 tests/test_crosscheck.py    #  6/6  — grid + oracle self-consistency, both T3 sides, input-source routing (the cross-check itself needs lake)
 # or, with pytest installed:
 pytest tests/

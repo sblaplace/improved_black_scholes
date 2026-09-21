@@ -15,7 +15,7 @@ error actually go red.
 
 Two properties this buys:
 
-1. **Detection.** Every seeded bug is caught (11/11 as of this commit).
+1. **Detection.** Every seeded bug is caught (12/12 as of this commit).
 2. **Non-vacuity.** Two of the mutants exist specifically to catch tests that
    compare a quantity against itself:
 
@@ -126,6 +126,15 @@ MUTANTS = [
         "return bs_call(S, K, tau, r, q, s) - S * math.exp(-q * tau) + K * math.exp(-r * tau)",
         "return bs_call(S, K, tau, r, q, s) - S * math.exp(-q * tau) - K * math.exp(-r * tau)",
         ["test_put_call_parity"],
+    ),
+    (
+        "M11 risk-neutral drift sign flip in the expectation route: (r-q-s^2/2) -> (r-q+s^2/2)",
+        "return (r - q - s * s / 2.0) * tau",
+        "return (r - q + s * s / 2.0) * tau",
+        # Only the expectation test can see this: the closed forms do not use
+        # the drift helper, so parity, bounds, PDE and the textbook values all
+        # stay green while E[S_T] drifts to S e^{(r-q+s^2) tau}.
+        ["test_risk_neutral_expectation"],
     ),
 ]
 
