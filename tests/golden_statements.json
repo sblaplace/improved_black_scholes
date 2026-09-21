@@ -700,7 +700,7 @@
     "BSM.dampedModelFreeCall_eq_dampedCallPrice": {
       "file": "ImprovedBS/Pricing.lean",
       "kind": "theorem",
-      "pin": "theorem dampedModelFreeCall_eq_dampedCallPrice {S v m r tau α k : ℝ} : dampedModelFreeCall (ProbabilityTheory.gaussianReal m v) S r tau α k = dampedCallPrice S v m r tau α k"
+      "pin": "theorem dampedModelFreeCall_eq_dampedCallPrice {S m r tau α k : ℝ} {v : NNReal} : dampedModelFreeCall (ProbabilityTheory.gaussianReal m v) S r tau α k = dampedCallPrice S v m r tau α k"
     },
     "BSM.erf": {
       "file": "ImprovedBS/Core.lean",
