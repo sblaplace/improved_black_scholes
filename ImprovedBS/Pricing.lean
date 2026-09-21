@@ -271,7 +271,8 @@ theorem strikeTransform_eq {S x u α : ℝ} (hS : 0 ≤ S) (hα : 0 < α) :
       fun k => (Set.Iic x).indicator (fun k => Complex.exp (Complex.I * ↑(u * k)) * ↑(Real.exp (α * k)) *
         ↑(max (S * Real.exp x - S * Real.exp k) 0)) k := by
       funext k; exact h_f_eq_indicator k
-    rw [h_eq, integral_indicator measurableSet_Iic]
+    conv_lhs => rw [h_eq]
+    rw [integral_indicator measurableSet_Iic]
   have h_max_eq : ∀ k ∈ Set.Iic x,
       max (S * Real.exp x - S * Real.exp k) 0 = S * Real.exp x - S * Real.exp k := by
     intro k hk
@@ -358,8 +359,12 @@ theorem strikeTransform_eq {S x u α : ℝ} (hS : 0 ≤ S) (hα : 0 < α) :
     linarith
   have h_inv_diff : ((↑α + ↑u * Complex.I : ℂ))⁻¹ - ((↑(α + 1) + ↑u * Complex.I : ℂ))⁻¹
       = (cmDenom α u)⁻¹ := by
-    rw [h_factor]
-    field_simp [ha0, hb0]
+    have hb0' : ((α:ℂ) + 1 + ↑u * Complex.I) ≠ 0 := by simpa using hb0
+    have hbmma : ((α:ℂ) + 1 + ↑u * Complex.I) - (↑α + ↑u * Complex.I : ℂ) = 1 := by
+      push_cast; ring
+    push_cast
+    rw [inv_eq_one_div, inv_eq_one_div, inv_eq_one_div, h_factor,
+      div_sub_div _ _ ha0 hb0', one_mul, mul_one, hbmma]
   calc strikeTransform S α x u
       = ∫ k : ℝ, Complex.exp (Complex.I * ↑(u * k)) * ↑(Real.exp (α * k)) * ↑(max (S * Real.exp x - S * Real.exp k) 0) := rfl
     _ = ∫ k in Set.Iic x, Complex.exp (Complex.I * ↑(u * k)) * ↑(Real.exp (α * k)) * ↑(max (S * Real.exp x - S * Real.exp k) 0) := h_integral_Iic
@@ -516,29 +521,16 @@ theorem integrable_dampedModelFreeCall_of_exp_moment {μ : Measure ℝ} [IsProba
           _ ≤ S * (Real.exp ((α + 1 + δ) * x) * Real.exp (-(α + δ) * k)) := h3
           _ = (S * Real.exp (-(α + δ) * k)) * Real.exp ((α + 1 + δ) * x) := by ring
     have hpay_int : Integrable (fun x => max (S * Real.exp x - S * Real.exp k) 0) μ := by
-      refine (hTail.const_mul S).mono' ?_ ?_
+      refine (hE1.const_mul S).mono' ?_ ?_
       · exact (Continuous.aestronglyMeasurable
           (show Continuous fun x : ℝ => max (S * Real.exp x - S * Real.exp k) 0 by fun_prop))
       · refine Filter.Eventually.of_forall (fun x => ?_)
         rw [Real.norm_eq_abs, abs_of_nonneg (le_max_right _ _)]
-        have h1 : max (S * Real.exp x - S * Real.exp k) 0 ≤ S * Real.exp x := by
-          apply max_le
-          · linarith [mul_nonneg hS.le (Real.exp_pos x).le, mul_nonneg hS.le (Real.exp_pos k).le]
-          · exact mul_nonneg hS.le (Real.exp_pos _).le
-        have h2 : S * Real.exp x ≤ S * Real.exp ((α + 1 + δ) * x) := by
-          apply mul_le_mul_of_nonneg_left _ hS.le
-          apply Real.exp_le_exp.mpr
-          by_cases hx : 0 ≤ x
-          · have h5 : (α + 1 + δ) * x = x + (α + δ) * x := by ring
-            have h3 : 0 ≤ (α + δ) * x := mul_nonneg (by linarith) hx
-            rw [h5]
-            linarith
-          · push_neg at hx
-            have h3 : Real.exp x ≤ 1 := Real.exp_le_one_iff.mpr hx.le
-            have h4 : S * Real.exp x ≤ S := by
-              simpa using mul_le_mul_of_nonneg_left h3 hS.le
-            linarith [(Real.exp_pos _).le]
-        linarith
+        calc max (S * Real.exp x - S * Real.exp k) 0 ≤ S * Real.exp x := by
+              apply max_le
+              · linarith [mul_nonneg hS.le (Real.exp_pos x).le, mul_nonneg hS.le (Real.exp_pos k).le]
+              · exact mul_nonneg hS.le (Real.exp_pos x).le
+          _ ≤ S * Real.exp (1 * x) := by rw [one_mul]
     have hmono : ∫ x, max (S * Real.exp x - S * Real.exp k) 0 ∂μ
         ≤ ∫ x, (S * Real.exp (-(α + δ) * k)) * Real.exp ((α + 1 + δ) * x) ∂μ :=
       integral_mono_ae hpay_int (hTail.const_mul (S * Real.exp (-(α + δ) * k)))
@@ -555,10 +547,10 @@ theorem integrable_dampedModelFreeCall_of_exp_moment {μ : Measure ℝ} [IsProba
     have hpt : ∀ x : ℝ, max (S * Real.exp x - S * Real.exp k) 0 ≤ S * Real.exp (1 * x) := by
       intro x
       apply max_le
-      · have hx1 : Real.exp (1 * x) = Real.exp x := by rw [one_mul]
-        linarith [mul_nonneg hS.le (Real.exp_pos x).le, mul_nonneg hS.le (Real.exp_pos k).le, hx1]
       · rw [one_mul]
-        exact mul_nonneg hS.le (Real.exp_pos _).le
+        linarith [mul_nonneg hS.le (Real.exp_pos x).le, mul_nonneg hS.le (Real.exp_pos k).le]
+      · rw [one_mul]
+        exact mul_nonneg hS.le (Real.exp_pos x).le
     have hpay_int : Integrable (fun x => max (S * Real.exp x - S * Real.exp k) 0) μ := by
       refine (hE1.const_mul S).mono' ?_ ?_
       · exact (Continuous.aestronglyMeasurable
@@ -572,10 +564,12 @@ theorem integrable_dampedModelFreeCall_of_exp_moment {μ : Measure ℝ} [IsProba
     have hconst : ∫ x, S * Real.exp (1 * x) ∂μ = S * ∫ x, Real.exp x ∂μ := by
       rw [integral_const_mul]
       congr 1
-      rw [one_mul]
+      exact integral_congr_ae (Filter.Eventually.of_forall
+        (fun x => congrArg Real.exp (one_mul x)))
     have hI1' : ∫ x, Real.exp x ∂μ ≤ 1 + M := by
       refine le_trans ?_ hI1
-      exact integral_congr_ae (Filter.Eventually.of_forall (fun x => by rw [one_mul]))
+      exact le_of_eq (integral_congr_ae (Filter.Eventually.of_forall
+        (fun x => congrArg Real.exp (one_mul x).symm)))
     calc ∫ x, max (S * Real.exp x - S * Real.exp k) 0 ∂μ
         ≤ S * ∫ x, Real.exp x ∂μ := by rw [← hconst]; exact hmono
       _ ≤ S * (1 + M) := mul_le_mul_of_nonneg_left hI1' hS.le
@@ -671,7 +665,6 @@ theorem fourierDampedModelFreeCall_eq {μ : Measure ℝ} [IsProbabilityMeasure �
     rw [abs_of_nonneg (Real.exp_pos (α * k)).le, abs_of_nonneg (Real.exp_pos (-r * tau)).le,
       abs_of_nonneg (le_max_right _ _)]
     simp only [one_mul]
-    ring
   have hcontF : Continuous fun p : ℝ × ℝ => F p.1 p.2 := by
     rw [hF_def]
     fun_prop
@@ -695,7 +688,6 @@ theorem fourierDampedModelFreeCall_eq {μ : Measure ℝ} [IsProbabilityMeasure �
               (fun k => Real.exp (-r * tau) * S * Real.exp x * Real.exp (α * k)) k
           by_cases hk : k ∈ Set.Iic x
           · rw [Set.indicator_of_mem hk, Set.indicator_of_mem hk]
-            ring
           · rw [Set.indicator_of_notMem hk, Set.indicator_of_notMem hk]
             ring))
     have hbound : ∀ k : ℝ, ‖F k x‖ ≤ (Set.Iic x).indicator
@@ -770,7 +762,6 @@ theorem fourierDampedModelFreeCall_eq {μ : Measure ℝ} [IsProbabilityMeasure �
                 (fun k => Real.exp (-r * tau) * S * Real.exp x * Real.exp (α * k)) k
             by_cases hk : k ∈ Set.Iic x
             · rw [Set.indicator_of_mem hk, Set.indicator_of_mem hk]
-              ring
             · rw [Set.indicator_of_notMem hk, Set.indicator_of_notMem hk]
               ring))
       have hmono : ∫ k : ℝ, ‖F k x‖ ∂volume ≤
@@ -808,7 +799,8 @@ theorem fourierDampedModelFreeCall_eq {μ : Measure ℝ} [IsProbabilityMeasure �
     intro k
     rw [hF_def]
     simp only [integral_const_mul]
-    rw [integral_ofReal (𝕜 := ℂ)]
+    rw [integral_ofReal (X := ℝ) (μ := μ) (𝕜 := ℂ)
+      (f := fun a : ℝ => max (S * Real.exp a - S * Real.exp k) 0)]
     unfold dampedModelFreeCall
     rw [Complex.ofReal_mul, Complex.ofReal_mul]
   have h_outer : ∀ x : ℝ, (∫ k : ℝ, F k x) =
@@ -845,7 +837,8 @@ theorem fourierDampedModelFreeCall_eq {μ : Measure ℝ} [IsProbabilityMeasure �
           intro x
           rw [Complex.ofReal_mul]
           ring
-        rw [integral_congr_ae (Filter.Eventually.of_forall hpt), integral_const_mul]
+        rw [integral_congr_ae (Filter.Eventually.of_forall hpt), integral_const_mul,
+          integral_const_mul]
     _ = ↑(Real.exp (-r * tau) * S) * contourCharFun μ (↑u - ↑(α + 1) * Complex.I) * (cmDenom α u)⁻¹ := by
         have hchar : (∫ x : ℝ, Complex.ofReal (Real.exp (x * (α + 1))) *
             Complex.exp (↑(x * u) * Complex.I) ∂μ) = contourCharFun μ (↑u - ↑(α + 1) * Complex.I) := by
@@ -961,6 +954,7 @@ theorem cmPriceIntegral_eq_damped_modelFreeCall {μ : Measure ℝ} [IsProbabilit
       unfold fourierCM
       rw [hf'_def]
       exact integral_congr_ae (Filter.Eventually.of_forall (fun k : ℝ => by
+        simp only []
         rw [mul_comm Complex.I (↑(v * k))]))
     rw [hswap2]
     exact fourierDampedModelFreeCall_eq (S := S) (r := r) (tau := tau) (α := α) (u := v) hS hα hMom
@@ -1009,7 +1003,7 @@ theorem cmPriceIntegral_eq_damped_modelFreeCall {μ : Measure ℝ} [IsProbabilit
     rw [Complex.ofReal_div, div_eq_mul_inv]
     push_cast
     ring
-  rw [hconst]
+  rw [← hconst]
   exact hstep
 
 theorem carrMadan_eq_modelFreeCall {μ : Measure ℝ} [IsProbabilityMeasure μ]
@@ -1132,7 +1126,7 @@ theorem gaussianReal_exp_moment {m : ℝ} {v : NNReal} (hv : v ≠ 0) (c : ℝ) 
         (show Measurable fun x : ℝ => m + x by fun_prop)
         (show Measurable fun x : ℝ => Real.sqrt (v : ℝ) * x by fun_prop)]
       rfl
-    rw [h1, ProbabilityTheory.gaussianReal_map_const_mul,
+    rw [← h1, ProbabilityTheory.gaussianReal_map_const_mul,
       ProbabilityTheory.gaussianReal_map_const_add, mul_zero, zero_add, mul_one]
     exact congrArg (ProbabilityTheory.gaussianReal m) (by
       apply NNReal.eq
@@ -1185,14 +1179,16 @@ theorem gbm_carrMadan_eq_bsCall {S K tau r q sigma : ℝ}
     exact gbmCharFactor_pricing_continuous m s α
   have hdecay : ∀ u : ℝ, 0 ≤ |u| →
       ‖contourCharFun (ProbabilityTheory.gaussianReal m v) (↑u - ↑(α + 1) * Complex.I)‖ ≤
-        Real.exp ((v : ℝ) / 2 * (α + 1) ^ 2 + (α + 1) * m) * Real.exp (-(v : ℝ) / 2 * |u| ^ 2) := by
+        Real.exp (s * (α + 1) ^ 2 + (α + 1) * m) * Real.exp (-s * |u| ^ 2) := by
     intro u _
-    rw [gbm_contourCharFun_eq, gbmCharFactor_pricing_norm, sq_abs, neg_div, neg_mul]
+    rw [gbm_contourCharFun_eq, gbmCharFactor_pricing_norm, sq_abs, hs_def, neg_div, neg_mul]
   -- the spot map is integrable (the S e^x moment at level 1)
   have hX : Integrable (fun x : ℝ => S * Real.exp x)
       (ProbabilityTheory.gaussianReal m v) :=
     ((gaussianReal_exp_moment hvne 1).const_mul (Real.exp (Real.log S))).congr
-      (Filter.Eventually.of_forall (fun x => by rw [Real.exp_log hS, one_mul]))
+      (Filter.Eventually.of_forall (fun x => by
+        simp only []
+        rw [Real.exp_log hS, one_mul]))
   refine Eq.trans ?_ (congrArg Complex.ofReal
     (bsCall_eq_lognormal_expectation S K tau r q sigma hS hK htau hsigma v hv).symm)
   exact carrMadan_eq_modelFreeCall (μ := ProbabilityTheory.gaussianReal m v)
