@@ -625,7 +625,7 @@
     "BSM.cmPriceIntegrand_reflect": {
       "file": "ImprovedBS/Pricing.lean",
       "kind": "theorem",
-      "pin": "theorem cmPriceIntegrand_reflect {μ : Measure ℝ} [IsProbabilityMeasure μ] {α k : ℝ} (u : ℝ) : Complex.exp (-(Complex.I * ↑((-u) * k))) * cmPriceKernel (contourCharFun μ) α (-u) = (Complex.exp (-(Complex.I * ↑(u * k))) * cmPriceKernel (contourCharFun μ) α u).conj"
+      "pin": "theorem cmPriceIntegrand_reflect {μ : Measure ℝ} [IsProbabilityMeasure μ] {α k : ℝ} (u : ℝ) : Complex.exp (-(Complex.I * ↑((-u) * k))) * cmPriceKernel (contourCharFun μ) α (-u) = conj (Complex.exp (-(Complex.I * ↑(u * k))) * cmPriceKernel (contourCharFun μ) α u)"
     },
     "BSM.cmPriceKernel": {
       "file": "ImprovedBS/Pricing.lean",
