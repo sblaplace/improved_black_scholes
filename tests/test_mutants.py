@@ -160,6 +160,27 @@ MUTANTS = [
         # identity's right-hand side moves and parity dies at every law.
         ["test_model_free_skeleton"],
     ),
+    (
+        "M15 CONTOUR CANARY: pricing contour swapped to u + i*alpha in bs_call_by_fourier_inversion",
+        "v = complex(u, -(alpha + 1.0))",
+        "v = complex(u, alpha)",
+        # Only the Fourier inversion test uses this contour: on `u + iα` the
+        # formula returns 1.82 against 7.11 (rel 7.44e-01, ledger C12) while
+        # the closed form, the expectation and the free-law route do not move.
+        # The anchor hits the first occurrence (the half-line route); the
+        # complex twin keeps the pricing line, so the test's `cf` leg dies.
+        ["test_fourier_inversion"],
+    ),
+    (
+        "M16 free-law contour shift off by one: -(alpha+1) -> -alpha in carr_madan_by_law",
+        "v = complex(u, -(alpha+1.0))",
+        "v = complex(u, -alpha)",
+        # Only the free-law test uses `carr_madan_by_law`: the shift off by one
+        # moves the skewed-law price by rel 3.75e-01 against the test's 1e-4
+        # tolerance, while the GBM Fourier route (spaced `-(alpha + 1.0)`)
+        # does not match this anchor and stays green.
+        ["test_carr_madan_free_law"],
+    ),
 ]
 
 

@@ -542,6 +542,21 @@
       "kind": "def",
       "pin": "def carrMadanPhase (tau u : ℝ) : ℂ := Complex.exp (Complex.I * ↑(u * tau))"
     },
+    "BSM.carrMadan_eq_modelFreeCall": {
+      "file": "ImprovedBS/Pricing.lean",
+      "kind": "theorem",
+      "pin": "theorem carrMadan_eq_modelFreeCall {μ : Measure ℝ} [IsProbabilityMeasure μ] {S K r tau α : ℝ} (hS : 0 < S) (hK : 0 < K) (hα : 0 < α) {c D Y u₀ δ : ℝ} (hc : 0 < c) (hD : 0 ≤ D) (hY : 0 < Y) (hδ : 0 < δ) (hcont : Continuous fun u : ℝ => contourCharFun μ (↑u - ↑(α + 1) * Complex.I)) (hdecay : ∀ u : ℝ, u₀ ≤ |u| → ‖contourCharFun μ (↑u - ↑(α + 1) * Complex.I)‖ ≤ D * Real.exp (-c * |u| ^ Y)) (hTail : Integrable (fun x : ℝ => Real.exp ((α + 1 + δ) * x)) μ) (hX : Integrable (fun x : ℝ => S * Real.exp x) μ) : (↑(Real.exp (-α * Real.log (K / S))) : ℂ) * cmPriceIntegral (contourCharFun μ) α r tau S (Real.log (K / S)) = ↑(modelFreeCall μ (fun x => S * Real.exp x) K r tau)"
+    },
+    "BSM.carrMadan_eq_re": {
+      "file": "ImprovedBS/Pricing.lean",
+      "kind": "theorem",
+      "pin": "theorem carrMadan_eq_re {μ : Measure ℝ} [IsProbabilityMeasure μ] {S K r tau α : ℝ} (hS : 0 < S) (hK : 0 < K) (hα : 0 < α) {c D Y u₀ δ : ℝ} (hc : 0 < c) (hD : 0 ≤ D) (hY : 0 < Y) (hδ : 0 < δ) (hcont : Continuous fun u : ℝ => contourCharFun μ (↑u - ↑(α + 1) * Complex.I)) (hdecay : ∀ u : ℝ, u₀ ≤ |u| → ‖contourCharFun μ (↑u - ↑(α + 1) * Complex.I)‖ ≤ D * Real.exp (-c * |u| ^ Y)) (hTail : Integrable (fun x : ℝ => Real.exp ((α + 1 + δ) * x)) μ) (hX : Integrable (fun x : ℝ => S * Real.exp x) μ) : (↑(Real.exp (-α * Real.log (K / S))) : ℂ) * cmPriceIntegral (contourCharFun μ) α r tau S (Real.log (K / S)) = ↑(((↑(Real.exp (-α * Real.log (K / S))) : ℂ) * cmPriceIntegral (contourCharFun μ) α r tau S (Real.log (K / S))).re)"
+    },
+    "BSM.carrMadan_im_eq_zero": {
+      "file": "ImprovedBS/Pricing.lean",
+      "kind": "theorem",
+      "pin": "theorem carrMadan_im_eq_zero {μ : Measure ℝ} [IsProbabilityMeasure μ] {S K r tau α : ℝ} (hS : 0 < S) (hK : 0 < K) (hα : 0 < α) {c D Y u₀ δ : ℝ} (hc : 0 < c) (hD : 0 ≤ D) (hY : 0 < Y) (hδ : 0 < δ) (hcont : Continuous fun u : ℝ => contourCharFun μ (↑u - ↑(α + 1) * Complex.I)) (hdecay : ∀ u : ℝ, u₀ ≤ |u| → ‖contourCharFun μ (↑u - ↑(α + 1) * Complex.I)‖ ≤ D * Real.exp (-c * |u| ^ Y)) (hTail : Integrable (fun x : ℝ => Real.exp ((α + 1 + δ) * x)) μ) (hX : Integrable (fun x : ℝ => S * Real.exp x) μ) : (↑(Real.exp (-α * Real.log (K / S))) * cmPriceIntegral (contourCharFun μ) α r tau S (Real.log (K / S))).im = 0"
+    },
     "BSM.carrMadan_inversion_eq_bsCall": {
       "file": "ImprovedBS/Inversion.lean",
       "kind": "theorem",
@@ -572,10 +587,20 @@
       "kind": "theorem",
       "pin": "theorem carrMadan_price_integrable {φ : ℂ → ℂ} {α : ℝ} (hα : 0 < α) (hcont : Continuous fun u : ℝ => φ (↑u + ↑α * Complex.I)) {c D Y : ℝ} (hc : 0 < c) (hD : 0 ≤ D) (hY : 0 < Y) {u₀ : ℝ} (hdecay : ∀ u : ℝ, u₀ ≤ |u| → ‖φ (↑u + ↑α * Complex.I)‖ ≤ D * Real.exp (-c * |u| ^ Y)) (r tau : ℝ) : Integrable (fun u : ℝ => ((Real.exp (-r * tau) / (2 * Real.pi) : ℝ) : ℂ) • (carrMadanPhase tau u * carrMadanKernel φ α u)) volume"
     },
+    "BSM.carrMadan_re_eq_modelFreeCall": {
+      "file": "ImprovedBS/Pricing.lean",
+      "kind": "theorem",
+      "pin": "theorem carrMadan_re_eq_modelFreeCall {μ : Measure ℝ} [IsProbabilityMeasure μ] {S K r tau α : ℝ} (hS : 0 < S) (hK : 0 < K) (hα : 0 < α) {c D Y u₀ δ : ℝ} (hc : 0 < c) (hD : 0 ≤ D) (hY : 0 < Y) (hδ : 0 < δ) (hcont : Continuous fun u : ℝ => contourCharFun μ (↑u - ↑(α + 1) * Complex.I)) (hdecay : ∀ u : ℝ, u₀ ≤ |u| → ‖contourCharFun μ (↑u - ↑(α + 1) * Complex.I)‖ ≤ D * Real.exp (-c * |u| ^ Y)) (hTail : Integrable (fun x : ℝ => Real.exp ((α + 1 + δ) * x)) μ) (hX : Integrable (fun x : ℝ => S * Real.exp x) μ) : (((↑(Real.exp (-α * Real.log (K / S))) : ℂ) * cmPriceIntegral (contourCharFun μ) α r tau S (Real.log (K / S))).re) = modelFreeCall μ (fun x => S * Real.exp x) K r tau"
+    },
     "BSM.cmDenom": {
       "file": "ImprovedBS/Fourier.lean",
       "kind": "def",
       "pin": "def cmDenom (α u : ℝ) : ℂ := ↑(α ^ 2 + α - u ^ 2) + ↑((2 * α + 1) * u) * Complex.I"
+    },
+    "BSM.cmDenom_factor": {
+      "file": "ImprovedBS/Pricing.lean",
+      "kind": "theorem",
+      "pin": "theorem cmDenom_factor (α u : ℝ) : cmDenom α u = ((α : ℂ) + ↑u * Complex.I) * ((α + 1 : ℂ) + ↑u * Complex.I)"
     },
     "BSM.cmDenom_ne_zero": {
       "file": "ImprovedBS/Fourier.lean",
@@ -586,6 +611,46 @@
       "file": "ImprovedBS/Fourier.lean",
       "kind": "theorem",
       "pin": "theorem cmDenom_u4_le (α u : ℝ) : u ^ 4 ≤ (α ^ 2 + α - u ^ 2) ^ 2 + ((2 * α + 1) * u) ^ 2"
+    },
+    "BSM.cmPriceIntegral": {
+      "file": "ImprovedBS/Pricing.lean",
+      "kind": "def",
+      "pin": "noncomputable def cmPriceIntegral (φ : ℂ → ℂ) (α r tau S k : ℝ) : ℂ := ↑(Real.exp (-r * tau) * S / (2 * Real.pi)) * ∫ u : ℝ, Complex.exp (-(Complex.I * ↑(u * k))) * cmPriceKernel φ α u"
+    },
+    "BSM.cmPriceIntegral_eq_damped_modelFreeCall": {
+      "file": "ImprovedBS/Pricing.lean",
+      "kind": "theorem",
+      "pin": "theorem cmPriceIntegral_eq_damped_modelFreeCall {μ : Measure ℝ} [IsProbabilityMeasure μ] {α r tau S k : ℝ} (hS : 0 < S) (hα : 0 < α) {c D Y u₀ : ℝ} {δ : ℝ} (hc : 0 < c) (hD : 0 ≤ D) (hY : 0 < Y) (hδ : 0 < δ) (hcont : Continuous fun u : ℝ => contourCharFun μ (↑u - ↑(α + 1) * Complex.I)) (hdecay : ∀ u : ℝ, u₀ ≤ |u| → ‖contourCharFun μ (↑u - ↑(α + 1) * Complex.I)‖ ≤ D * Real.exp (-c * |u| ^ Y)) (hTail : Integrable (fun x : ℝ => Real.exp ((α + 1 + δ) * x)) μ) : cmPriceIntegral (contourCharFun μ) α r tau S k = ↑(dampedModelFreeCall μ S r tau α k)"
+    },
+    "BSM.cmPriceIntegrand_reflect": {
+      "file": "ImprovedBS/Pricing.lean",
+      "kind": "theorem",
+      "pin": "theorem cmPriceIntegrand_reflect {μ : Measure ℝ} [IsProbabilityMeasure μ] {α k : ℝ} (u : ℝ) : Complex.exp (-(Complex.I * ↑((-u) * k))) * cmPriceKernel (contourCharFun μ) α (-u) = (Complex.exp (-(Complex.I * ↑(u * k))) * cmPriceKernel (contourCharFun μ) α u).conj"
+    },
+    "BSM.cmPriceKernel": {
+      "file": "ImprovedBS/Pricing.lean",
+      "kind": "def",
+      "pin": "def cmPriceKernel (φ : ℂ → ℂ) (α u : ℝ) : ℂ := φ (↑u - ↑(α + 1) * Complex.I) * (cmDenom α u)⁻¹"
+    },
+    "BSM.cmPriceKernel_eq_shift": {
+      "file": "ImprovedBS/Pricing.lean",
+      "kind": "theorem",
+      "pin": "theorem cmPriceKernel_eq_shift (φ : ℂ → ℂ) (α u : ℝ) : cmPriceKernel φ α u = carrMadanKernel (fun v => φ (v - ↑(2 * α + 1) * Complex.I)) α u"
+    },
+    "BSM.cmPriceKernel_integrable": {
+      "file": "ImprovedBS/Pricing.lean",
+      "kind": "theorem",
+      "pin": "theorem cmPriceKernel_integrable {φ : ℂ → ℂ} {α : ℝ} (hα : 0 < α) (hcont : Continuous fun u : ℝ => φ (↑u - ↑(α + 1) * Complex.I)) {c D Y : ℝ} (hc : 0 < c) (hD : 0 ≤ D) (hY : 0 < Y) {u₀ : ℝ} (hdecay : ∀ u : ℝ, u₀ ≤ |u| → ‖φ (↑u - ↑(α + 1) * Complex.I)‖ ≤ D * Real.exp (-c * |u| ^ Y)) : Integrable (cmPriceKernel φ α)"
+    },
+    "BSM.continuous_dampedModelFreeCall": {
+      "file": "ImprovedBS/Pricing.lean",
+      "kind": "theorem",
+      "pin": "theorem continuous_dampedModelFreeCall {μ : Measure ℝ} [IsProbabilityMeasure μ] {S r tau α : ℝ} (hS : 0 < S) (hα : 0 < α) (hMom : Integrable (fun x : ℝ => Real.exp ((α + 1) * x)) μ) : Continuous fun k : ℝ => (dampedModelFreeCall μ S r tau α k : ℂ)"
+    },
+    "BSM.contourCharFun": {
+      "file": "ImprovedBS/Pricing.lean",
+      "kind": "def",
+      "pin": "noncomputable def contourCharFun (μ : Measure ℝ) (v : ℂ) : ℂ := ∫ x, Complex.exp (Complex.I * v * ↑x) ∂μ"
     },
     "BSM.d1": {
       "file": "ImprovedBS/Core.lean",
@@ -627,6 +692,16 @@
       "kind": "theorem",
       "pin": "theorem dampedCallPrice_log_eq (S K tau r q sigma : ℝ) (hS : 0 < S) (hK : 0 < K) (htau : 0 < tau) (hsigma : 0 < sigma) (v : NNReal) (hv : (v : ℝ) = sigma ^ 2 * tau) (alpha : ℝ) : dampedCallPrice S v ((r - q - sigma ^ 2 / 2) * tau) r tau alpha (Real.log (K / S)) = Real.exp (alpha * Real.log (K / S)) * bsCall S K tau r q sigma"
     },
+    "BSM.dampedModelFreeCall": {
+      "file": "ImprovedBS/Pricing.lean",
+      "kind": "def",
+      "pin": "noncomputable def dampedModelFreeCall (μ : Measure ℝ) (S r tau α k : ℝ) : ℝ := Real.exp (α * k) * (Real.exp (-r * tau) * ∫ x, max (S * Real.exp x - S * Real.exp k) 0 ∂μ)"
+    },
+    "BSM.dampedModelFreeCall_eq_dampedCallPrice": {
+      "file": "ImprovedBS/Pricing.lean",
+      "kind": "theorem",
+      "pin": "theorem dampedModelFreeCall_eq_dampedCallPrice {S v m r tau α k : ℝ} : dampedModelFreeCall (ProbabilityTheory.gaussianReal m v) S r tau α k = dampedCallPrice S v m r tau α k"
+    },
     "BSM.erf": {
       "file": "ImprovedBS/Core.lean",
       "kind": "def",
@@ -662,6 +737,26 @@
       "kind": "theorem",
       "pin": "theorem forward_eq (S K tau r q : ℝ) (hS : 0 < S) (hK : 0 < K) : K * Real.exp (-r * tau) * Real.exp (Real.log (S / K) + (r - q) * tau) = S * Real.exp (-q * tau)"
     },
+    "BSM.fourierCM": {
+      "file": "ImprovedBS/Pricing.lean",
+      "kind": "def",
+      "pin": "noncomputable def fourierCM (f : ℝ → ℂ) (u : ℝ) : ℂ := ∫ k : ℝ, Complex.exp (Complex.I * ↑(u * k)) * f k"
+    },
+    "BSM.fourierCM_eq_fourier": {
+      "file": "ImprovedBS/Pricing.lean",
+      "kind": "theorem",
+      "pin": "theorem fourierCM_eq_fourier (f : ℝ → ℂ) (u : ℝ) : fourierCM f u = 𝓕 f (-u / (2 * Real.pi))"
+    },
+    "BSM.fourierCM_inversion": {
+      "file": "ImprovedBS/Pricing.lean",
+      "kind": "theorem",
+      "pin": "theorem fourierCM_inversion {f : ℝ → ℂ} (hcont : Continuous f) (hint : Integrable f) (hFint : Integrable (𝓕 f)) (k : ℝ) : ((2 * Real.pi)⁻¹ : ℂ) * ∫ u : ℝ, Complex.exp (-(Complex.I * ↑(u * k))) * fourierCM f u = f k"
+    },
+    "BSM.fourierDampedModelFreeCall_eq": {
+      "file": "ImprovedBS/Pricing.lean",
+      "kind": "theorem",
+      "pin": "theorem fourierDampedModelFreeCall_eq {μ : Measure ℝ} [IsProbabilityMeasure μ] {S r tau α u : ℝ} (hS : 0 < S) (hα : 0 < α) (hMom : Integrable (fun x : ℝ => Real.exp ((α + 1) * x)) μ) : ∫ k : ℝ, Complex.exp (↑(u * k) * Complex.I) * ↑(dampedModelFreeCall μ S r tau α k) = ↑(Real.exp (-r * tau) * S) * contourCharFun μ (↑u - ↑(α + 1) * Complex.I) * (cmDenom α u)⁻¹"
+    },
     "BSM.fourierInversion_dampedCallPrice": {
       "file": "ImprovedBS/Inversion.lean",
       "kind": "theorem",
@@ -677,6 +772,16 @@
       "kind": "def",
       "pin": "def gbmCharFactor (m s : ℝ) (v : ℂ) : ℂ := Complex.exp (Complex.I * ↑m * v - ↑s * v ^ 2)"
     },
+    "BSM.gbmCharFactor_pricing_continuous": {
+      "file": "ImprovedBS/Pricing.lean",
+      "kind": "theorem",
+      "pin": "theorem gbmCharFactor_pricing_continuous (m s α : ℝ) : Continuous fun u : ℝ => gbmCharFactor m s (↑u - ↑(α + 1) * Complex.I)"
+    },
+    "BSM.gbmCharFactor_pricing_norm": {
+      "file": "ImprovedBS/Pricing.lean",
+      "kind": "theorem",
+      "pin": "theorem gbmCharFactor_pricing_norm (m s u α : ℝ) : ‖gbmCharFactor m s (↑u - ↑(α + 1) * Complex.I)‖ = Real.exp (s * (α + 1) ^ 2 + (α + 1) * m) * Real.exp (-(s * u ^ 2))"
+    },
     "BSM.gbm_carrMadanInversion_integrable": {
       "file": "ImprovedBS/Inversion.lean",
       "kind": "theorem",
@@ -687,10 +792,25 @@
       "kind": "theorem",
       "pin": "theorem gbm_carrMadanKernel_integrable (m s : ℝ) (hs : 0 < s) {α : ℝ} (hα : 0 < α) : Integrable (carrMadanKernel (gbmCharFactor m s) α) volume"
     },
+    "BSM.gbm_carrMadan_eq_bsCall": {
+      "file": "ImprovedBS/Pricing.lean",
+      "kind": "theorem",
+      "pin": "theorem gbm_carrMadan_eq_bsCall {S K tau r q sigma : ℝ} (hS : 0 < S) (hK : 0 < K) (htau : 0 < tau) (hsigma : 0 < sigma) (v : NNReal) (hv : (v : ℝ) = sigma ^ 2 * tau) (α : ℝ) (hα : 0 < α) : (↑(Real.exp (-α * Real.log (K / S))) : ℂ) * cmPriceIntegral (contourCharFun (ProbabilityTheory.gaussianReal ((r - q - sigma ^ 2 / 2) * tau) v)) α r tau S (Real.log (K / S)) = ↑(bsCall S K tau r q sigma)"
+    },
     "BSM.gbm_carrMadan_price_integrable": {
       "file": "ImprovedBS/Fourier.lean",
       "kind": "theorem",
       "pin": "theorem gbm_carrMadan_price_integrable (m s : ℝ) (hs : 0 < s) {α : ℝ} (hα : 0 < α) (r tau : ℝ) : Integrable (fun u : ℝ => ((Real.exp (-r * tau) / (2 * Real.pi) : ℝ) : ℂ) • (carrMadanPhase tau u * carrMadanKernel (gbmCharFactor m s) α u)) volume"
+    },
+    "BSM.gbm_cmPriceKernel_integrable": {
+      "file": "ImprovedBS/Pricing.lean",
+      "kind": "theorem",
+      "pin": "theorem gbm_cmPriceKernel_integrable (m s : ℝ) (hs : 0 < s) {α : ℝ} (hα : 0 < α) : Integrable (cmPriceKernel (gbmCharFactor m s) α)"
+    },
+    "BSM.gbm_contourCharFun_eq": {
+      "file": "ImprovedBS/Pricing.lean",
+      "kind": "theorem",
+      "pin": "theorem gbm_contourCharFun_eq {m : ℝ} {v : NNReal} {w : ℂ} : contourCharFun (ProbabilityTheory.gaussianReal m v) w = gbmCharFactor m ((v : ℝ) / 2) w"
     },
     "BSM.hasDerivAt_Phi": {
       "file": "ImprovedBS/Core.lean",
@@ -716,6 +836,11 @@
       "file": "ImprovedBS/Skeleton.lean",
       "kind": "theorem",
       "pin": "theorem integrable_call_payoff {μ : Measure ℝ} [IsProbabilityMeasure μ] (X : ℝ → ℝ) (K : ℝ) (hX : Integrable X μ) : Integrable (fun s => max (X s - K) 0) μ"
+    },
+    "BSM.integrable_dampedModelFreeCall_of_exp_moment": {
+      "file": "ImprovedBS/Pricing.lean",
+      "kind": "theorem",
+      "pin": "theorem integrable_dampedModelFreeCall_of_exp_moment {μ : Measure ℝ} [IsProbabilityMeasure μ] {S r tau α : ℝ} (hS : 0 < S) (hα : 0 < α) {δ : ℝ} (hδ : 0 < δ) (hTail : Integrable (fun x : ℝ => Real.exp ((α + 1 + δ) * x)) μ) : Integrable fun k : ℝ => (dampedModelFreeCall μ S r tau α k : ℂ)"
     },
     "BSM.integrable_exp_mul_phi": {
       "file": "ImprovedBS/RiskNeutral.lean",
@@ -746,6 +871,16 @@
       "file": "ImprovedBS/RiskNeutral.lean",
       "kind": "theorem",
       "pin": "theorem integrable_spot_mul_phi (S tau r q sigma : ℝ) : Integrable (fun z : ℝ => S * Real.exp ((r - q - sigma ^ 2 / 2) * tau + sigma * Real.sqrt tau * z) * phi z)"
+    },
+    "BSM.integrable_strikeTransform": {
+      "file": "ImprovedBS/Pricing.lean",
+      "kind": "theorem",
+      "pin": "theorem integrable_strikeTransform {S α x u : ℝ} (hS : 0 ≤ S) (hα : 0 < α) : Integrable (fun k : ℝ => Complex.exp (Complex.I * ↑(u * k)) * ↑(Real.exp (α * k)) * ↑(max (S * Real.exp x - S * Real.exp k) 0))"
+    },
+    "BSM.integral_Ioi_cexp_neg_mul_eq_inv": {
+      "file": "ImprovedBS/Pricing.lean",
+      "kind": "theorem",
+      "pin": "theorem integral_Ioi_cexp_neg_mul_eq_inv {a : ℂ} (ha : 0 < a.re) : ∫ y in Set.Ioi (0 : ℝ), Complex.exp (-(a * ↑y)) = a⁻¹"
     },
     "BSM.integral_exp_mul_phi": {
       "file": "ImprovedBS/RiskNeutral.lean",
@@ -857,6 +992,16 @@
       "kind": "theorem",
       "pin": "theorem no_drift_makes_spot_integrable (μ : Measure ℝ) [IsProbabilityMeasure μ] (α c x₀ S₀ d : ℝ) (hS : 0 < S₀) (hc : 0 < c) (htail : ∀ x ≥ x₀, ENNReal.ofReal (c * x ^ (-α)) ≤ μ (Set.Ici x)) : ¬ Integrable (fun x => S₀ * Real.exp (x + d)) μ"
     },
+    "BSM.norm_cexp_I_mul_ofReal": {
+      "file": "ImprovedBS/Pricing.lean",
+      "kind": "theorem",
+      "pin": "theorem norm_cexp_I_mul_ofReal (t : ℝ) : ‖Complex.exp (↑t * Complex.I)‖ = 1"
+    },
+    "BSM.ofReal_exp_eq_cexp": {
+      "file": "ImprovedBS/Pricing.lean",
+      "kind": "theorem",
+      "pin": "theorem ofReal_exp_eq_cexp (r : ℝ) : (↑(Real.exp r) : ℂ) = Complex.exp (↑r)"
+    },
     "BSM.ofReal_mul_tail_le_lintegral_exp_add": {
       "file": "ImprovedBS/Levy.lean",
       "kind": "theorem",
@@ -906,6 +1051,16 @@
       "file": "ImprovedBS/RiskNeutral.lean",
       "kind": "theorem",
       "pin": "theorem spot_sub_strike_eq (S K m s d z : ℝ) (hS : 0 < S) (hK : 0 < K) (hd : s * d = Real.log (S / K) + m) : S * Real.exp (m + s * z) - K = K * (Real.exp (s * (z + d)) - 1)"
+    },
+    "BSM.strikeTransform": {
+      "file": "ImprovedBS/Pricing.lean",
+      "kind": "def",
+      "pin": "noncomputable def strikeTransform (S α x u : ℝ) : ℂ := ∫ k : ℝ, Complex.exp (Complex.I * ↑(u * k)) * ↑(Real.exp (α * k)) * ↑(max (S * Real.exp x - S * Real.exp k) 0)"
+    },
+    "BSM.strikeTransform_eq": {
+      "file": "ImprovedBS/Pricing.lean",
+      "kind": "theorem",
+      "pin": "theorem strikeTransform_eq {S x u α : ℝ} (hS : 0 ≤ S) (hα : 0 < α) : strikeTransform S α x u = ↑(S * Real.exp (x * (α + 1))) * Complex.exp (↑(x * u) * Complex.I) * (cmDenom α u)⁻¹"
     },
     "BSM.t1_d1_minus_d2": {
       "file": "ImprovedBS/Core.lean",

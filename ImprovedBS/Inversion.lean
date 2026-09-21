@@ -23,6 +23,13 @@
       inverted integral recovers `bsCall S K tau r q sigma`.
   (4) Real-valuedness: the inverted integral is real-valued (its imaginary
       part vanishes identically, and it equals its real part `bsCall`).
+
+  CORRECTION C12 (BRIEF_010): `carrMadanInversion` below inherits
+  `carrMadanKernel`'s contour `v = u + iα` (line `Im v = +α`). The pricing
+  contour is `v = u − i(α+1)` (`cmPriceKernel` in `Pricing.lean`); the two
+  differ by the shift `−(2α+1)·i`. This module's §4 theorems are about
+  `𝓕⁻ (𝓕 f)` at the lognormal law and are correct as stated — see
+  `benchmarks/LEDGER.md` C12.
 -/
 
 import Mathlib
@@ -43,10 +50,11 @@ open scoped ENNReal Topology RealInnerProductSpace
 --------------------------------------------------------------------------
 -/
 
-/-- The Carr–Madan Fourier inversion pricing integral.
-Given model factor `φ`, damping `α > 0`, discount `r`, maturity `τ`, and
-log-moneyness `k`, it computes the inverse Fourier integral:
-    (e^{-rτ} / 2π) · ∫_ℝ e^{-i u k} · carrMadanKernel φ α u du. -/
+/-- The Carr–Madan Fourier inversion integral (on the `u + iα` line).
+**Shape note C12:** this is `carrMadanKernel`'s line, not the pricing line
+`cmPriceKernel` (`u − i(α+1)`) of `Pricing.lean`; its integrability is proved
+but no theorem in this module equates it with a price — §4 is about
+`𝓕⁻ (𝓕 f)` and is correct. -/
 def carrMadanInversion (φ : ℂ → ℂ) (α r tau k : ℝ) : ℂ :=
   ∫ u : ℝ, ((Real.exp (-r * tau) / (2 * Real.pi) : ℝ) : ℂ) •
     (carrMadanPhase (-k) u * carrMadanKernel φ α u)

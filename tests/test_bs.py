@@ -45,6 +45,7 @@ from experiments.black_scholes import (
     bs_put,
     bs_put_by_expectation,
     bs_put_by_parity,
+    carr_madan_by_law,
     forward_by_expectation,
     model_free_forward,
     model_free_prices,
@@ -370,6 +371,52 @@ def test_model_free_skeleton():
         lo_p_ = max(k_ * math.exp(-r * tau) - S * math.exp(-q * tau), 0.0)
         assert abs(call - lo_c_) < 1e-12, f"call lower edge does not bind at K={k_}: {call} vs {lo_c_}"
         assert abs(put - lo_p_) < 1e-12, f"put lower edge does not bind at K={k_}: {put} vs {lo_p_}"
+
+
+def test_carr_madan_free_law():
+    """BRIEF_010 (numerical shadow): Carr–Madan inversion at an ARBITRARY law.
+
+    `carr_madan_by_law` inverts `φ(v) = Σ p_j e^{i v log(s_j/S)}` along the
+    pricing contour `v = u - i(α+1)` (Lean `cmPriceIntegral (contourCharFun μ)`)
+    and must agree with `model_free_prices` -- the discounted expectation,
+    which at a discrete law is a sum with no quadrature in it -- at three
+    multi-atom laws plus the degenerate one-atom law. The imaginary part of
+    the two-sided integral must vanish (Lean `carrMadan_im_eq_zero`, via the
+    Hermitian symmetry `cmPriceIntegrand_reflect`).
+
+    Why the tolerance is `1e-4` and not the GBM route's `2e-11`: a discrete
+    law's characteristic function does not decay (`|φ| ↛ 0`), so the error is
+    truncation at `u_max`, not quadrature -- measured `1.3e-05`--`2.1e-05`
+    relative at `u_max=1200, n=30000` for the three laws below, and the
+    bound is set an order of magnitude above the measurement. Mutant M16
+    (the `-(α+1)` shift off by one, rel `3.75e-01`) is killed by this test
+    alone.
+    """
+    S, K, r, tau, alpha = 100.0, 110.0, 0.05, 1.0, 1.2
+    k = math.log(K / S)
+    laws = [
+        ("skewed", [0.5, 0.3, 0.2], [80.0, 105.0, 160.0]),
+        ("left-heavy", [0.6, 0.3, 0.1], [70.0, 100.0, 150.0]),
+        ("symmetric", [0.25, 0.5, 0.25], [80.0, 100.0, 120.0]),
+        ("degenerate", [1.0], [120.0]),
+    ]
+    for tag, probs, spots in laws:
+        val = carr_madan_by_law(probs, spots, S, r, tau, alpha, k, 1200.0, 30000)
+        call, _ = model_free_prices(probs, spots, K, r, tau)
+        assert abs(val.real - call) < 1e-4 * max(1.0, abs(call)), (
+            f"[{tag}] free-law inversion != expectation: {val.real} vs {call}"
+        )
+        assert abs(val.imag) < 1e-8 * max(1.0, abs(call)), (
+            f"[{tag}] imaginary part not zero: {val.imag}"
+        )
+
+    # alpha <= 0 must be rejected, as in the GBM route
+    for bad in (-0.5, 0.0):
+        try:
+            carr_madan_by_law([1.0], [120.0], S, r, tau, bad, k, 1200.0, 30000)
+            raise AssertionError(f"expected ValueError for alpha={bad}")
+        except ValueError:
+            pass
 
 
 if __name__ == "__main__":

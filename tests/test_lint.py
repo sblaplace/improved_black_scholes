@@ -344,6 +344,19 @@ MUTANTS = [
                "about this edit: statement untouched, nothing deferred, no "
                "marker, nothing deleted. Only `[SKELETON]` can see it.",
     },
+    {
+        "name": "C1 pricing kernel on wrong line: u + iα instead of u − i(α+1) (C12)",
+        "file": "ImprovedBS/Pricing.lean",
+        "from": "def cmPriceKernel (φ : ℂ → ℂ) (α u : ℝ) : ℂ :=\n  φ (↑u - ↑(α + 1) * Complex.I) * (cmDenom α u)⁻¹",
+        "to": "def cmPriceKernel (φ : ℂ → ℂ) (α u : ℝ) : ℂ :=\n  φ (↑u + ↑α * Complex.I) * (cmDenom α u)⁻¹",
+        "tag": "[CONTOUR]",
+        "why": "BRIEF_010's correction C12: the tree's kernel sits on `u + iα` "
+               "while the price inverts from `u − i(α+1)`. Swapping the contour "
+               "back would make the pricing identity false with a green build — "
+               "74.2% relative error at the test point — and no other lane can "
+               "see which line a def names, only that it exists. Only [CONTOUR] "
+               "can see it, which is exactly why the check exists.",
+    },
 ]
 
 # Attacks the toolchain-free lanes provably CANNOT see, kept as
