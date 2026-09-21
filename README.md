@@ -73,7 +73,7 @@ where a statement that *reads* the same but elaborates differently gets caught.
 Weakening a claim is still allowed. It is now a diff a reviewer sees.
 
 And because `lean_lint.py` has authority over how the Lean tree is labelled while
-nothing had authority over *it*, `tests/test_lint.py` seeds 24 cheats into copies
+nothing had authority over *it*, `tests/test_lint.py` seeds 25 cheats into copies
 of the tree and requires each to be killed by a *named* check, keeps 5 legitimate
 edits green (a re-wrapped proof, marker words inside a comment, parity reproved
 from `erf_neg` directly), and asserts — rather than folklore-claims — the boundary
@@ -136,19 +136,21 @@ against.
 | T2 | `t2_put_call_parity` | put-call parity | easy | **machine-checked** |
 | T3 | `t3_delta_identity` | `S e^{−qτ} φ(d1) = K e^{−rτ} φ(d2)` | medium | **machine-checked** |
 | T4 | `t4_call_bounds`, `t4_put_bounds` | no-arbitrage price bounds | medium | **machine-checked** |
-| T5 | *(not declared)* | closed form solves the BSM PDE | heavy | deferred — provable *via* T3 |
+| T5 | `t5_bsCall_pde`, `t5_delta`, `t5_gamma`, `t5_tau` | closed form solves the BSM PDE | heavy | **LANDED GREEN** (BRIEF_006) — run 35566569107; `benchmarks/LEDGER.md` row 6 |
 | T6 | *(not declared)* | Fourier kernel survives a tempered-stable increment | open | restated, see docs/03 D1 |
 
 T1–T4 are the warm-up tier, and all four are now machine-checked. T4 turned
 out to be less routine than "algebra and monotonicity": its lower bound is the
 positivity of the call and the put, which needs `Φ` as an *integral* of `φ`
 (`Phi_eq_integral_Iic`), not just `0 ≤ Φ ≤ 1` — see ledger correction C4. T5 is
-the first heavy node, and the plan is to reach it
-*through* T3 — the delta identity is exactly the cancellation that makes the
-PDE residual vanish, so T5 is T3 plus the chain rule plus `Φ′ = φ`, not an
-independent slog through `erf` derivatives. T6 is the research claim, and it is
-the place where a genuinely new approach, not a reimplementation, is the
-deliverable.
+the first heavy node, and it was reached *through* T3 — the delta identity is
+exactly the cancellation that makes the PDE residual vanish, so T5 is T3 plus
+the chain rule plus `Φ′ = φ`, not an independent slog through `erf` derivatives.
+The route is now checked rather than asserted: `[SPINE]` in `scripts/lean_lint.py`
+fails if `t5_delta` stops consuming `t3_delta_identity`, and
+`tests/test_lint.py` seeds the mutant that proves the check can fire. T6 is the
+research claim, and it is the place where a genuinely new approach, not a
+reimplementation, is the deliverable.
 
 **T6 carries a warning that saves a brief.** A *pure* α-stable log-increment
 has infinite first moment (`P(X > x) ~ x^{−α}` ⇒ `E[e^X] = ∞`), so
@@ -172,11 +174,22 @@ cheapest high-value theorem in the research tier. Details in docs/03 §D1.
 | Lean theorems | `Phi_add_Phi_neg`, T1, T2, T2′ | **GREEN** — `lake build` + `#print axioms` audit, run 35509578689 |
 | Lean theorems | T3, T4, T4′ + the `Φ = ∫ φ` infrastructure (18 lemmas) | **GREEN** — `lake build` + `#print axioms` audit, run 35514867674 |
 | Lean theorems | T6 sub-goal 1: the moment obstruction (`ImprovedBS/Levy.lean`, 7 declarations) | **GREEN** — `lake build` + `#print axioms` audit + statement pins, run 35523250105 |
+| Lean theorems | T6 sub-goal 2: tempered-contour absolute convergence (`ImprovedBS/Fourier.lean`, 7 declarations) | **GREEN** — `lake build` + `#print axioms` audit + statement pins, run 35536031936 |
+| Lean theorems | T5: the closed form solves the BSM PDE (`ImprovedBS/Core.lean`, 11 declarations) | **GREEN** — `lake build` + `#print axioms` audit + statement pins (elab, 60), run 35566569107 |
 | Deferred | *(nothing)* | ratcheted at 0 `sorry`s — `deferred: {}` |
-| Lint is a falsifier | `tests/test_lint.py`: 22 seeded cheats each killed by a named check, 5 legitimate edits green, 1 residual gap asserted open | verified — 7/7 tests |
-| Pinned claims | `tests/golden_statements.json`: 38 declarations — theorem statements, definition bodies | machine-checked (source level, no toolchain); `#check`/axioms layer runs in the build job |
+| Lint is a falsifier | `tests/test_lint.py`: 25 seeded cheats each killed by a named check, 5 legitimate edits green, 1 residual gap asserted open | verified — 7/7 tests |
+| Pinned claims | `tests/golden_statements.json`: 60 declarations — theorem statements, definition bodies | machine-checked (source level, no toolchain); `#check`/axioms layer runs in the build job |
 | Grading lane | briefs/ + benchmarks/ + 2 CI workflows + toolchain-free lint + pins | standing |
 | First brief | BRIEF_001, re-scoped to what is actually checkable | see briefs/ |
+
+**T5 is landed and green too** (BRIEF_006, run 35566569107): `t5_delta`,
+`t5_gamma`, `t5_tau` and the two forms of the PDE identity, in `(S, τ)`
+coordinates and without a `sorry` — the one genuinely new analytic input is
+`Φ′ = φ`, derived from the interval-integral FTC because mathlib v4.34.0 has no
+`Real.erf`. The audit puts the 11 new constants on
+`[propext, Classical.choice, Quot.sound]`, and the pins grew 49 → 60 with the
+49 pre-existing entries unchanged. Its verdict, and the four-run elaboration
+arc that got there, are recorded in `benchmarks/LEDGER.md` row 6.
 
 **T1 through T4 are machine-checked.** `lake build` is green against mathlib
 v4.34.0 / Lean v4.34.0 and the `#print axioms` audit confirms that all 25
@@ -235,10 +248,10 @@ All three are dependency-free Python; none needs a Lean toolchain.
 ```sh
 python3 tests/test_bs.py          # 13/13 — the oracle satisfies the claimed identities
 python3 tests/test_mutants.py     #  4/4  — and those tests can actually fail (11 mutants)
-python3 tests/test_lint.py        #  7/7  — the linter can fail too (24 cheats, 5 controls)
+python3 tests/test_lint.py        #  7/7  — the linter can fail too (25 cheats, 5 controls)
 python3 tests/test_pins.py        # 10/10 — and the pins that back it parse real CI output
-python3 scripts/lean_lint.py      #  OK   — no sorry in the protected node, ratchet, independence, pins
-python3 scripts/pin_statements.py --check   # 49 statements match tests/golden_statements.json
+python3 scripts/lean_lint.py      #  OK   — no sorry in the protected node, ratchet, independence, pins, spine
+python3 scripts/pin_statements.py --check   # 60 statements match tests/golden_statements.json
 python3 tests/test_crosscheck.py    #  6/6  — grid + oracle self-consistency, both T3 sides, input-source routing (the cross-check itself needs lake)
 # or, with pytest installed:
 pytest tests/

@@ -48,6 +48,15 @@ Checks
                   scripts/pin_statements.py). This is the anti-hollowing guard:
                   `lake build` proves a theorem is correct, and only this check
                   notices when a theorem has been quietly changed into `True`.
+10. SPINE         docs/04's dependency spine commits T5 to a route -- T3 + chain
+                  rule + `Phi' = phi` -- and nothing else in the tree can see a
+                  route change. The T5 node must cite `t3_delta_identity` and
+                  `hasDerivAt_Phi`, and `t5_delta` itself must cite T3: a
+                  brute-force differentiation of `erf` composed with the
+                  log-rational proves the same residual while duplicating T3's
+                  cancellation (and T1's `S`-action), which is exactly the drift
+                  docs/04's "spine, not six unrelated chores" is about. A mutant
+                  is seeded for it in tests/test_lint.py.
 
 Exit status is non-zero on any failure, with every failure printed.
 
@@ -144,6 +153,25 @@ REQUIRED = {
     "carrMadan_price_integrable": "ImprovedBS/Fourier.lean",
     "gbm_carrMadanKernel_integrable": "ImprovedBS/Fourier.lean",
     "gbm_carrMadan_price_integrable": "ImprovedBS/Fourier.lean",
+    # BRIEF_006 (T5): the closed form solves the BSM PDE. The analytic input
+    # (`hasDerivAt_erf` from the interval-integral FTC, and `hasDerivAt_Phi`),
+    # the shared argument shape (`hasDerivAt_d_spot`, `d_tau_quotient_eq`,
+    # `hasDerivAt_d_tau`, `d1_tau_sub_d2_tau`), the three derivatives of the
+    # price and the two forms of the identity. Listed so that "prove the PDE by
+    # deleting the lemma that cancels the `phi`-terms" is not an option -- and
+    # the [SPINE] check below pins the *route*, so that "prove it by
+    # re-differentiating `erf ∘ log-rational`" is not one either.
+    "hasDerivAt_erf": "ImprovedBS/Core.lean",
+    "hasDerivAt_Phi": "ImprovedBS/Core.lean",
+    "hasDerivAt_d_spot": "ImprovedBS/Core.lean",
+    "d_tau_quotient_eq": "ImprovedBS/Core.lean",
+    "hasDerivAt_d_tau": "ImprovedBS/Core.lean",
+    "d1_tau_sub_d2_tau": "ImprovedBS/Core.lean",
+    "t5_delta": "ImprovedBS/Core.lean",
+    "t5_gamma": "ImprovedBS/Core.lean",
+    "t5_tau": "ImprovedBS/Core.lean",
+    "t5_bsCall_pde_tau": "ImprovedBS/Core.lean",
+    "t5_bsCall_pde": "ImprovedBS/Core.lean",
 }
 
 # Zero deferred-proof markers allowed. The T1/T2 node per BRIEF_001; the T3/T4
@@ -197,7 +225,36 @@ PROTECTED = {
     "carrMadan_price_integrable",
     "gbm_carrMadanKernel_integrable",
     "gbm_carrMadan_price_integrable",
+    # T5 (BRIEF_006): the same ratchet posture. `t5_delta`/`t5_gamma`/`t5_tau`
+    # are the steps the PDE's proof consumes and `t5_bsCall_pde` is the node's
+    # claim, so a `sorry` in any of them reverts the node outright. The two
+    # analytic inputs (`hasDerivAt_erf`, `hasDerivAt_Phi`) and the four
+    # argument-shape lemmas are landed results too, and the [SPINE] check is
+    # only meaningful while they are real.
+    "hasDerivAt_erf",
+    "hasDerivAt_Phi",
+    "hasDerivAt_d_spot",
+    "d_tau_quotient_eq",
+    "hasDerivAt_d_tau",
+    "d1_tau_sub_d2_tau",
+    "t5_delta",
+    "t5_gamma",
+    "t5_tau",
+    "t5_bsCall_pde_tau",
+    "t5_bsCall_pde",
 }
+
+# The T5 node, in dependency order, and the two citations docs/04's spine
+# commits T5 to: `t3_delta_identity` (the cancellation the chain rule consumes)
+# and `hasDerivAt_Phi` (the one new analytic input). Checked in [SPINE].
+T5_NODE = (
+    "t5_delta",
+    "t5_gamma",
+    "t5_tau",
+    "t5_bsCall_pde_tau",
+    "t5_bsCall_pde",
+)
+SPINE_WITNESSES = ("t3_delta_identity", "hasDerivAt_Phi")
 
 # A `sorry` that survives `lake build` is an axiom. Allow none by default.
 AXIOM_ALLOWLIST: set[str] = set()
@@ -586,6 +643,49 @@ def main() -> int:
         notes.append(
             "[PINS] every protected statement matches tests/golden_statements.json "
             "(elaborated-type pins are checked in the build job, not here)"
+        )
+
+    # 10. spine -- docs/04 claims *how* T5 is proved, and nothing above can see
+    #     that claim change. A brute-force differentiation of `erf` composed
+    #     with the log-rational proves the same residual identity while
+    #     duplicating T1's `S`-action and T3's cancellation -- the exact drift
+    #     "the spine, not six unrelated chores" is about. So: the node's
+    #     declarations must exist, the node must cite both inputs the spine
+    #     names, and `t5_delta` -- the step whose proof *is* T3's cancellation
+    #     -- must cite T3 rather than re-derive it.
+    spine_failures: list[str] = []
+    t5_missing = [n for n in T5_NODE if n not in bodies]
+    if t5_missing:
+        spine_failures.append(
+            "[SPINE] the T5 node is missing declaration(s) in ImprovedBS/Core.lean: "
+            + ", ".join(t5_missing)
+            + ". docs/04's spine states T5 = T3 + chain rule + `Phi' = phi`; the "
+            "route can only be checked while the node exists."
+        )
+    else:
+        cited = "\n".join(bodies[n] for n in T5_NODE)
+        for witness in SPINE_WITNESSES:
+            if not re.search(rf"\b{re.escape(witness)}\b", cited):
+                spine_failures.append(
+                    f"[SPINE] the T5 node never cites `{witness}`. docs/04 pins T5's "
+                    "route to T3 + chain rule + `Phi' = phi`; a proof that gets the "
+                    "residual without either input has changed the route (and almost "
+                    "certainly duplicated T3's cancellation). Cite it, or change "
+                    "docs/04's spine and this check in the same PR."
+                )
+        if not re.search(r"\bt3_delta_identity\b", bodies["t5_delta"]):
+            spine_failures.append(
+                "[SPINE] `t5_delta` does not cite `t3_delta_identity`. T3 is *what "
+                "makes* the delta identity -- the `phi`-bracket is zero by T3 -- so "
+                "this is the one step whose proof must consume T3, not re-derive the "
+                "cancellation from scratch."
+            )
+    if spine_failures:
+        failures.extend(spine_failures)
+    else:
+        notes.append(
+            "[SPINE] T5 cites `t3_delta_identity` and `hasDerivAt_Phi`: the route "
+            "docs/04 states (T3 + chain rule + `Phi' = phi`) holds"
         )
 
     if "--write-baseline" in sys.argv:

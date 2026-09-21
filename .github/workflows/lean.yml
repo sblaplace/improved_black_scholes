@@ -195,6 +195,22 @@ jobs:
           #print axioms BSM.carrMadan_price_integrable
           #print axioms BSM.gbm_carrMadanKernel_integrable
           #print axioms BSM.gbm_carrMadan_price_integrable
+          -- BRIEF_006: T5, the closed form solves the BSM PDE. The two analytic
+          -- inputs, the four argument-shape lemmas, the three derivatives and the
+          -- two forms of the identity: all landed, so all audited. `t5_delta` is
+          -- the step whose *proof* is T3's cancellation, which the [SPINE] check in
+          -- scripts/lean_lint.py pins to `t3_delta_identity`.
+          #print axioms BSM.hasDerivAt_erf
+          #print axioms BSM.hasDerivAt_Phi
+          #print axioms BSM.hasDerivAt_d_spot
+          #print axioms BSM.d_tau_quotient_eq
+          #print axioms BSM.hasDerivAt_d_tau
+          #print axioms BSM.d1_tau_sub_d2_tau
+          #print axioms BSM.t5_delta
+          #print axioms BSM.t5_gamma
+          #print axioms BSM.t5_tau
+          #print axioms BSM.t5_bsCall_pde_tau
+          #print axioms BSM.t5_bsCall_pde
           LEAN
           lake env lean /tmp/Audit.lean 2>&1 | tee lean-audit.log
           if grep -q sorryAx lean-audit.log; then

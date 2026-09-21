@@ -42,7 +42,7 @@ point of the audit step, since a `sorry` builds fine. The ratchet baseline is
 | T3 | `t3_delta_identity` | `S e^{−qτ} φ(d1) = K e^{−rτ} φ(d2)` | easy, given the tilting identity `phi_add` | **machine-checked** |
 | T4 | `t4_call_bounds` | `max(S e^{−qτ} − K e^{−rτ}, 0) ≤ bsCall ≤ S e^{−qτ}` | medium — positivity via `Φ = ∫ φ`, *not* monotonicity (ledger C4) | **machine-checked** |
 | T4′| `t4_put_bounds` | mirrored put bounds | corollary of T4 + T2 (`linarith` only) | **machine-checked** |
-| T5 | *(not yet declared)* | `V_t + (r−q)S V_S + (σ²/2)S² V_SS = r V` | heavy | deferred — see the spine below |
+| T5 | `t5_bsCall_pde` (+ `t5_delta`, `t5_gamma`, `t5_tau`, `t5_bsCall_pde_tau` and six supporting lemmas) | `V_t + (r−q)S V_S + (σ²/2)S² V_SS = r V` in calendar time for `bsCall` | heavy — the one new analytic input is `Φ′ = φ`, derived from the interval-integral FTC because mathlib has no `Real.erf` | **LANDED GREEN** (BRIEF_006), lean run 35566569107 — `benchmarks/LEDGER.md` row 6 |
 | T6 | *(not yet declared)* | Fourier pricing kernel survives a wider increment law | open — research | restated in docs/03 D1 |
 
 Three honest corrections to earlier versions of this table:
@@ -81,14 +81,54 @@ is exactly what T3 cancels. So
 
     T5  =  T3  +  chain rule  +  `HasDerivAt Phi phi x`
 
-and the only genuinely new analytic input is the derivative of Φ, which follows
-from `Real.hasDerivAt_erf`. Brute-force differentiation of `erf ∘ (log-rational)`
-in `S`-coordinates is the slow route and buys nothing.
+and the only genuinely new analytic input is the derivative of Φ. Mathlib has no
+`Real.erf` and therefore no `HasDerivAt erf`, so that input is *derived*: T5's
+`hasDerivAt_erf` differentiates the local `erf` with the interval-integral FTC
+(`intervalIntegral.integral_hasDerivAt_right`) and `hasDerivAt_Phi` is the chain
+rule from `x ↦ x / √2`. Brute-force differentiation of `erf ∘ (log-rational)` in
+`S`-coordinates is the slow route and buys nothing.
 
-**Change variables before differentiating.** In `x = Real.log S` the BSM
-operator has constant coefficients and the closed form is the convolution of the
-payoff with the Gaussian kernel; uniqueness then comes from the heat-kernel
-side. Working in `S` costs every `1/S` factor by hand.
+**T5 is proved in `(S, τ)` coordinates, with partial derivatives — corrected.**
+An earlier version of this section asserted the opposite ("change variables
+before differentiating": go to `x = Real.log S`, where the BSM operator has
+constant coefficients and the closed form is the payoff convolved with the
+Gaussian kernel, uniqueness coming from the heat-kernel side). That is a true
+statement about the *mathematics* and it is the right framing for the
+convolution/pricing side of T6, but it is the wrong route for T5 as a formal
+target here, and BRIEF_006 commits to the direct one. Three reasons, in order of
+weight:
+
+1. **The claim being graded is the `(S, t)` PDE.** A change of variables turns
+   T5 into a *different theorem* — the heat equation for `v(x, τ) = V(e^x, τ)`
+   — and recovering the stated `(S, t)` identity from it needs the chain rule
+   back, twice, for `V_S` and `V_SS`. The `1/S` factors the paragraph above
+   wanted to avoid arrive anyway; they are just moved to the end and hidden
+   inside a substitution lemma.
+2. **The log-S route needs the Gaussian-kernel side to be a *theorem* here.**
+   "The closed form is the convolution" is not free: it requires the measure
+   `Phi_eq_integral_Iic` and its heat-kernel evolution, i.e. the very
+   measure-theoretic machinery docs/04 §mathlib-table already marks as *not yet
+   available* at this tier. In `(S, τ)` coordinates the derivative of `Φ`
+   (one interval integral, already in the tree) is the whole analytic bill.
+3. **Empirically, the feared cost is not real.** The `T5` node's `S`-side
+   algebra is two `field_simp`/`ring` steps (`hasDerivAt_d_spot` and the
+   `S²V_SS = (σ/(2√τ))·S V_S` collapse), and `√2`, `√π` cancel as *quotients*
+   rather than as squares, so no `Real.sq_sqrt` appears anywhere in the node.
+   Ledger C9 records the reversal.
+
+The uniqueness half of the log-S picture is not dropped, it is *deferred*: it is
+T6 sub-goal 3's business (Fourier inversion for the tempered-stable exponent),
+where the kernel and the measure-theoretic integral are the actual objects.
+Recorded there rather than silently dropped here.
+
+**The route is now checked, not just documented.** `scripts/lean_lint.py`'s
+`[SPINE]` check (check 10, added with BRIEF_006) fails if the T5 node stops
+citing `t3_delta_identity` or `hasDerivAt_Phi`, or if `t5_delta` — the step whose
+proof *is* T3's cancellation — stops citing T3 and re-derives the bracket
+locally. It is the repository's only mechanical statement about *how* a node is
+proved rather than what it claims, and `tests/test_lint.py` seeds the
+corresponding mutant, because a route check with nothing trying to break it is
+prose with a regex.
 
 ## Dependencies needed from mathlib
 
@@ -132,8 +172,10 @@ only *oddness*. T3/T4 needed one more thing — `Φ(x) = ∫_{(−∞,x]} φ`
 `integral_gaussian_Ioi` in exactly one lemma (`integral_phi_Iic_zero`) and then
 gives `0 ≤ Φ ≤ 1` and the positivity inequality for free. Note the bounds did
 **not** go through `|erf x| ≤ 1` as previously predicted; `Φ ≥ 0` is
-`setIntegral_nonneg` and `Φ ≤ 1` is `Φ ≥ 0` at `−x` plus `Phi_neg`. T5 still
-needs `HasDerivAt erf`, which has to be derived rather than imported.
+`setIntegral_nonneg` and `Φ ≤ 1` is `Φ ≥ 0` at `−x` plus `Phi_neg`. T5 needed
+`HasDerivAt erf`, which is derived rather than imported: `hasDerivAt_erf`
+differentiates the local `erf` with the interval-integral FTC and
+`hasDerivAt_Phi` composes it with `x ↦ x / √2` (BRIEF_006).
 
 If mathlib grows `Real.erf`, delete the local definition and re-point
 `Phi_add_Phi_neg` at `Real.erf_neg`. `scripts/lean_lint.py` has `erf`,
@@ -143,9 +185,15 @@ migration cannot silently drop them.
 `Φ` and `φ` are currently defined directly from `Real.erf` and `Real.exp`
 rather than imported from mathlib's Gaussian machinery. That is deliberate for
 T1–T4 (fewer moving parts, definitions match the oracle symbol-for-symbol) and
-should be revisited at T5/T6, where the measure-theoretic integral is the
-actual object. **Do not switch before then** — it would change what T1–T4 are
-about without changing what they say.
+was to be revisited at T5/T6, where the measure-theoretic integral is the
+actual object. **Decision, recorded in BRIEF_006 §2: T5 does not migrate.**
+`Real.erf` does not exist in mathlib v4.34.0, so there is nothing to migrate
+*to*; and `Mathlib/Probability/Distributions/Gaussian` supplies a measure, not
+a CDF function, so replacing `Phi` would mean replacing a definition with a
+construction plus a bridge lemma, in a node whose whole analytic content is one
+derivative. The migration stays a T6 question — and the reason it is safe to
+defer is that the definitions are *pinned* (`Phi`/`phi` bodies are layer-1
+statement pins), so a later migration cannot be silent.
 
 Imports in `ImprovedBS/Core.lean` are currently the whole library
 (`import Mathlib`). Narrow imports are better practice — they document what a
@@ -221,16 +269,22 @@ in increasing strength:
    via `needs:`. That is the "unverified second pillar" this repository is
    exposed to — not the numeric oracle, which no theorem imports and whose removal
    would leave T1–T4 standing (it would leave the *gate* unable to run, which is a
-   different and fixable problem). `tests/test_lint.py` seeds 24 cheats into
+   different and fixable problem). `tests/test_lint.py` seeds 25 cheats into
    throwaway copies of the tree and requires each to be killed by a named check —
    the 11-mutant discipline, turned on the grader — while 5 controls (a marker word
    inside a comment, a re-wrapped statement, parity reproved from `erf_neg`
    directly) must stay green, since a guard that rejects legitimate work is a guard
    that gets disabled. Three of its results are worth quoting: with `[PINS]` removed
-   from the lint, 8 of the 22 mutants survive (P1–P8); with ONLY
-   `cross_layer_check()` switched off, exactly one survives, which is how a check's
-   contribution is attributed rather than assumed; and with the odd-symmetry guard
-   narrowed back to a single preferred lemma name, a correct proof of T2 goes red.
+   from the lint, 8 of the mutants survive (P1–P8 — measured when the suite held 22);
+   with ONLY `cross_layer_check()` switched off, exactly one survives, which is how a
+   check's contribution is attributed rather than assumed; and with the odd-symmetry
+   guard narrowed back to a single preferred lemma name, a correct proof of T2 goes
+   red. The twenty-fifth mutant arrived with `[SPINE]`: T5's delta rewritten to
+   re-derive the `phi`-bracket instead of citing `t3_delta_identity`. It is the
+   sharpest of the set, because *every other check is blind to it by
+   construction* — same statement, same definitions, no `sorry`, no marker, all
+   pins byte-identical — which is the definition of a check that had to exist
+   before the route could be claimed.
 
 Until (3) existed, the correspondence rested on (1) and (2) plus human reading of
 docs/01 §4. All four guards are now active; guard (4)'s elaborated layer is
@@ -256,7 +310,7 @@ local `--elab-check` is a red with a message, never a skip.
 
 Order is chosen so that each brief's acceptance bar is checkable by the time it
 is worked on, and so that no brief depends on a machine-checked result that does
-not yet exist. BRIEF_001–005 have landed, in this order.
+not yet exist. BRIEF_001–006 have landed, in this order.
 
 | brief | what it lands | depends on | locally checkable? |
 |---|---|---|---|
@@ -265,7 +319,7 @@ not yet exist. BRIEF_001–005 have landed, in this order.
 | ~~BRIEF_003~~ | **LANDED GREEN** — T3, T4, T4′ machine-checked; sorry baseline → 0 (run 35514867674) | 001 | was CI-only |
 | ~~BRIEF_004~~ | **LANDED GREEN** — α-stable exponential-moment obstruction (T6 sub-goal 1; PR #5, run 35523250105) | none | no — CI only |
 | ~~BRIEF_005~~ | **LANDED GREEN** — T6 sub-goal 2: Carr–Madan absolute convergence on the tempered contour, GBM instance machine-checked (`ImprovedBS/Fourier.lean`; PR #6, run 35536031936) | 004 | no — CI only |
-| *(queued)* | **T5** — closed form solves the BSM PDE, via T3 in `x = Real.log S` coordinates | 003 | no — CI only |
+| ~~BRIEF_006~~ | **LANDED GREEN** — T5, the closed form solves the BSM PDE, directly in `(S, τ)` via T3 + chain rule + `Φ′ = φ`; 11 declarations in `ImprovedBS/Core.lean`, `[SPINE]` check + mutant, statement pins 49 → 60 with the existing 49 unchanged (PR #8, run 35566569107) | 003 | no — CI only |
 | *(queued)* | **T6** sub-goal 3 — Fourier inversion: agreement with the risk-neutral expectation, for a tempered-stable exponent | 005 | no — CI only |
 
 BRIEF_004 is deliberately listed as depending on nothing: it is pure analysis
@@ -274,9 +328,14 @@ item that makes the tempered-stable hypothesis in `docs/03` §D1 an earned
 assumption rather than a convenient one. If only one research-tier brief ever
 gets worked, it should be that one.
 
-T5 is *not* yet a brief, because it needs a decision that belongs in the brief
-rather than in this document: whether to formalize the PDE in `(S, t)`
-coordinates with partial derivatives, or to reduce to the constant-coefficient
-heat equation in `x = Real.log S` first. `docs/04` §"The dependency spine"
-argues for the second. Whoever writes BRIEF_005 should commit to one and say
-why, rather than leaving both open.
+T5 *was* the item that needed a decision belonging in the brief rather than in
+this document — formalize the PDE in `(S, t)` with partial derivatives, or reduce
+to the constant-coefficient heat equation in `x = Real.log S` first — and
+BRIEF_006 §1 commits to the first, with the reasons above, superseding this
+section's earlier argument for the second (ledger C9). The "not yet a brief"
+paragraph that stood here also asked the wrong brief to make the decision: it
+said "whoever writes BRIEF_005", and BRIEF_005 was the tempered contour. Two
+sentences of this document have now been wrong about BRIEF_005's subject and
+about T5's route; both are recorded rather than quietly edited, because the
+queue is the part of the plan a contributor reads first, and a stale queue
+spends someone else's budget.
