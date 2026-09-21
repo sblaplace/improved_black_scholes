@@ -102,21 +102,20 @@ noncomputable def modelFreePut (μ : Measure ℝ) (X : ℝ → ℝ) (K r tau : �
 `|max (X s - K) 0| ≤ |X s| + |K|`, and `Integrable.mono` over `|X| + |K|`. -/
 theorem integrable_call_payoff {μ : Measure ℝ} (X : ℝ → ℝ) (K : ℝ)
     (hX : Integrable X μ) : Integrable (fun s => max (X s - K) 0) μ := by
-  have hbound : ∀ s : ℝ, ‖max (X s - K) 0‖ ≤ ‖X s‖ + ‖K‖ := by
+  have hbound : ∀ s : ℝ, ‖max (X s - K) 0‖ ≤ ‖X s - K‖ := by
     intro s
     have h0 : 0 ≤ max (X s - K) 0 := le_max_right _ _
     calc ‖max (X s - K) 0‖ = max (X s - K) 0 := Real.norm_of_nonneg h0
       _ ≤ |X s - K| := max_le (le_abs_self _) (abs_nonneg _)
-      _ = |X s + -K| := congrArg abs (sub_eq_add_neg _ _)
-      _ ≤ |X s| + |-K| := abs_add _ _
-      _ = ‖X s‖ + ‖K‖ := by rw [abs_neg, Real.norm_eq_abs, Real.norm_eq_abs]
-  -- `Integrable.norm` and `MeasureTheory.integrable_const` (auto-param
-  -- finiteness at the tag) give `fun s => ‖X s‖ + ‖K‖`; measurability of the
-  -- payoff is `fun_prop` on the concrete shape (BRIEF_007 experience).
-  exact MeasureTheory.Integrable.mono (hX.norm.add (MeasureTheory.integrable_const))
+      _ = ‖X s - K‖ := (Real.norm_eq_abs _).symm
+  -- dominate by the shifted payoff `fun s => X s - K`, integrable through
+  -- `hX` and `MeasureTheory.integrable_const K` (the constant applied, as at
+  -- the tag); measurability of the payoff is `fun_prop` on the concrete shape
+  -- (BRIEF_007 experience).
+  exact MeasureTheory.Integrable.mono (hX.sub (MeasureTheory.integrable_const K))
     (Filter.Eventually.of_forall hbound)
-    (hX.aestronglyMeasurable.sub (MeasureTheory.aestronglyMeasurable_const _)).max
-      (MeasureTheory.aestronglyMeasurable_const _)
+    (hX.aestronglyMeasurable.sub (MeasureTheory.aestronglyMeasurable_const)).max
+      (MeasureTheory.aestronglyMeasurable_const)
 
 /-- The put payoff of an integrable spot is integrable -- derived through
 `max_sub_swap_eq`, the pointwise identity `(K - X)^+ = (X - K)^+ - X + K`.
