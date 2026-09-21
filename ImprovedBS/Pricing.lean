@@ -801,11 +801,11 @@ theorem fourierDampedModelFreeCall_eq {μ : Measure ℝ} [IsProbabilityMeasure �
         Complex.ofReal (∫ a : ℝ, max (S * Real.exp a - S * Real.exp k) 0 ∂μ) :=
       integral_ofReal (X := ℝ) (μ := μ) (𝕜 := ℂ)
         (f := fun a : ℝ => max (S * Real.exp a - S * Real.exp k) 0)
+    unfold dampedModelFreeCall
+    rw [Complex.ofReal_mul, Complex.ofReal_mul]
     rw [hF_def]
     simp only [integral_const_mul]
     rw [hkey]
-    unfold dampedModelFreeCall
-    rw [Complex.ofReal_mul, Complex.ofReal_mul]
   have h_outer : ∀ x : ℝ, (∫ k : ℝ, F k x) =
       Complex.ofReal (Real.exp (-r * tau)) *
         (↑(S * Real.exp (x * (α + 1))) * Complex.exp (↑(x * u) * Complex.I) * (cmDenom α u)⁻¹) := by
@@ -1184,7 +1184,7 @@ theorem gbm_carrMadan_eq_bsCall {S K tau r q sigma : ℝ}
       ‖contourCharFun (ProbabilityTheory.gaussianReal m v) (↑u - ↑(α + 1) * Complex.I)‖ ≤
         Real.exp (s * (α + 1) ^ 2 + (α + 1) * m) * Real.exp (-s * |u| ^ 2) := by
     intro u _
-    rw [gbm_contourCharFun_eq, gbmCharFactor_pricing_norm, sq_abs, hs_def, neg_div, neg_mul]
+    rw [gbm_contourCharFun_eq, gbmCharFactor_pricing_norm, sq_abs, hs_def, neg_mul]
   -- the spot map is integrable (the S e^x moment at level 1)
   have hX : Integrable (fun x : ℝ => S * Real.exp x)
       (ProbabilityTheory.gaussianReal m v) :=
@@ -1197,6 +1197,10 @@ theorem gbm_carrMadan_eq_bsCall {S K tau r q sigma : ℝ}
   exact carrMadan_eq_modelFreeCall (μ := ProbabilityTheory.gaussianReal m v)
     (S := S) (K := K) (r := r) (tau := tau) (α := α)
     (c := s) (D := Real.exp (s * (α + 1) ^ 2 + (α + 1) * m)) (Y := 2) (u₀ := 0) (δ := 1)
-    hS hK hα hspos (Real.exp_pos _).le (by norm_num) one_pos hcont hdecay hTail hX
+    hS hK hα hspos (Real.exp_pos _).le (by norm_num) one_pos hcont
+    (fun u hu => by
+      have hu2 : |u| ^ (2 : ℝ) = |u| ^ 2 := Real.rpow_natCast |u| 2
+      rw [hu2]
+      exact hdecay u hu) hTail hX
 
 end BSM
