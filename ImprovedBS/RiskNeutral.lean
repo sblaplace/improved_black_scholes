@@ -494,25 +494,14 @@ theorem bsCall_eq_lognormal_expectation (S K tau r q sigma : ℝ)
     -- `congrArg` rather than `rw [hw]`: the variance slot is compared by defeq,
     -- so a different instance path for `*` on `ℝ≥0` cannot make it miss
     exact congrArg (ProbabilityTheory.gaussianReal ((r - q - sigma ^ 2 / 2) * tau)) hw
-  -- `fun_prop` first; the explicit terms are the same proofs spelled out, kept as
-  -- the fallback because this file is compiled by CI only
-  have hmeas1 : Measurable (fun z : ℝ => sigma * Real.sqrt tau * z) := by
-    first
-      | fun_prop
-      | exact (continuous_const.mul continuous_id).measurable
-  have hmeas2 : Measurable (fun x : ℝ => (r - q - sigma ^ 2 / 2) * tau + x) := by
-    first
-      | fun_prop
-      | exact (continuous_const.add continuous_id).measurable
-  have hcont1 : Continuous (fun x : ℝ => max (S * Real.exp x - K) 0) := by
-    first
-      | fun_prop
-      | exact ((continuous_const.mul Real.continuous_exp).sub continuous_const).max continuous_const
+  -- `fun_prop` closes all four at the tag (run 35573065136): `Measurable.const_mul`
+  -- / `.const_add`, and `Continuous.max` (`@[to_dual (attr := fun_prop)]` in
+  -- Topology/Order/OrderClosed.lean), `.rexp`, `.mul`, `.sub`, `continuous_const`
+  have hmeas1 : Measurable (fun z : ℝ => sigma * Real.sqrt tau * z) := by fun_prop
+  have hmeas2 : Measurable (fun x : ℝ => (r - q - sigma ^ 2 / 2) * tau + x) := by fun_prop
+  have hcont1 : Continuous (fun x : ℝ => max (S * Real.exp x - K) 0) := by fun_prop
   have hcont2 : Continuous (fun x : ℝ => max (S * Real.exp ((r - q - sigma ^ 2 / 2) * tau + x) - K) 0) := by
-    first
-      | fun_prop
-      | exact ((continuous_const.mul (continuous_const.add continuous_id).rexp).sub
-          continuous_const).max continuous_const
+    fun_prop
   rw [← hlaw, integral_map hmeas2.aemeasurable hcont1.aestronglyMeasurable,
     integral_map hmeas1.aemeasurable hcont2.aestronglyMeasurable]
   exact bsCall_eq_gaussianReal_expectation S K tau r q sigma hS hK htau hsigma

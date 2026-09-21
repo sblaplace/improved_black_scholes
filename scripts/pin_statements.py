@@ -64,6 +64,7 @@ Run:  python3 scripts/pin_statements.py --check        # layer 1 + skew, no tool
       python3 scripts/pin_statements.py --write        # regenerate layer 1
       python3 scripts/pin_statements.py --elab-write   # layers 1 + 2 (needs lake)
       python3 scripts/pin_statements.py --elab-check   # layer 2 diff (needs lake)
+      python3 scripts/pin_statements.py --elab-merge f # merge a CI-printed elab/elab_delta block
 """
 
 from __future__ import annotations
@@ -454,8 +455,31 @@ def elaborate(pins: dict) -> dict:
     return parse_audit(proc.stdout, qualified)
 
 
-def elab_check() -> tuple[list[str], dict]:
-    """Layer 2, run where a toolchain exists (the `lake build` job)."""
+def elab_delta(fresh: dict, gel: dict) -> dict:
+    """The entries of `fresh` that are missing from, or differ from, the committed
+    `elab` block -- i.e. exactly what has to be merged to make the layer green.
+
+    Printed *after* the full block by `--elab-check`, because the channel a
+    toolchain-less sandbox reads CI through is a PR comment holding the last 25k
+    characters of the log (PR #9, run 35573065136: the full 81-entry block was
+    ~30k characters, the tail started mid-block and one of the 21 new entries was
+    cut off). A delta of a brief's new declarations is a few thousand characters,
+    and printing it last guarantees it is in the tail whatever the block's size.
+    """
+    return {
+        q: entry
+        for q, entry in fresh.items()
+        if q not in gel
+        or any(normalize(gel[q].get(f, "")) != entry[f] for f in ("type", "axioms"))
+    }
+
+
+def elab_check() -> tuple[list[str], dict, dict]:
+    """Layer 2, run where a toolchain exists (the `lake build` job).
+
+    Returns `(failures, fresh, delta)`: the failure messages, the freshly
+    elaborated block, and the subset of it that is not yet committed verbatim.
+    """
     fresh = elaborate(load_pins_or_die())
     gel = load_golden().get("elab", {})
     if not gel:
@@ -468,6 +492,7 @@ def elab_check() -> tuple[list[str], dict]:
                 "purpose: a pin that was never produced is not a passing pin."
             ],
             fresh,
+            dict(fresh),
         )
     failures: list[str] = []
     for q, entry in sorted(fresh.items()):
@@ -485,7 +510,47 @@ def elab_check() -> tuple[list[str], dict]:
         failures.append(
             f"[PINS][ELAB] `{q}` is pinned but no longer elaborated by the tree."
         )
-    return failures, fresh
+    return failures, fresh, elab_delta(fresh, gel)
+
+
+def elab_merge(path: str) -> int:
+    """Merge a CI-printed `elab` or `elab_delta` block into the golden file.
+
+    The block is committed verbatim -- this function only decides *where* each
+    entry goes (the `elab` object, keyed by qualified name) and refuses anything
+    that is not a `{"type": ..., "axioms": ...}` entry for a name the source layer
+    pins. Entries already committed are overwritten only if the new value differs,
+    and every overwrite is reported, because a moved elaborated type is a changed
+    claim and must be read.
+    """
+    with open(path, encoding="utf-8") as fh:
+        block = json.load(fh)
+    incoming = block.get("elab_delta", block.get("elab"))
+    if not isinstance(incoming, dict) or not incoming:
+        print(f"FAIL [PINS][ELAB] {path}: no `elab`/`elab_delta` object to merge", file=sys.stderr)
+        return 1
+    golden = load_golden()
+    pins = golden.get("pins", {})
+    elab = dict(golden.get("elab", {}))
+    added, changed = [], []
+    for q, entry in sorted(incoming.items()):
+        if q not in pins:
+            print(f"FAIL [PINS][ELAB] `{q}` is not a source-pinned declaration; refusing "
+                  "to add an elaborated pin the lint does not know about", file=sys.stderr)
+            return 1
+        if not isinstance(entry, dict) or set(entry) != {"type", "axioms"}:
+            print(f"FAIL [PINS][ELAB] `{q}`: an entry is exactly {{type, axioms}}", file=sys.stderr)
+            return 1
+        if q in elab and elab[q] == entry:
+            continue
+        (changed if q in elab else added).append(q)
+        elab[q] = entry
+    save_golden(pins, elab)
+    print(f"merged {os.path.relpath(path, ROOT)} into {os.path.relpath(GOLDEN_PATH, ROOT)}: "
+          f"added {len(added)}, changed {len(changed)}, elab now {len(elab)}")
+    for q in changed:
+        print(f"  CHANGED {q} -- an elaborated type moved; read the diff before committing")
+    return 0
 
 
 def load_pins_or_die() -> dict:
@@ -515,9 +580,15 @@ def main(argv: list[str]) -> int:
         print(f"wrote {os.path.relpath(GOLDEN_PATH, ROOT)}: {len(pins)} pins, "
               f"{len(elab)} elaborated")
         return 0
+    if "--elab-merge" in argv:
+        i = argv.index("--elab-merge")
+        if i + 1 >= len(argv):
+            print("usage: pin_statements.py --elab-merge <file.json>", file=sys.stderr)
+            return 2
+        return elab_merge(argv[i + 1])
     if "--elab-check" in argv:
         try:
-            failures, fresh = elab_check()
+            failures, fresh, delta = elab_check()
         except RuntimeError as e:
             # No toolchain, an audit run that failed, or output we could not pair:
             # all three are "this layer did not run", never "this layer passed".
@@ -532,6 +603,16 @@ def main(argv: list[str]) -> int:
                 "\nThe block above is paste-ready because CI logs are readable from a "
                 "sandbox via `gh api` and Actions artifacts are not -- the same reason "
                 "the axioms audit is published to the PR."
+            )
+            # Printed LAST on purpose: the PR comment carries the final 25k characters
+            # of this log, and the full block can be longer than that (PR #9).
+            print("\n" + json.dumps({"elab_delta": delta}, indent=2, sort_keys=True,
+                                    ensure_ascii=False))
+            print(
+                f"\nThe `elab_delta` block above holds only the {len(delta)} entr"
+                f"{'y' if len(delta) == 1 else 'ies'} that are missing or differ. Save it to "
+                "a file and run `python3 scripts/pin_statements.py --elab-merge <file>`; the "
+                "merge is verbatim and reports every entry it overwrites."
             )
             return 1
         print("OK: elaborated types and axioms match the committed pins.")

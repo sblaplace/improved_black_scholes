@@ -178,7 +178,9 @@ So the theorem is not true for `σ ≠ 0`, and the brief does not ask for it.
   entries **byte-identical**, and the `elab` layer committed from the build
   job's printed block on the second run; `cross_layer_check` clean.
 - `scripts/lean_lint.py` green with the enlarged `REQUIRED`/`PROTECTED`
-  sets; `tests/test_lint.py` 7/7; `tests/test_pins.py` 10/10.
+  sets; `tests/test_lint.py` 7/7; `tests/test_pins.py` 12/12 (two new tests for
+  the `elab_delta` block and `--elab-merge`, the tooling this brief's first pins
+  run showed was missing — see the ledger's CI history for row 7).
 - `tests/test_bs.py` 14/14, `tests/test_mutants.py` 4/4 with 12 mutants
   (M11 killed by `test_risk_neutral_expectation` only);
   `tests/test_crosscheck.py` green; oracle lane green.
