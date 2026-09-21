@@ -697,7 +697,15 @@ theorem hasDerivAt_erf (x : ℝ) :
       (Real.exp (-(x ^ 2))) x :=
     intervalIntegral.integral_hasDerivAt_right (hcont.intervalIntegrable 0 x)
       (hcont.stronglyMeasurableAtFilter MeasureTheory.volume (nhds x)) hcont.continuousAt
-  simpa only [erf] using hFTC.const_mul (2 / Real.sqrt Real.pi)
+  -- `erf` *is* the constant multiple of that integral, so the goal's function is
+  -- this lambda up to unfolding. Carry that unfolding as an explicit `funext`
+  -- equation -- the `rw [erf]` that T1-T4 already use -- instead of leaving a
+  -- `simp`-style check to push a `noncomputable def` through a `HasDerivAt` goal.
+  have hfun : erf = fun u : ℝ => (2 / Real.sqrt Real.pi) * ∫ t in (0:ℝ)..u, Real.exp (-(t ^ 2)) := by
+    funext u
+    rw [erf]
+  rw [hfun]
+  exact hFTC.const_mul (2 / Real.sqrt Real.pi)
 
 /-- **`Phi' = phi`** -- the one genuinely new analytic input T5 needs, and the
 only place in the tree where the Gaussian normalization has to be carried
@@ -711,8 +719,18 @@ theorem hasDerivAt_Phi (x : ℝ) : HasDerivAt Phi (phi x) x := by
   have hinner : HasDerivAt (fun y : ℝ => y / Real.sqrt 2) (1 / Real.sqrt 2) x :=
     (hasDerivAt_id' (x := x)).div_const (Real.sqrt 2)
   have herf : HasDerivAt (fun y : ℝ => erf (y / Real.sqrt 2))
-      ((2 / Real.sqrt Real.pi) * Real.exp (-((x / Real.sqrt 2) ^ 2)) * (1 / Real.sqrt 2)) x :=
-    (hasDerivAt_erf (x / Real.sqrt 2)).comp x hinner
+      ((2 / Real.sqrt Real.pi) * Real.exp (-((x / Real.sqrt 2) ^ 2)) * (1 / Real.sqrt 2)) x := by
+    -- `comp` is stated for the *composite* `erf ∘ (· / √2)`. Elaborate it with no
+    -- expected type, so the outer function is read off `hasDerivAt_erf`'s own type
+    -- (`h₂ = erf`) instead of being solved for against the goal's lambda form; then
+    -- carry the unfolding between the two forms as an explicit `funext` equation
+    -- (`Function.comp_apply` is a rewrite, not a defeq step).
+    have hcomp := (hasDerivAt_erf (x / Real.sqrt 2)).comp x hinner
+    have hfun : (erf ∘ fun y : ℝ => y / Real.sqrt 2) = fun y : ℝ => erf (y / Real.sqrt 2) := by
+      funext y
+      simp only [Function.comp_apply]
+    rw [hfun] at hcomp
+    exact hcomp
   have hmain : HasDerivAt (fun y : ℝ => (1 + erf (y / Real.sqrt 2)) / 2)
       ((2 / Real.sqrt Real.pi) * Real.exp (-((x / Real.sqrt 2) ^ 2)) * (1 / Real.sqrt 2) / 2) x :=
     (((hasDerivAt_const (x := x) (c := (1 : ℝ))).add herf).div_const 2).congr_deriv (by ring)
@@ -758,8 +776,9 @@ theorem hasDerivAt_d_spot (K tau sigma c S : ℝ) (hK : 0 < K) (htau : 0 < tau)
     -- `(S / K)⁻¹ * (1 / K) = 1 / S`: `inv_div` first, so no inverse-of-a-quotient
     -- survives to be guessed at; then two quotients cancel.
     rw [inv_div]
+    -- `field_simp` normalizes what it produces and already closes this goal; a
+    -- following `ring` would be `No goals to be solved`.
     field_simp
-    ring
   have hnum : HasDerivAt (fun x : ℝ => Real.log (x / K) + c) (1 / S) S :=
     (hlog.add (hasDerivAt_const (x := S) (c := c))).congr_deriv (by ring)
   -- `(1/S) / (sigma*sqrt tau) = 1 / (S*sigma*sqrt tau)`: the same cancellation the
@@ -769,7 +788,6 @@ theorem hasDerivAt_d_spot (K tau sigma c S : ℝ) (hK : 0 < K) (htau : 0 < tau)
     mul_ne_zero (mul_ne_zero hS.ne' hsigma) hsqrt
   refine (hnum.div_const (sigma * Real.sqrt tau)).congr_deriv ?_
   field_simp
-  ring
 
 /-- Arithmetic core of the tau-derivative of the shared `d1`/`d2` shape: the
 quotient-rule expression, cleaned. `sqrt tau` is abstracted to `s` and the
@@ -813,7 +831,9 @@ theorem hasDerivAt_d_tau (A c tau sigma : ℝ) (htau : 0 < tau) (hsigma : sigma 
       ((hasDerivAt_id' (x := tau)).const_mul c)).congr_deriv (by ring)
   have hden : HasDerivAt (fun u : ℝ => sigma * Real.sqrt u)
       (sigma * (1 / (2 * Real.sqrt tau))) tau :=
-    (Real.hasDerivAt_sqrt hsqrt).const_mul sigma
+    -- `hasDerivAt_sqrt`'s point is implicit, and `hsqrt : √tau ≠ 0` alone would pin
+    -- it to `√tau`; give it `tau`.
+    (Real.hasDerivAt_sqrt (x := tau) hsqrt).const_mul sigma
   refine ((hnum.div hden (mul_ne_zero hsigma hsqrt)).congr_deriv ?_)
   exact d_tau_quotient_eq A c sigma (Real.sqrt tau) tau (Real.sq_sqrt htau.le) hsqrt hsigma
 
@@ -837,7 +857,6 @@ theorem d1_tau_sub_d2_tau (S K tau r q sigma : ℝ) (htau : 0 < tau) (hsigma : s
     mul_ne_zero (mul_ne_zero two_ne_zero hsigma) hsqrt
   have hd' : (2 : ℝ) * Real.sqrt tau ≠ 0 := mul_ne_zero two_ne_zero hsqrt
   field_simp
-  ring
 
 /-- **T5, the delta.** `dV/dS = e^{-q*tau} Phi(d1)` for the closed form, with
 **T3 doing the work**: the chain rule gives
@@ -862,11 +881,27 @@ theorem t5_delta (S K tau r q sigma : ℝ)
     simpa only [d2] using
       hasDerivAt_d_spot K tau sigma ((r - q - sigma ^ 2 / 2) * tau) S hK htau hsigma hS
   have hΦ1 : HasDerivAt (fun x : ℝ => Phi (d1 x K tau r q sigma))
-      (phi (d1 S K tau r q sigma) * (1 / (S * sigma * Real.sqrt tau))) S :=
-    (hasDerivAt_Phi (d1 S K tau r q sigma)).comp S hd1S
+      (phi (d1 S K tau r q sigma) * (1 / (S * sigma * Real.sqrt tau))) S := by
+    -- `comp` returns the *composite* `Phi ∘ d1`. Elaborate it with no expected
+    -- type, so the outer function is read off `hasDerivAt_Phi`'s own type
+    -- (`h₂ = Phi`) instead of being solved for against the goal's lambda form; then
+    -- carry the unfolding between the two forms as an explicit `funext` equation.
+    have hcomp := (hasDerivAt_Phi (d1 S K tau r q sigma)).comp S hd1S
+    have hfun : (Phi ∘ fun x : ℝ => d1 x K tau r q sigma)
+        = fun x : ℝ => Phi (d1 x K tau r q sigma) := by
+      funext x
+      simp only [Function.comp_apply]
+    rw [hfun] at hcomp
+    exact hcomp
   have hΦ2 : HasDerivAt (fun x : ℝ => Phi (d2 x K tau r q sigma))
-      (phi (d2 S K tau r q sigma) * (1 / (S * sigma * Real.sqrt tau))) S :=
-    (hasDerivAt_Phi (d2 S K tau r q sigma)).comp S hd2S
+      (phi (d2 S K tau r q sigma) * (1 / (S * sigma * Real.sqrt tau))) S := by
+    have hcomp := (hasDerivAt_Phi (d2 S K tau r q sigma)).comp S hd2S
+    have hfun : (Phi ∘ fun x : ℝ => d2 x K tau r q sigma)
+        = fun x : ℝ => Phi (d2 x K tau r q sigma) := by
+      funext x
+      simp only [Function.comp_apply]
+    rw [hfun] at hcomp
+    exact hcomp
   have hF : HasDerivAt (fun x : ℝ => x * Real.exp (-q * tau)) (Real.exp (-q * tau)) S := by
     simpa using (hasDerivAt_id' (x := S)).mul_const (Real.exp (-q * tau))
   have hP : HasDerivAt (fun x : ℝ => x * Real.exp (-q * tau) * Phi (d1 x K tau r q sigma))
@@ -922,8 +957,18 @@ theorem t5_gamma (S K tau r q sigma : ℝ)
     simpa only [d1] using
       hasDerivAt_d_spot K tau sigma ((r - q + sigma ^ 2 / 2) * tau) S hK htau hsigma hS
   have hΦ1 : HasDerivAt (fun x : ℝ => Phi (d1 x K tau r q sigma))
-      (phi (d1 S K tau r q sigma) * (1 / (S * sigma * Real.sqrt tau))) S :=
-    (hasDerivAt_Phi (d1 S K tau r q sigma)).comp S hd1S
+      (phi (d1 S K tau r q sigma) * (1 / (S * sigma * Real.sqrt tau))) S := by
+    -- `comp` returns the *composite* `Phi ∘ d1`. Elaborate it with no expected
+    -- type, so the outer function is read off `hasDerivAt_Phi`'s own type
+    -- (`h₂ = Phi`) instead of being solved for against the goal's lambda form; then
+    -- carry the unfolding between the two forms as an explicit `funext` equation.
+    have hcomp := (hasDerivAt_Phi (d1 S K tau r q sigma)).comp S hd1S
+    have hfun : (Phi ∘ fun x : ℝ => d1 x K tau r q sigma)
+        = fun x : ℝ => Phi (d1 x K tau r q sigma) := by
+      funext x
+      simp only [Function.comp_apply]
+    rw [hfun] at hcomp
+    exact hcomp
   have hdelta : HasDerivAt (fun x : ℝ => Real.exp (-q * tau) * Phi (d1 x K tau r q sigma))
       (Real.exp (-q * tau)
         * (phi (d1 S K tau r q sigma) * (1 / (S * sigma * Real.sqrt tau)))) S :=
@@ -969,12 +1014,25 @@ theorem t5_tau (S K tau r q sigma : ℝ)
       hasDerivAt_d_tau (Real.log (S / K)) (r - q - sigma ^ 2 / 2) tau sigma htau hsigma
   have hΦ1 : HasDerivAt (fun u : ℝ => Phi (d1 S K u r q sigma))
       (phi (d1 S K tau r q sigma)
-        * ((r - q + sigma ^ 2 / 2 - Real.log (S / K) / tau) / (2 * sigma * Real.sqrt tau))) tau :=
-    (hasDerivAt_Phi (d1 S K tau r q sigma)).comp tau hd1
+        * ((r - q + sigma ^ 2 / 2 - Real.log (S / K) / tau) / (2 * sigma * Real.sqrt tau))) tau := by
+    -- the composition-form bridge again, in `u` instead of `x`
+    have hcomp := (hasDerivAt_Phi (d1 S K tau r q sigma)).comp tau hd1
+    have hfun : (Phi ∘ fun u : ℝ => d1 S K u r q sigma)
+        = fun u : ℝ => Phi (d1 S K u r q sigma) := by
+      funext u
+      simp only [Function.comp_apply]
+    rw [hfun] at hcomp
+    exact hcomp
   have hΦ2 : HasDerivAt (fun u : ℝ => Phi (d2 S K u r q sigma))
       (phi (d2 S K tau r q sigma)
-        * ((r - q - sigma ^ 2 / 2 - Real.log (S / K) / tau) / (2 * sigma * Real.sqrt tau))) tau :=
-    (hasDerivAt_Phi (d2 S K tau r q sigma)).comp tau hd2
+        * ((r - q - sigma ^ 2 / 2 - Real.log (S / K) / tau) / (2 * sigma * Real.sqrt tau))) tau := by
+    have hcomp := (hasDerivAt_Phi (d2 S K tau r q sigma)).comp tau hd2
+    have hfun : (Phi ∘ fun u : ℝ => d2 S K u r q sigma)
+        = fun u : ℝ => Phi (d2 S K u r q sigma) := by
+      funext u
+      simp only [Function.comp_apply]
+    rw [hfun] at hcomp
+    exact hcomp
   have hF : HasDerivAt (fun u : ℝ => S * Real.exp (-q * u)) (-q * (S * Real.exp (-q * tau))) tau := by
     have hlin : HasDerivAt (fun u : ℝ => -q * u) (-q) tau := by
       simpa using (hasDerivAt_id' (x := tau)).const_mul (-q)
@@ -1037,7 +1095,9 @@ theorem t5_tau (S K tau r q sigma : ℝ)
           = (K * Real.exp (-r * tau) * phi (d2 S K tau r q sigma))
               * ((r - q - sigma ^ 2 / 2 - Real.log (S / K) / tau)
                   / (2 * sigma * Real.sqrt tau)) := by ring
-      rw [hp, hq, hT3.symm, ← sub_mul, hV]
+      -- the shared factor sits on the LEFT of both products, so factor it with
+      -- `← mul_sub`, not `← sub_mul`.
+      rw [hp, hq, hT3.symm, ← mul_sub, hV]
       ring
     have hsplit : ((-q * (S * Real.exp (-q * tau))) * Phi (d1 S K tau r q sigma)
           + (S * Real.exp (-q * tau))
@@ -1061,7 +1121,17 @@ theorem t5_tau (S K tau r q sigma : ℝ)
                     / (2 * sigma * Real.sqrt tau)))) := by ring
     rw [hsplit, hφ]
     ring
-  simpa only [bsCall] using (hP.sub hQ).congr_deriv hclean
+  -- `bsCall` unfolds to the lambda form, while `HasDerivAt.sub` produced the `Pi`
+  -- form `(fun u ↦ …) - fun u ↦ …`. Rewrite the goal's *function* along an explicit
+  -- `funext` equation, so the two sides are the same term instead of asking a
+  -- `simpa`-style check to unfold `bsCall` and the `Pi` subtraction.
+  have hPi : ((fun u : ℝ => S * Real.exp (-q * u) * Phi (d1 S K u r q sigma))
+        - (fun u : ℝ => K * Real.exp (-r * u) * Phi (d2 S K u r q sigma)))
+      = fun u : ℝ => bsCall S K u r q sigma := by
+    funext u
+    simp only [Pi.sub_apply, bsCall]
+  rw [← hPi]
+  exact (hP.sub hQ).congr_deriv hclean
 
 /-- **T5, the `tau`-gauge form.** `V_t + (r - q) S V_S + (sigma^2/2) S^2 V_SS
 = r V` for the closed form, with `tau = T - t` kept fixed and `V_t` written as
@@ -1092,7 +1162,6 @@ theorem t5_bsCall_pde_tau (S K tau r q sigma : ℝ)
       mul_ne_zero (mul_ne_zero hS.ne' hsigma) hsqrt
     have h2t : (2 : ℝ) * Real.sqrt tau ≠ 0 := mul_ne_zero two_ne_zero hsqrt
     field_simp
-    ring
   rw [hΘ, hΔ, hΓ]
   unfold bsCall
   rw [← hEuler]
@@ -1116,8 +1185,10 @@ theorem t5_bsCall_pde (S K T t r q sigma : ℝ)
       + (sigma ^ 2 / 2) * S ^ 2
           * deriv (fun x => deriv (fun y => bsCall y K (T - t) r q sigma) x) S
       = r * bsCall S K (T - t) r q sigma := by
-  have hinner : HasDerivAt (fun u : ℝ => T - u) (-1) t := by
-    simpa using (hasDerivAt_const (x := t) (c := T)).sub (hasDerivAt_id' (x := t))
+  -- `const_sub` is stated for `fun x => c - f x`, which is the goal's function
+  -- literally; `HasDerivAt.sub` only gives the `Pi` form `(fun x ↦ T) - fun x ↦ x`.
+  have hinner : HasDerivAt (fun u : ℝ => T - u) (-1) t :=
+    (hasDerivAt_id' (x := t)).const_sub T
   have hVt : deriv (fun u => bsCall S K (T - u) r q sigma) t
       = -deriv (fun u => bsCall S K u r q sigma) (T - t) := by
     -- the chain rule for `t ↦ T - t` (`HasDerivAt.comp`, not a re-gauging): the
@@ -1125,7 +1196,13 @@ theorem t5_bsCall_pde (S K T t r q sigma : ℝ)
     -- rewritten -- the composite's by `hcomp`, the pointwise value's by `hτ`.
     have hτ := t5_tau S K (T - t) r q sigma hS hK hTt hsigma
     have hcomp := hτ.comp t hinner
-    rw [hcomp.deriv, hτ.deriv]
+    -- `hcomp` is stated for the *composite*; the goal differentiates the lambda form
+    -- of the same function, so rewrite the function along a `funext` equation first.
+    have hfun : (fun u : ℝ => bsCall S K (T - u) r q sigma)
+        = (fun u : ℝ => bsCall S K u r q sigma) ∘ fun u : ℝ => T - u := by
+      funext u
+      simp only [Function.comp_apply]
+    rw [hfun, hcomp.deriv, hτ.deriv]
     ring
   rw [hVt]
   exact t5_bsCall_pde_tau S K (T - t) r q sigma hS hK hTt hsigma
