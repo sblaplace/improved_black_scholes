@@ -222,6 +222,10 @@
       "axioms": "'BSM.hasDerivAt_erf' depends on axioms: [propext, Classical.choice, Quot.sound]",
       "type": "BSM.hasDerivAt_erf : ∀ (x : ℝ), HasDerivAt BSM.erf (2 / √Real.pi * Real.exp (-x ^ 2)) x"
     },
+    "BSM.integrable_call_payoff": {
+      "axioms": "'BSM.integrable_call_payoff' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.integrable_call_payoff : ∀ {μ : MeasureTheory.Measure ℝ} [MeasureTheory.IsProbabilityMeasure μ] (X : ℝ → ℝ) (K : ℝ), MeasureTheory.Integrable X μ → MeasureTheory.Integrable (fun s => max (X s - K) 0) μ"
+    },
     "BSM.integrable_exp_mul_phi": {
       "axioms": "'BSM.integrable_exp_mul_phi' depends on axioms: [propext, Classical.choice, Quot.sound]",
       "type": "BSM.integrable_exp_mul_phi : ∀ (s : ℝ), MeasureTheory.Integrable (fun z => Real.exp (s * z) * BSM.phi z) MeasureTheory.volume"
@@ -230,9 +234,17 @@
       "axioms": "'BSM.integrable_exp_neg_abs_rpow' depends on axioms: [propext, Classical.choice, Quot.sound]",
       "type": "BSM.integrable_exp_neg_abs_rpow : ∀ {c Y : ℝ}, 0 < c → 0 < Y → MeasureTheory.Integrable (fun u => Real.exp (-c * |u| ^ Y)) MeasureTheory.volume"
     },
+    "BSM.integrable_gaussianReal_iff": {
+      "axioms": "'BSM.integrable_gaussianReal_iff' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.integrable_gaussianReal_iff : ∀ (f : ℝ → ℝ), MeasureTheory.Integrable f (ProbabilityTheory.gaussianReal 0 1) ↔ MeasureTheory.Integrable (fun z => f z * BSM.phi z) MeasureTheory.volume"
+    },
     "BSM.integrable_max_spot_sub_strike_mul_phi": {
       "axioms": "'BSM.integrable_max_spot_sub_strike_mul_phi' depends on axioms: [propext, Classical.choice, Quot.sound]",
       "type": "BSM.integrable_max_spot_sub_strike_mul_phi : ∀ (S K tau r q sigma : ℝ), 0 < S → 0 < K → 0 < tau → 0 < sigma → MeasureTheory.Integrable (fun z => max (S * Real.exp ((r - q - sigma ^ 2 / 2) * tau + sigma * √tau * z) - K) 0 * BSM.phi z) MeasureTheory.volume"
+    },
+    "BSM.integrable_put_payoff": {
+      "axioms": "'BSM.integrable_put_payoff' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.integrable_put_payoff : ∀ {μ : MeasureTheory.Measure ℝ} [MeasureTheory.IsProbabilityMeasure μ] (X : ℝ → ℝ) (K : ℝ), MeasureTheory.Integrable X μ → MeasureTheory.Integrable (fun s => max (K - X s) 0) μ"
     },
     "BSM.integrable_spot_mul_phi": {
       "axioms": "'BSM.integrable_spot_mul_phi' depends on axioms: [propext, Classical.choice, Quot.sound]",
@@ -278,6 +290,14 @@
       "axioms": "'BSM.lintegral_exp_eq_top_of_tail_lower_bound' depends on axioms: [propext, Classical.choice, Quot.sound]",
       "type": "BSM.lintegral_exp_eq_top_of_tail_lower_bound : ∀ (μ : MeasureTheory.Measure ℝ) [MeasureTheory.IsProbabilityMeasure μ] (α c x₀ : ℝ), 0 < c → (∀ x ≥ x₀, ENNReal.ofReal (c * x ^ (-α)) ≤ μ (Set.Ici x)) → ∫⁻ (y : ℝ), ENNReal.ofReal (Real.exp y) ∂μ = ⊤"
     },
+    "BSM.lognormal_call_bounds": {
+      "axioms": "'BSM.lognormal_call_bounds' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.lognormal_call_bounds : ∀ (S K tau r q sigma : ℝ), 0 ≤ S → 0 ≤ K → 0 ≤ tau → max (S * Real.exp (-q * tau) - K * Real.exp (-r * tau)) 0 ≤ BSM.modelFreeCall (ProbabilityTheory.gaussianReal 0 1) (fun z => S * Real.exp ((r - q - sigma ^ 2 / 2) * tau + sigma * √tau * z)) K r tau ∧ BSM.modelFreeCall (ProbabilityTheory.gaussianReal 0 1) (fun z => S * Real.exp ((r - q - sigma ^ 2 / 2) * tau + sigma * √tau * z)) K r tau ≤ S * Real.exp (-q * tau)"
+    },
+    "BSM.lognormal_parity_gap": {
+      "axioms": "'BSM.lognormal_parity_gap' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.lognormal_parity_gap : ∀ (S K tau r q sigma : ℝ), 0 ≤ tau → BSM.modelFreeCall (ProbabilityTheory.gaussianReal 0 1) (fun z => S * Real.exp ((r - q - sigma ^ 2 / 2) * tau + sigma * √tau * z)) K r tau - BSM.modelFreePut (ProbabilityTheory.gaussianReal 0 1) (fun z => S * Real.exp ((r - q - sigma ^ 2 / 2) * tau + sigma * √tau * z)) K r tau = S * Real.exp (-q * tau) - K * Real.exp (-r * tau)"
+    },
     "BSM.max_spot_sub_strike_mul_phi": {
       "axioms": "'BSM.max_spot_sub_strike_mul_phi' depends on axioms: [propext, Classical.choice, Quot.sound]",
       "type": "BSM.max_spot_sub_strike_mul_phi : ∀ (S K m s d : ℝ), 0 < S → 0 < K → 0 < s → s * d = Real.log (S / K) + m → ∀ (z : ℝ), max (S * Real.exp (m + s * z) - K) 0 * BSM.phi z = (Set.Ioi (-d)).indicator (fun z => (S * Real.exp (m + s * z) - K) * BSM.phi z) z"
@@ -285,6 +305,34 @@
     "BSM.max_sub_swap_eq": {
       "axioms": "'BSM.max_sub_swap_eq' depends on axioms: [propext, Classical.choice, Quot.sound]",
       "type": "BSM.max_sub_swap_eq : ∀ (a b : ℝ), max (b - a) 0 = max (a - b) 0 - a + b"
+    },
+    "BSM.modelFreeCall": {
+      "axioms": "'BSM.modelFreeCall' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.modelFreeCall : MeasureTheory.Measure ℝ → (ℝ → ℝ) → ℝ → ℝ → ℝ → ℝ"
+    },
+    "BSM.modelFreePut": {
+      "axioms": "'BSM.modelFreePut' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.modelFreePut : MeasureTheory.Measure ℝ → (ℝ → ℝ) → ℝ → ℝ → ℝ → ℝ"
+    },
+    "BSM.model_free_call_bounds": {
+      "axioms": "'BSM.model_free_call_bounds' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.model_free_call_bounds : ∀ {μ : MeasureTheory.Measure ℝ} [MeasureTheory.IsProbabilityMeasure μ] (S K tau r q : ℝ) (X : ℝ → ℝ), MeasureTheory.Integrable X μ → ∫ (s : ℝ), X s ∂μ = S * Real.exp ((r - q) * tau) → 0 ≤ K → (∀ᵐ (s : ℝ) ∂μ, 0 ≤ X s) → max (S * Real.exp (-q * tau) - K * Real.exp (-r * tau)) 0 ≤ BSM.modelFreeCall μ X K r tau ∧ BSM.modelFreeCall μ X K r tau ≤ S * Real.exp (-q * tau)"
+    },
+    "BSM.model_free_call_nonneg": {
+      "axioms": "'BSM.model_free_call_nonneg' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.model_free_call_nonneg : ∀ {μ : MeasureTheory.Measure ℝ} (X : ℝ → ℝ) (K r tau : ℝ), 0 ≤ BSM.modelFreeCall μ X K r tau"
+    },
+    "BSM.model_free_parity_gap": {
+      "axioms": "'BSM.model_free_parity_gap' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.model_free_parity_gap : ∀ {μ : MeasureTheory.Measure ℝ} [MeasureTheory.IsProbabilityMeasure μ] (X : ℝ → ℝ) (K r tau : ℝ), MeasureTheory.Integrable X μ → BSM.modelFreeCall μ X K r tau - BSM.modelFreePut μ X K r tau = Real.exp (-r * tau) * (∫ (s : ℝ), X s ∂μ - K)"
+    },
+    "BSM.model_free_put_bounds": {
+      "axioms": "'BSM.model_free_put_bounds' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.model_free_put_bounds : ∀ {μ : MeasureTheory.Measure ℝ} [MeasureTheory.IsProbabilityMeasure μ] (S K tau r q : ℝ) (X : ℝ → ℝ), MeasureTheory.Integrable X μ → ∫ (s : ℝ), X s ∂μ = S * Real.exp ((r - q) * tau) → 0 ≤ K → (∀ᵐ (s : ℝ) ∂μ, 0 ≤ X s) → max (K * Real.exp (-r * tau) - S * Real.exp (-q * tau)) 0 ≤ BSM.modelFreePut μ X K r tau ∧ BSM.modelFreePut μ X K r tau ≤ K * Real.exp (-r * tau)"
+    },
+    "BSM.model_free_put_call_parity": {
+      "axioms": "'BSM.model_free_put_call_parity' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.model_free_put_call_parity : ∀ {μ : MeasureTheory.Measure ℝ} [MeasureTheory.IsProbabilityMeasure μ] (S K tau r q : ℝ) (X : ℝ → ℝ), MeasureTheory.Integrable X μ → ∫ (s : ℝ), X s ∂μ = S * Real.exp ((r - q) * tau) → BSM.modelFreeCall μ X K r tau - BSM.modelFreePut μ X K r tau = S * Real.exp (-q * tau) - K * Real.exp (-r * tau)"
     },
     "BSM.no_drift_makes_spot_integrable": {
       "axioms": "'BSM.no_drift_makes_spot_integrable' depends on axioms: [propext, Classical.choice, Quot.sound]",
@@ -342,6 +390,10 @@
       "axioms": "'BSM.t2_put_call_parity_spread' depends on axioms: [propext, Classical.choice, Quot.sound]",
       "type": "BSM.t2_put_call_parity_spread : ∀ (S K tau r q sigma : ℝ), BSM.bsCall S K tau r q sigma - BSM.bsPut S K tau r q sigma = S * Real.exp (-q * tau) - K * Real.exp (-r * tau)"
     },
+    "BSM.t2_spread_via_skeleton": {
+      "axioms": "'BSM.t2_spread_via_skeleton' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.t2_spread_via_skeleton : ∀ (S K tau r q sigma : ℝ), 0 < S → 0 < K → 0 < tau → 0 < sigma → BSM.bsCall S K tau r q sigma - BSM.bsPut S K tau r q sigma = S * Real.exp (-q * tau) - K * Real.exp (-r * tau)"
+    },
     "BSM.t3_delta_identity": {
       "axioms": "'BSM.t3_delta_identity' depends on axioms: [propext, Classical.choice, Quot.sound]",
       "type": "BSM.t3_delta_identity : ∀ (S K tau r q sigma : ℝ), 0 < S → 0 < K → 0 < tau → sigma ≠ 0 → S * Real.exp (-q * tau) * BSM.phi (BSM.d1 S K tau r q sigma) = K * Real.exp (-r * tau) * BSM.phi (BSM.d2 S K tau r q sigma)"
@@ -349,6 +401,10 @@
     "BSM.t4_call_bounds": {
       "axioms": "'BSM.t4_call_bounds' depends on axioms: [propext, Classical.choice, Quot.sound]",
       "type": "BSM.t4_call_bounds : ∀ (S K tau r q sigma : ℝ), 0 < S → 0 < K → 0 < tau → 0 < sigma → max (S * Real.exp (-q * tau) - K * Real.exp (-r * tau)) 0 ≤ BSM.bsCall S K tau r q sigma ∧ BSM.bsCall S K tau r q sigma ≤ S * Real.exp (-q * tau)"
+    },
+    "BSM.t4_call_bounds_via_skeleton": {
+      "axioms": "'BSM.t4_call_bounds_via_skeleton' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.t4_call_bounds_via_skeleton : ∀ (S K tau r q sigma : ℝ), 0 < S → 0 < K → 0 < tau → 0 < sigma → max (S * Real.exp (-q * tau) - K * Real.exp (-r * tau)) 0 ≤ BSM.bsCall S K tau r q sigma ∧ BSM.bsCall S K tau r q sigma ≤ S * Real.exp (-q * tau)"
     },
     "BSM.t4_put_bounds": {
       "axioms": "'BSM.t4_put_bounds' depends on axioms: [propext, Classical.choice, Quot.sound]",
