@@ -136,6 +136,14 @@ MUTANTS = [
         # stay green while E[S_T] drifts to S e^{(r-q+s^2) tau}.
         ["test_risk_neutral_expectation"],
     ),
+    (
+        "M12 Carr-Madan damping denominator mid coefficient: (2*alpha+1) -> (2*alpha-1)",
+        "(2.0 * alpha + 1.0) * u",
+        "(2.0 * alpha - 1.0) * u",
+        # Only the Fourier inversion test can see this: the closed forms and expectation
+        # routes do not use the Carr-Madan denominator.
+        ["test_fourier_inversion"],
+    ),
 ]
 
 

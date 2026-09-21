@@ -2,6 +2,7 @@ import ImprovedBS.Core
 import ImprovedBS.Levy
 import ImprovedBS.Fourier
 import ImprovedBS.RiskNeutral
+import ImprovedBS.Inversion
 
 /-!
 # ImprovedBS
@@ -26,6 +27,11 @@ Root module of the `ImprovedBS` library. Modules imported here are built by
   §3 the payoff as the indicator of the exercise region, §4 the call and put
   identities, the drift condition and the same identity against mathlib's
   standard-normal and lognormal laws.
+* `ImprovedBS.Inversion` — BRIEF_008: Fourier inversion of the Carr–Madan pricing
+  kernel (T6 sub-goal 3b). §1 is the Fourier pricing integral and its integrability,
+  §2 the damped call price and lognormal expectation, §3 the Fourier inversion formula
+  via mathlib's `Continuous.fourierInv_fourier_eq` / `Integrable.fourierInv_fourier_eq`,
+  §4 the main theorems landing on `bsCall_eq_lognormal_expectation` and real-valuedness.
 
 ## Why the module is not called `Lean.*`
 

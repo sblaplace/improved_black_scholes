@@ -34,6 +34,8 @@ from experiments.black_scholes import (
     _d1d2,
     bs_call,
     bs_call_by_expectation,
+    bs_call_by_fourier_inversion,
+    bs_call_by_fourier_inversion_complex,
     bs_price,
     bs_pde_residual,
     bs_put,
@@ -241,6 +243,36 @@ def test_risk_neutral_expectation():
         assert abs(fwd - s_ * math.exp((r_ - q_) * tau_)) < 1e-9 * s_, f"drift condition fails: {fwd}"
     s_, k_, tau_, r_, q_, sg_ = GRID[0]
     assert abs(bs_call(s_, k_, tau_, r_, q_, -sg_) + bs_put(s_, k_, tau_, r_, q_, sg_)) < 1e-12
+
+
+def test_fourier_inversion():
+    """T6(3b) (numerical shadow): Carr–Madan Fourier inversion equals the closed form.
+
+    The call price is computed by inverting the damped Fourier transform
+    `carrMadanKernel(gbmCharFactor, alpha)` along `v = u - i(alpha + 1)`:
+        C = e^{-r tau} S e^{-alpha k} / pi * int_0^infty Re(e^{-i u k} kernel(u)) du
+    landing on `bs_call_by_expectation` and `bs_call`.
+
+    Real-valuedness: `bs_call_by_fourier_inversion_complex` computes the two-sided
+    integral on [-u_max, u_max]; its imaginary part vanishes to machine precision
+    because the integrand's imaginary part is an odd function of u.
+    """
+    for (s_, k_, tau_, r_, q_, sg_) in GRID:
+        c = bs_call(s_, k_, tau_, r_, q_, sg_)
+        cf = bs_call_by_fourier_inversion(s_, k_, tau_, r_, q_, sg_)
+        assert abs(cf - c) < 1e-10 * max(1.0, c), f"call != fourier inversion: {c} vs {cf}"
+        ce = bs_call_by_expectation(s_, k_, tau_, r_, q_, sg_)
+        assert abs(cf - ce) < 1e-10 * max(1.0, c), f"fourier inversion != expectation: {cf} vs {ce}"
+        c_cplx = bs_call_by_fourier_inversion_complex(s_, k_, tau_, r_, q_, sg_)
+        assert abs(c_cplx.real - c) < 1e-10 * max(1.0, c), f"cplx real != closed form: {c_cplx.real} vs {c}"
+        assert abs(c_cplx.imag) < 1e-13 * max(1.0, c), f"imaginary part not zero: {c_cplx.imag}"
+
+    # alpha <= 0 must be rejected
+    try:
+        bs_call_by_fourier_inversion(100.0, 100.0, 1.0, 0.05, 0.0, 0.20, alpha=-0.5)
+        raise AssertionError("expected ValueError for alpha <= 0")
+    except ValueError:
+        pass
 
 
 if __name__ == "__main__":

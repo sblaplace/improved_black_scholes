@@ -203,6 +203,20 @@ REQUIRED = {
     "bsPut_eq_riskNeutral_expectation": "ImprovedBS/RiskNeutral.lean",
     "bsCall_eq_gaussianReal_expectation": "ImprovedBS/RiskNeutral.lean",
     "bsCall_eq_lognormal_expectation": "ImprovedBS/RiskNeutral.lean",
+    # T6 sub-goal 3b (BRIEF_008): Fourier inversion and real-valuedness
+    "carrMadanInversion": "ImprovedBS/Inversion.lean",
+    "carrMadanInversion_integrand_integrable": "ImprovedBS/Inversion.lean",
+    "gbm_carrMadanInversion_integrable": "ImprovedBS/Inversion.lean",
+    "dampedCallPrice": "ImprovedBS/Inversion.lean",
+    "dampedCallPrice_log_eq": "ImprovedBS/Inversion.lean",
+    "undamped_dampedCallPrice": "ImprovedBS/Inversion.lean",
+    "fourierInversion_dampedCallPrice": "ImprovedBS/Inversion.lean",
+    "fourierInversion_dampedCallPrice_at": "ImprovedBS/Inversion.lean",
+    "carrMadan_inversion_eq_lognormal_expectation": "ImprovedBS/Inversion.lean",
+    "carrMadan_inversion_eq_bsCall": "ImprovedBS/Inversion.lean",
+    "carrMadan_inversion_im_eq_zero": "ImprovedBS/Inversion.lean",
+    "carrMadan_inversion_eq_re": "ImprovedBS/Inversion.lean",
+    "carrMadan_inversion_re_eq_bsCall": "ImprovedBS/Inversion.lean",
 }
 
 # Zero deferred-proof markers allowed. The T1/T2 node per BRIEF_001; the T3/T4
@@ -299,6 +313,18 @@ PROTECTED = {
     "bsPut_eq_riskNeutral_expectation",
     "bsCall_eq_gaussianReal_expectation",
     "bsCall_eq_lognormal_expectation",
+    # T6 sub-goal 3b (BRIEF_008): Fourier inversion and real-valuedness
+    "carrMadanInversion_integrand_integrable",
+    "gbm_carrMadanInversion_integrable",
+    "dampedCallPrice_log_eq",
+    "undamped_dampedCallPrice",
+    "fourierInversion_dampedCallPrice",
+    "fourierInversion_dampedCallPrice_at",
+    "carrMadan_inversion_eq_lognormal_expectation",
+    "carrMadan_inversion_eq_bsCall",
+    "carrMadan_inversion_im_eq_zero",
+    "carrMadan_inversion_eq_re",
+    "carrMadan_inversion_re_eq_bsCall",
 }
 
 # The T5 node, in dependency order, and the two citations docs/04's spine

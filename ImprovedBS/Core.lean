@@ -1290,7 +1290,9 @@ Provable sub-goals, in increasing order of commitment:
              instance of the target's right-hand side; before it, no theorem in
              this tree connected the closed form to the expectation it prices.
       (c-ii) Fourier inversion (`Integrable.fourier_inversion` against
-             `carrMadanKernel`) landing on (c-i) — open.
+             `carrMadanKernel`) landing on (c-i) — **LANDED** as
+             ImprovedBS/Inversion.lean (BRIEF_008): `carrMadan_inversion_eq_lognormal_expectation`,
+             `carrMadan_inversion_eq_bsCall`, and real-valuedness (`carrMadan_inversion_im_eq_zero`).
 
 See docs/03_research.md D1, which carries the falsifier (fitted `alpha`
 concentrating in `(1.3, 1.9)` and being materially *less* moneyness-dependent
