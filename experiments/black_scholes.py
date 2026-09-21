@@ -190,6 +190,36 @@ def forward_by_expectation(S: float, K: float, tau: float, r: float, q: float, s
     return _expectation(lambda x: x, S, K, tau, r, q, s, n=8000)
 
 
+# ------------------------------------------------- model-free skeleton
+
+
+def model_free_prices(probs, spots, K, r, tau):
+    """(discounted call, discounted put) of the payoffs `(s-K)+`, `(K-s)+`
+    against an explicit discrete law `P(S_T = s_i) = p_i`.
+
+    The numeric shadow of Lean's `modelFreeCall`/`modelFreePut`
+    (ImprovedBS/Skeleton.lean): price by expectation against ANY law -- no
+    `norm_cdf`, no `_d1d2`, no `phi`, no density at all. Parity at this layer
+    is `call - put = e^{-r tau} (E[S_T] - K)` (Lean `model_free_parity_gap`),
+    which becomes the forward spread exactly when the law's mean is the
+    forward (`model_free_put_call_parity`), and the no-arb bounds hold at any
+    law with nonnegative spots and the drift condition
+    (`model_free_call_bounds`). `tests/test_mutants.py` M13/M14 show the
+    identities can fail.
+    """
+    call = sum(p * max(s - K, 0.0) for p, s in zip(probs, spots)) * math.exp(-r * tau)
+    put = sum(p * max(K - s, 0.0) for p, s in zip(probs, spots)) * math.exp(-r * tau)
+    return call, put
+
+
+def model_free_forward(probs, spots):
+    """`E[S_T]` against an explicit discrete law.
+
+    The right-hand side's `∫ s, X s ∂μ` of Lean's `model_free_parity_gap`.
+    """
+    return sum(p * s for p, s in zip(probs, spots))
+
+
 def carr_madan_denom(alpha: float, u: float) -> complex:
     """The Carr–Madan strike-transform denominator `(α² + α − u²) + i(2α+1)u`."""
     return complex(alpha * alpha + alpha - u * u, (2.0 * alpha + 1.0) * u)

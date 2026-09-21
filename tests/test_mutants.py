@@ -15,7 +15,7 @@ error actually go red.
 
 Two properties this buys:
 
-1. **Detection.** Every seeded bug is caught (12/12 as of this commit).
+1. **Detection.** Every seeded bug is caught (15/15 as of this commit).
 2. **Non-vacuity.** Two of the mutants exist specifically to catch tests that
    compare a quantity against itself:
 
@@ -143,6 +143,22 @@ MUTANTS = [
         # Only the Fourier inversion test can see this: the closed forms and expectation
         # routes do not use the Carr-Madan denominator.
         ["test_fourier_inversion"],
+    ),
+    (
+        "M13 model-free put payoff corrupted to the call payoff",
+        "p * max(K - s, 0.0)",
+        "p * max(s - K, 0.0)",
+        # Only the model-free skeleton test uses the discrete-law helpers: with
+        # the put payoff corrupted, put == call and every gap identity dies.
+        ["test_model_free_skeleton"],
+    ),
+    (
+        "M14 model-free mean corrupted to the second moment (drift bug, M11's twin)",
+        "sum(p * s for p, s in zip(probs, spots))",
+        "sum(p * s * s for p, s in zip(probs, spots))",
+        # Only the model-free skeleton test uses `model_free_forward`: the gap
+        # identity's right-hand side moves and parity dies at every law.
+        ["test_model_free_skeleton"],
     ),
 ]
 
