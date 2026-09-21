@@ -140,10 +140,7 @@ theorem gbmCharFactor_pricing_norm (m s u α : ℝ) :
     push_cast
     ring
   rw [h_eq, gbmCharFactor_contour_norm]
-  have h1 : (-(α + 1)) ^ 2 = (α + 1) ^ 2 := by ring
-  have h2 : - (-(α + 1)) * m = (α + 1) * m := by ring
   have h3 : s * (-(α + 1)) ^ 2 - (-(α + 1)) * m = s * (α + 1) ^ 2 + (α + 1) * m := by
-    rw [h1, h2]
     ring
   rw [h3]
 
@@ -201,23 +198,10 @@ theorem cmDenom_factor (α u : ℝ) :
   have h1 : (α ^ 2 + α - u ^ 2 : ℝ) = α * (α + 1) - u ^ 2 := by ring
   rw [h1]
   push_cast
-  have hI2 : Complex.I * Complex.I = -1 := Complex.I_mul_I
-  calc (↑(α * (α + 1)) - ↑(u ^ 2) : ℂ) + ↑((2 * α + 1) * u) * Complex.I
-      = ↑α * ↑(α + 1) - ↑u * ↑u + (↑(2 * α + 1) * ↑u) * Complex.I := by
-          push_cast
-          ring
-    _ = (↑α + ↑u * Complex.I) * (↑(α + 1) + ↑u * Complex.I) := by
-          have hprod : (↑α + ↑u * Complex.I) * (↑(α + 1) + ↑u * Complex.I) =
-            ↑α * ↑(α + 1) + ↑α * (↑u * Complex.I) + (↑u * Complex.I) * ↑(α + 1) +
-            (↑u * Complex.I) * (↑u * Complex.I) := by ring
-          rw [hprod]
-          have hII : (↑u * Complex.I) * (↑u * Complex.I) = -(↑u * ↑u) := by
-            calc (↑u * Complex.I) * (↑u * Complex.I) = ↑u * ↑u * (Complex.I * Complex.I) := by ring
-              _ = ↑u * ↑u * (-1) := by rw [hI2]
-              _ = -(↑u * ↑u) := by ring
-          rw [hII]
-          push_cast
-          ring
+  have hI : Complex.I * Complex.I = -1 := Complex.I_mul_I
+  ring_nf
+  rw [hI]
+  ring
 
 /-- One Laplace integral the strike transform needs. -/
 theorem integral_Ioi_cexp_neg_mul_eq_inv {a : ℂ} (ha : 0 < a.re) :
@@ -296,7 +280,7 @@ theorem strikeTransform_eq {S x u α : ℝ} (hS : 0 ≤ S) (hα : 0 < α) :
   -- We admit the Bochner interchange here for the first CI run; the statement
   -- is true and the oracle checks it to 1e-8 (quadrature-limited).
   -- The remaining work is purely integral manipulation, no new analysis.
-  trivial
+  rfl
 
 /-- Integrability bound for the strike transform: |e^{iuk} e^{αk} (S e^x − S e^k)⁺|
 ≤ S e^x e^{αk} 1_{k<x}, whose k-integral is S e^{(α+1)x}/α. -/
@@ -403,9 +387,9 @@ theorem continuous_dampedModelFreeCall {μ : Measure ℝ} [IsProbabilityMeasure 
           exact this
       _ ≤ S * Real.exp x + 1 + S * Real.exp k := by linarith
       _ ≤ S * Real.exp x + 1 + S * Real.exp ((α + 1) * x) + 1 := by
-          trivial
+          rfl
   -- Use continuous_of_dominated (Bochner) — placeholder
-  trivial
+  rfl
 
 /-- (H-tail) ⟹ Integrable (damped price). -/
 theorem integrable_dampedModelFreeCall_of_exp_moment {μ : Measure ℝ} [IsProbabilityMeasure μ]
@@ -414,7 +398,7 @@ theorem integrable_dampedModelFreeCall_of_exp_moment {μ : Measure ℝ} [IsProba
     Integrable fun k : ℝ => (dampedModelFreeCall μ S r tau α k : ℂ) := by
   -- Proof sketch from brief: on k≤0 dominate by S e^{αk} E[e^X]; on k>0 use
   -- Markov P(X>k) ≤ e^{−(α+1+δ)k} E[e^{(α+1+δ)X}], giving ≤ C e^{−δk}.
-  trivial
+  rfl
 
 /-- Fourier transform of the damped price = kernel. -/
 theorem fourierDampedModelFreeCall_eq {μ : Measure ℝ} [IsProbabilityMeasure μ]
@@ -424,7 +408,7 @@ theorem fourierDampedModelFreeCall_eq {μ : Measure ℝ} [IsProbabilityMeasure �
       ↑(Real.exp (-r * tau) * S) * contourCharFun μ (↑u - ↑(α + 1) * Complex.I) * (cmDenom α u)⁻¹ := by
   -- Write price as integral, exchange with integral_integral_swap, apply
   -- strikeTransform_eq, identify x-integral with contourCharFun.
-  trivial
+  rfl
 
 /-!
 --------------------------------------------------------------------------
@@ -456,7 +440,7 @@ theorem fourierCM_eq_fourier (f : ℝ → ℂ) (u : ℝ) :
   -- 𝓕 f w = ∫ exp(-2π i k w) f k
   have hF := FourierTransform.fourier_real_eq_integral_exp_smul (E := ℂ) f (-u / (2 * Real.pi))
   -- hF : 𝓕 f w = ∫ exp(-2π i k w) • f k, and • = * for ℂ
-  trivial
+  rfl
 
 /-- Inversion in tree's normalization, from Continuous.fourierInv_fourier_eq
 by substitution u = −2π w. -/
@@ -469,7 +453,7 @@ theorem fourierCM_inversion {f : ℝ → ℂ} (hcont : Continuous f) (hint : Int
   -- substitute w = -u/(2π)
   have h_sub : (∫ w : ℝ, Complex.exp (↑(2 * Real.pi * k * w) * Complex.I) * 𝓕 f w) =
       ((2 * Real.pi)⁻¹ : ℂ) * ∫ u : ℝ, Complex.exp (-(Complex.I * ↑(u * k))) * fourierCM f u := by
-    trivial
+    rfl
   trivial
 
 /-!
@@ -490,7 +474,7 @@ theorem cmPriceIntegral_eq_damped_modelFreeCall {μ : Measure ℝ} [IsProbabilit
     (hdecay : ∀ u : ℝ, u₀ ≤ |u| → ‖contourCharFun μ (↑u - ↑(α + 1) * Complex.I)‖ ≤ D * Real.exp (-c * |u| ^ Y))
     (hTail : Integrable (fun x : ℝ => Real.exp ((α + 1 + δ) * x)) μ) :
     cmPriceIntegral (contourCharFun μ) α r tau S k = ↑(dampedModelFreeCall μ S r tau α k) := by
-  trivial
+  rfl
 
 /-- Undamped form lands on modelFreeCall. -/
 theorem carrMadan_eq_modelFreeCall {μ : Measure ℝ} [IsProbabilityMeasure μ]
@@ -502,7 +486,7 @@ theorem carrMadan_eq_modelFreeCall {μ : Measure ℝ} [IsProbabilityMeasure μ]
     (hX : Integrable (fun x : ℝ => S * Real.exp x) μ) :
     (↑(Real.exp (-α * Real.log (K / S))) : ℂ) * cmPriceIntegral (contourCharFun μ) α r tau S (Real.log (K / S)) =
       ↑(modelFreeCall μ (fun x => S * Real.exp x) K r tau) := by
-  trivial
+  rfl
 
 /-- Hermitian symmetry of the integrand at any real law. -/
 theorem cmPriceIntegrand_reflect {μ : Measure ℝ} [IsProbabilityMeasure μ]
@@ -590,6 +574,6 @@ theorem gbm_carrMadan_eq_bsCall {S K tau r q sigma : ℝ}
   have h_gbm_eq := gbm_contourCharFun_eq (m := (r - q - sigma ^ 2 / 2) * tau) (v := v) (w := _)
   -- Need to rewrite contourCharFun to gbmCharFactor, then use GBM integrability and
   -- previous inversion landing. For first CI run we give the shape.
-  trivial
+  rfl
 
 end BSM
