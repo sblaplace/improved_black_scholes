@@ -208,7 +208,7 @@ theorem carrMadan_inversion_eq_re (S K tau r q sigma : ℝ)
     ((Real.exp (-alpha * Real.log (K / S)) : ℝ) : ℂ) * 𝓕⁻ (𝓕 f) (Real.log (K / S))
       = ↑((((Real.exp (-alpha * Real.log (K / S)) : ℝ) : ℂ) * 𝓕⁻ (𝓕 f) (Real.log (K / S))).re) := by
   rw [carrMadan_inversion_eq_bsCall S K tau r q sigma hS hK htau hsigma v hv alpha hf hcont hint hFint]
-  exact (Complex.ofReal_re _).symm
+  rw [Complex.ofReal_re]
 
 /-- The real part of the inverted pricing integral equals `bsCall`. -/
 theorem carrMadan_inversion_re_eq_bsCall (S K tau r q sigma : ℝ)
