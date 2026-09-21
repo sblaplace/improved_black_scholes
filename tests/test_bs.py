@@ -14,6 +14,9 @@ checked between two *independently derived* expressions:
   T1  d1 - d2 = s*sqrt(tau)      d2 comes from its own explicit formula
   T2  put-call parity            the put comes from its own closed form,
                                  using Phi(-x), not from the call
+  T6(3a) closed form = e^{-r tau} E[payoff]
+                                 the expectation is a quadrature against
+                                 norm_pdf; no norm_cdf, no d1/d2 in the route
 
 `tests/test_mutants.py` enforces this rule mechanically: it seeds bugs that
 violate each identity and asserts the *targeted* test goes red. If a future
@@ -30,10 +33,13 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from experiments.black_scholes import (
     _d1d2,
     bs_call,
+    bs_call_by_expectation,
     bs_price,
     bs_pde_residual,
     bs_put,
+    bs_put_by_expectation,
     bs_put_by_parity,
+    forward_by_expectation,
     norm_cdf,
     norm_pdf,
 )
@@ -207,6 +213,34 @@ def test_phi_and_Phi_are_consistent():
     for x in (-2.5, -1.0, -0.25, 0.0, 0.25, 1.0, 2.5):
         dPhi = (norm_cdf(x + h) - norm_cdf(x - h)) / (2.0 * h)
         assert abs(dPhi - norm_pdf(x)) < 1e-7, f"Phi'({x}) = {dPhi} != phi({x}) = {norm_pdf(x)}"
+
+
+def test_risk_neutral_expectation():
+    """T6(3a) (numerical shadow): the closed form IS the discounted expectation.
+
+    With Z ~ N(0,1), m = (r - q - sigma^2/2) tau and s = sigma sqrt(tau):
+
+        bs_call = e^{-r tau} * E[(S e^{m + s Z} - K)^+]      (Lean: bsCall_eq_riskNeutral_expectation)
+        bs_put  = e^{-r tau} * E[(K - S e^{m + s Z})^+]      (Lean: bsPut_eq_riskNeutral_expectation)
+        E[S e^{m + s Z}] = S e^{(r-q) tau}                    (Lean: integral_spot_mul_phi_eq_forward)
+
+    The expectations come from `bs_call_by_expectation` & co.: quadrature of the
+    payoff against `norm_pdf`, with no `norm_cdf` and no `_d1d2` in the route,
+    so the comparison is between two independently derived numbers. Mutant M11
+    (tests/test_mutants.py) flips the sign of sigma^2/2 in the drift and is
+    killed by this test alone. The last assertion is the sign fact behind the
+    Lean hypothesis `0 < sigma`: at -sigma the closed form is -bs_put(sigma),
+    while the expectation does not change.
+    """
+    for (s_, k_, tau_, r_, q_, sg_) in GRID:
+        c, ce = bs_call(s_, k_, tau_, r_, q_, sg_), bs_call_by_expectation(s_, k_, tau_, r_, q_, sg_)
+        assert abs(ce - c) < 1e-9 * max(1.0, c), f"call != expectation: {c} vs {ce}"
+        p, pe = bs_put(s_, k_, tau_, r_, q_, sg_), bs_put_by_expectation(s_, k_, tau_, r_, q_, sg_)
+        assert abs(pe - p) < 1e-9 * max(1.0, p), f"put != expectation: {p} vs {pe}"
+        fwd = forward_by_expectation(s_, k_, tau_, r_, q_, sg_)
+        assert abs(fwd - s_ * math.exp((r_ - q_) * tau_)) < 1e-9 * s_, f"drift condition fails: {fwd}"
+    s_, k_, tau_, r_, q_, sg_ = GRID[0]
+    assert abs(bs_call(s_, k_, tau_, r_, q_, -sg_) + bs_put(s_, k_, tau_, r_, q_, sg_)) < 1e-12
 
 
 if __name__ == "__main__":

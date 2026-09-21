@@ -172,6 +172,37 @@ REQUIRED = {
     "t5_tau": "ImprovedBS/Core.lean",
     "t5_bsCall_pde_tau": "ImprovedBS/Core.lean",
     "t5_bsCall_pde": "ImprovedBS/Core.lean",
+    # BRIEF_007 (T6, sub-goal 3a): the closed form IS the discounted risk-neutral
+    # expectation. §1 of RiskNeutral.lean is the Gaussian bridge (`phi`/`Phi`
+    # identified with mathlib's `gaussianPDFReal 0 1`/`gaussianReal 0 1`, so the
+    # pinned definitions stay put), §2 the tilted Gaussian integrals (the T3
+    # tilting identity in lognormal form and the partial expectation it gives),
+    # §3 the payoff as the indicator of the exercise region, §4 the theorems:
+    # the call and put identities, the drift condition `E[S_T] = S e^{(r-q)τ}`,
+    # and the same identity against `gaussianReal 0 1` and the lognormal law.
+    # Listed so that "prove the expectation identity by deleting the bridge" or
+    # "by weakening `0 < σ` to `σ ≠ 0`" is a diff, not an option.
+    "phi_eq_gaussianPDFReal": "ImprovedBS/RiskNeutral.lean",
+    "Phi_eq_gaussianReal_Iic": "ImprovedBS/RiskNeutral.lean",
+    "integral_gaussianReal_eq_integral_mul_phi": "ImprovedBS/RiskNeutral.lean",
+    "integral_phi": "ImprovedBS/RiskNeutral.lean",
+    "exp_mul_phi_eq": "ImprovedBS/RiskNeutral.lean",
+    "integrable_exp_mul_phi": "ImprovedBS/RiskNeutral.lean",
+    "integral_exp_mul_phi": "ImprovedBS/RiskNeutral.lean",
+    "integral_phi_Ioi": "ImprovedBS/RiskNeutral.lean",
+    "integral_phi_sub_Ioi": "ImprovedBS/RiskNeutral.lean",
+    "integral_exp_mul_phi_Ioi": "ImprovedBS/RiskNeutral.lean",
+    "sigma_sqrt_tau_mul_d2": "ImprovedBS/RiskNeutral.lean",
+    "spot_sub_strike_eq": "ImprovedBS/RiskNeutral.lean",
+    "max_spot_sub_strike_mul_phi": "ImprovedBS/RiskNeutral.lean",
+    "max_sub_swap_eq": "ImprovedBS/RiskNeutral.lean",
+    "integrable_spot_mul_phi": "ImprovedBS/RiskNeutral.lean",
+    "integral_spot_mul_phi_eq_forward": "ImprovedBS/RiskNeutral.lean",
+    "integrable_max_spot_sub_strike_mul_phi": "ImprovedBS/RiskNeutral.lean",
+    "bsCall_eq_riskNeutral_expectation": "ImprovedBS/RiskNeutral.lean",
+    "bsPut_eq_riskNeutral_expectation": "ImprovedBS/RiskNeutral.lean",
+    "bsCall_eq_gaussianReal_expectation": "ImprovedBS/RiskNeutral.lean",
+    "bsCall_eq_lognormal_expectation": "ImprovedBS/RiskNeutral.lean",
 }
 
 # Zero deferred-proof markers allowed. The T1/T2 node per BRIEF_001; the T3/T4
@@ -242,6 +273,32 @@ PROTECTED = {
     "t5_tau",
     "t5_bsCall_pde_tau",
     "t5_bsCall_pde",
+    # T6 sub-goal 3a (BRIEF_007): the same ratchet posture. The two
+    # `*_eq_riskNeutral_expectation` theorems are the node's claim, the two
+    # measure-theoretic forms restate it against mathlib's laws, and the
+    # bridge/tilting/payoff lemmas are the landed steps it consumes, so a
+    # `sorry` in any of them reverts the node outright.
+    "phi_eq_gaussianPDFReal",
+    "Phi_eq_gaussianReal_Iic",
+    "integral_gaussianReal_eq_integral_mul_phi",
+    "integral_phi",
+    "exp_mul_phi_eq",
+    "integrable_exp_mul_phi",
+    "integral_exp_mul_phi",
+    "integral_phi_Ioi",
+    "integral_phi_sub_Ioi",
+    "integral_exp_mul_phi_Ioi",
+    "sigma_sqrt_tau_mul_d2",
+    "spot_sub_strike_eq",
+    "max_spot_sub_strike_mul_phi",
+    "max_sub_swap_eq",
+    "integrable_spot_mul_phi",
+    "integral_spot_mul_phi_eq_forward",
+    "integrable_max_spot_sub_strike_mul_phi",
+    "bsCall_eq_riskNeutral_expectation",
+    "bsPut_eq_riskNeutral_expectation",
+    "bsCall_eq_gaussianReal_expectation",
+    "bsCall_eq_lognormal_expectation",
 }
 
 # The T5 node, in dependency order, and the two citations docs/04's spine

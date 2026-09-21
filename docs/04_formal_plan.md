@@ -43,7 +43,7 @@ point of the audit step, since a `sorry` builds fine. The ratchet baseline is
 | T4 | `t4_call_bounds` | `max(S e^{−qτ} − K e^{−rτ}, 0) ≤ bsCall ≤ S e^{−qτ}` | medium — positivity via `Φ = ∫ φ`, *not* monotonicity (ledger C4) | **machine-checked** |
 | T4′| `t4_put_bounds` | mirrored put bounds | corollary of T4 + T2 (`linarith` only) | **machine-checked** |
 | T5 | `t5_bsCall_pde` (+ `t5_delta`, `t5_gamma`, `t5_tau`, `t5_bsCall_pde_tau` and six supporting lemmas) | `V_t + (r−q)S V_S + (σ²/2)S² V_SS = r V` in calendar time for `bsCall` | heavy — the one new analytic input is `Φ′ = φ`, derived from the interval-integral FTC because mathlib has no `Real.erf` | **LANDED GREEN** (BRIEF_006), lean run 35566569107 — `benchmarks/LEDGER.md` row 6 |
-| T6 | *(not yet declared)* | Fourier pricing kernel survives a wider increment law | open — research | restated in docs/03 D1 |
+| T6 | sub-goals 1–2 and 3(a) declared: `ImprovedBS/Levy.lean` (7), `ImprovedBS/Fourier.lean` (7), `ImprovedBS/RiskNeutral.lean` (21: `bsCall_eq_riskNeutral_expectation`, `bsPut_eq_riskNeutral_expectation`, `bsCall_eq_lognormal_expectation`, the Gaussian bridge and the tilted integrals) | Fourier pricing kernel survives a wider increment law; the GBM instance of "the price is `e^{−rτ}E[(S_T−K)⁺]`" is now a theorem | open — research; sub-goal 3(b) (Fourier inversion) remains | restated in docs/03 D1; (3a) **LANDED GREEN** (BRIEF_007, PR #9, run 35574194681) — `benchmarks/LEDGER.md` row 7 |
 
 Three honest corrections to earlier versions of this table:
 
@@ -69,11 +69,17 @@ The stack is a spine, not six independent chores. Arrows mean "is used by":
                       └──► T4
     integral_gaussian_Ioi ──► integral_phi_Iic_zero ──► Phi_eq_integral_Iic ──► Phi_nonneg, Phi_le_one
     phi_add (tilting identity) ──► T3                                       └──► Phi_le_exp_mul_Phi_add ──► bsCall_nonneg, bsPut_nonneg ──► T4
+                └──► exp_mul_phi_eq ──► integral_exp_mul_phi_Ioi ──► bsCall_eq_riskNeutral_expectation ──► bsPut_eq_riskNeutral_expectation (via T2)
+    gaussianPDFReal / gaussianReal (mathlib) ──► phi_eq_gaussianPDFReal, Phi_eq_gaussianReal_Iic ──► bsCall_eq_gaussianReal_expectation, bsCall_eq_lognormal_expectation
 
 As landed, T3 and the T4 lower bound are the *same* identity —
 `e^{a u + a²/2} φ(u + a) = φ(u)` with `u = d2`, `a = σ√τ` — used pointwise
 (T3) and integrated over a half-line (T4). `d1_exponent` / `d2_exponent` /
-`forward_eq` are the shared exp/log/sqrt glue.
+`forward_eq` are the shared exp/log/sqrt glue. BRIEF_007 (T6 sub-goal 3a) is
+the same identity a third time: read as `e^{sz} φ(z) = e^{s²/2} φ(z − s)` and
+integrated over `(−d2, ∞)`, it is the lognormal partial expectation
+`∫_{(a,∞)} e^{sz} φ = e^{s²/2} Φ(s − a)`, and "the closed form is the
+discounted expectation" is that line plus the indicator of the exercise region.
 
 **Prove T5 through T3.** Substituting the closed form into the BSM operator,
 the `S²V_SS` term produces `φ(d1)` and `φ(d2)` contributions whose *difference*
@@ -119,7 +125,10 @@ weight:
 The uniqueness half of the log-S picture is not dropped, it is *deferred*: it is
 T6 sub-goal 3's business (Fourier inversion for the tempered-stable exponent),
 where the kernel and the measure-theoretic integral are the actual objects.
-Recorded there rather than silently dropped here.
+Recorded there rather than silently dropped here. BRIEF_007 has since landed the
+*expectation* half of that picture — the closed form equals
+`e^{−rτ}∫(S e^{x} − K)⁺ dN((r−q−σ²/2)τ, σ²τ)(x)` (`bsCall_eq_lognormal_expectation`),
+which is the log-S object itself — and leaves the inversion as sub-goal 3(b).
 
 **The route is now checked, not just documented.** `scripts/lean_lint.py`'s
 `[SPINE]` check (check 10, added with BRIEF_006) fails if the T5 node stops
@@ -146,6 +155,8 @@ together, and `.github/workflows/lean.yml` fails the run if they disagree).
 | `integral_gaussian_Ioi : ∫ x in Ioi 0, exp (-b x²) = √(π/b) / 2`, `integrable_exp_neg_mul_sq` | **yes** — `Mathlib.Analysis.SpecialFunctions.Gaussian.GaussianIntegral` | `integral_phi_Iic_zero`, hence T3/T4; T5 |
 | set integrals: `setIntegral_mono_on`, `setIntegral_nonneg`, `integral_Iic_sub_Iic`, `integral_comp_neg_Ioi`, `MeasurableEmbedding.setIntegral_map`, `map_add_right_eq_self` (in `MeasureTheory`, *not* `MeasureTheory.Measure`) | **yes** — verified by name against the v4.34.0 tag before pushing | `Phi_eq_integral_Iic`, `Phi_le_exp_mul_Phi_add` |
 | normal CDF/PDF as a distribution | partial — `Mathlib.Probability.Distributions.Gaussian` has the *measure*, not a CDF function | optional; T5, T6 |
+| `ProbabilityTheory.gaussianPDFReal`, `gaussianReal`, `gaussianReal_apply_eq_integral (μ) (hv : v ≠ 0) (s)`, `integral_gaussianReal_eq_integral_smul (hv)`, `integral_gaussianPDFReal_eq_one (μ) (hv)`, `gaussianPDFReal_nonneg`, `gaussianReal_map_const_mul (c)`, `gaussianReal_map_const_add (y)` | **yes** — `Mathlib/Probability/Distributions/Gaussian/Real.lean`, read at the tag (`gaussianPDFReal μ v x = (√(2πv))⁻¹ · exp(−(x−μ)²/(2v))`; the map lemmas give `gaussianReal (c·μ) (⟨c², _⟩·v)` and `gaussianReal (μ + y) v`) | BRIEF_007: the Gaussian bridge and the lognormal form of T6(3a) |
+| Bochner integral bookkeeping: `integral_indicator (hs)`, `setIntegral_congr_fun (hs) (h : EqOn f g s)`, `integral_congr_ae`, `integral_add`/`integral_sub (hf hg)`, `integral_const_mul`, `integral_map (hφ : AEMeasurable φ μ) (hfm : AEStronglyMeasurable f (map φ μ))`, `Integrable.congr`/`.indicator`/`.const_mul`/`.sub`, `Integrable.comp_sub_right`, `integral_sub_right_eq_self (f) (g)` (both `MeasureTheory.Group.Integral`, to_additive of the `div` forms), `integral_comp_neg_Ioi (c) (f)` (root namespace) | **yes** — verified by name and signature against the v4.34.0 tag before pushing | BRIEF_007 |
 
 ### `Real.erf` is not in mathlib — corrected
 
@@ -194,6 +205,14 @@ construction plus a bridge lemma, in a node whose whole analytic content is one
 derivative. The migration stays a T6 question — and the reason it is safe to
 defer is that the definitions are *pinned* (`Phi`/`phi` bodies are layer-1
 statement pins), so a later migration cannot be silent.
+
+**Answered in BRIEF_007: bridge, do not migrate.** `ImprovedBS/RiskNeutral.lean`
+proves `phi x = gaussianPDFReal 0 1 x`, `Phi x = (gaussianReal 0 1 (Iic x)).toReal`
+and `∫ f ∂(gaussianReal 0 1) = ∫ f · phi`, so every probabilistic statement
+can be written against mathlib's measures (`bsCall_eq_gaussianReal_expectation`,
+`bsCall_eq_lognormal_expectation`) while the 60 pinned T1–T5 statements keep
+the definitions they were pinned against. The `Phi`/`phi` bodies are unchanged;
+the pins say so.
 
 Imports in `ImprovedBS/Core.lean` are currently the whole library
 (`import Mathlib`). Narrow imports are better practice — they document what a
@@ -310,7 +329,7 @@ local `--elab-check` is a red with a message, never a skip.
 
 Order is chosen so that each brief's acceptance bar is checkable by the time it
 is worked on, and so that no brief depends on a machine-checked result that does
-not yet exist. BRIEF_001–006 have landed, in this order.
+not yet exist. BRIEF_001–007 have landed, in this order.
 
 | brief | what it lands | depends on | locally checkable? |
 |---|---|---|---|
@@ -320,7 +339,8 @@ not yet exist. BRIEF_001–006 have landed, in this order.
 | ~~BRIEF_004~~ | **LANDED GREEN** — α-stable exponential-moment obstruction (T6 sub-goal 1; PR #5, run 35523250105) | none | no — CI only |
 | ~~BRIEF_005~~ | **LANDED GREEN** — T6 sub-goal 2: Carr–Madan absolute convergence on the tempered contour, GBM instance machine-checked (`ImprovedBS/Fourier.lean`; PR #6, run 35536031936) | 004 | no — CI only |
 | ~~BRIEF_006~~ | **LANDED GREEN** — T5, the closed form solves the BSM PDE, directly in `(S, τ)` via T3 + chain rule + `Φ′ = φ`; 11 declarations in `ImprovedBS/Core.lean`, `[SPINE]` check + mutant, statement pins 49 → 60 with the existing 49 unchanged (PR #8, run 35566569107) | 003 | no — CI only |
-| *(queued)* | **T6** sub-goal 3 — Fourier inversion: agreement with the risk-neutral expectation, for a tempered-stable exponent | 005 | no — CI only |
+| ~~BRIEF_007~~ | **LANDED GREEN** (PR #9, run 35574194681) — T6 sub-goal 3(a): the closed form *is* the discounted risk-neutral expectation, `bsCall_eq_riskNeutral_expectation` / `bsPut_eq_riskNeutral_expectation`, the Gaussian bridge `phi`/`Phi` ↔ `gaussianPDFReal 0 1`/`gaussianReal 0 1`, the drift condition and the lognormal form; 21 declarations in `ImprovedBS/RiskNeutral.lean`, statement pins 60 → 81 with the existing 60 unchanged, oracle expectation route + mutant M11 | 005, 006 | no — CI only |
+| *(queued)* | **T6** sub-goal 3(b) — Fourier inversion: `Integrable.fourier_inversion` against BRIEF_005's `carrMadanKernel`, landing on BRIEF_007's `bsCall_eq_lognormal_expectation`; real-valuedness of the inverted integral | 005, 007 | no — CI only |
 
 BRIEF_004 is deliberately listed as depending on nothing: it is pure analysis
 (a divergent improper integral), needs none of the BS machinery, and it is the

@@ -138,7 +138,19 @@ Provable sub-goals, in increasing order of commitment:
 2. **Absolute convergence** of the Carr–Madan integrand on a contour strictly
    inside the strip, for a tempered-stable exponent.
 3. **Agreement** with the risk-neutral expectation, i.e. Fourier inversion
-   against the payoff transform.
+   against the payoff transform. This splits in two (BRIEF_007):
+   - **(3a) the expectation itself — LANDED GREEN** as `ImprovedBS/RiskNeutral.lean`
+     (PR #9, run 35574194681): `bsCall_eq_riskNeutral_expectation` and
+     `bsPut_eq_riskNeutral_expectation` prove that the T1–T5 closed form *is*
+     `e^{−rτ}·E[(S_T − K)⁺]` under `log(S_T/S) ~ N((r−q−σ²/2)τ, σ²τ)`, stated
+     both as a Lebesgue integral against `phi` and against mathlib's
+     `gaussianReal` (standard-normal and lognormal forms), together with the
+     drift condition `E[S_T] = S·e^{(r−q)τ}`. This is the GBM instance of the
+     right-hand side of T6; until it existed the closed form had never been
+     connected in the tree to the expectation it is supposed to be.
+   - **(3b) the inversion — open.** `Integrable.fourier_inversion` against
+     BRIEF_005's `carrMadanKernel`, and real-valuedness of the inverted
+     integral; consumes (3a) as its right-hand side.
 
 ---
 

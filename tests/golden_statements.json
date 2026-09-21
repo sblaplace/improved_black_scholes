@@ -10,6 +10,10 @@
       "axioms": "'BSM.Phi_add_Phi_neg' depends on axioms: [propext, Classical.choice, Quot.sound]",
       "type": "BSM.Phi_add_Phi_neg : ∀ (x : ℝ), BSM.Phi x + BSM.Phi (-x) = 1"
     },
+    "BSM.Phi_eq_gaussianReal_Iic": {
+      "axioms": "'BSM.Phi_eq_gaussianReal_Iic' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.Phi_eq_gaussianReal_Iic : ∀ (x : ℝ), BSM.Phi x = ((ProbabilityTheory.gaussianReal 0 1) (Set.Iic x)).toReal"
+    },
     "BSM.Phi_eq_integral_Iic": {
       "axioms": "'BSM.Phi_eq_integral_Iic' depends on axioms: [propext, Classical.choice, Quot.sound]",
       "type": "BSM.Phi_eq_integral_Iic : ∀ (x : ℝ), BSM.Phi x = ∫ (u : ℝ) in Set.Iic x, BSM.phi u"
@@ -34,6 +38,18 @@
       "axioms": "'BSM.bsCall' depends on axioms: [propext, Classical.choice, Quot.sound]",
       "type": "BSM.bsCall : ℝ → ℝ → ℝ → ℝ → ℝ → ℝ → ℝ"
     },
+    "BSM.bsCall_eq_gaussianReal_expectation": {
+      "axioms": "'BSM.bsCall_eq_gaussianReal_expectation' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.bsCall_eq_gaussianReal_expectation : ∀ (S K tau r q sigma : ℝ), 0 < S → 0 < K → 0 < tau → 0 < sigma → BSM.bsCall S K tau r q sigma = Real.exp (-r * tau) * ∫ (z : ℝ), max (S * Real.exp ((r - q - sigma ^ 2 / 2) * tau + sigma * √tau * z) - K) 0 ∂ProbabilityTheory.gaussianReal 0 1"
+    },
+    "BSM.bsCall_eq_lognormal_expectation": {
+      "axioms": "'BSM.bsCall_eq_lognormal_expectation' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.bsCall_eq_lognormal_expectation : ∀ (S K tau r q sigma : ℝ), 0 < S → 0 < K → 0 < tau → 0 < sigma → ∀ (v : NNReal), ↑v = sigma ^ 2 * tau → BSM.bsCall S K tau r q sigma = Real.exp (-r * tau) * ∫ (x : ℝ), max (S * Real.exp x - K) 0 ∂ProbabilityTheory.gaussianReal ((r - q - sigma ^ 2 / 2) * tau) v"
+    },
+    "BSM.bsCall_eq_riskNeutral_expectation": {
+      "axioms": "'BSM.bsCall_eq_riskNeutral_expectation' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.bsCall_eq_riskNeutral_expectation : ∀ (S K tau r q sigma : ℝ), 0 < S → 0 < K → 0 < tau → 0 < sigma → BSM.bsCall S K tau r q sigma = Real.exp (-r * tau) * ∫ (z : ℝ), max (S * Real.exp ((r - q - sigma ^ 2 / 2) * tau + sigma * √tau * z) - K) 0 * BSM.phi z"
+    },
     "BSM.bsCall_nonneg": {
       "axioms": "'BSM.bsCall_nonneg' depends on axioms: [propext, Classical.choice, Quot.sound]",
       "type": "BSM.bsCall_nonneg : ∀ (S K tau r q sigma : ℝ), 0 < S → 0 < K → 0 < tau → 0 < sigma → 0 ≤ BSM.bsCall S K tau r q sigma"
@@ -41,6 +57,10 @@
     "BSM.bsPut": {
       "axioms": "'BSM.bsPut' depends on axioms: [propext, Classical.choice, Quot.sound]",
       "type": "BSM.bsPut : ℝ → ℝ → ℝ → ℝ → ℝ → ℝ → ℝ"
+    },
+    "BSM.bsPut_eq_riskNeutral_expectation": {
+      "axioms": "'BSM.bsPut_eq_riskNeutral_expectation' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.bsPut_eq_riskNeutral_expectation : ∀ (S K tau r q sigma : ℝ), 0 < S → 0 < K → 0 < tau → 0 < sigma → BSM.bsPut S K tau r q sigma = Real.exp (-r * tau) * ∫ (z : ℝ), max (K - S * Real.exp ((r - q - sigma ^ 2 / 2) * tau + sigma * √tau * z)) 0 * BSM.phi z"
     },
     "BSM.bsPut_nonneg": {
       "axioms": "'BSM.bsPut_nonneg' depends on axioms: [propext, Classical.choice, Quot.sound]",
@@ -114,6 +134,10 @@
       "axioms": "'BSM.exp_moment_infinite_of_tail_lower_bound' depends on axioms: [propext, Classical.choice, Quot.sound]",
       "type": "BSM.exp_moment_infinite_of_tail_lower_bound : ∀ (μ : MeasureTheory.Measure ℝ) [MeasureTheory.IsProbabilityMeasure μ] (α c x₀ : ℝ), 0 < c → (∀ x ≥ x₀, ENNReal.ofReal (c * x ^ (-α)) ≤ μ (Set.Ici x)) → ¬MeasureTheory.Integrable (fun y => Real.exp y) μ"
     },
+    "BSM.exp_mul_phi_eq": {
+      "axioms": "'BSM.exp_mul_phi_eq' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.exp_mul_phi_eq : ∀ (s z : ℝ), Real.exp (s * z) * BSM.phi z = Real.exp (s ^ 2 / 2) * BSM.phi (z - s)"
+    },
     "BSM.exp_neg_sq_even": {
       "axioms": "'BSM.exp_neg_sq_even' depends on axioms: [propext, Classical.choice, Quot.sound]",
       "type": "BSM.exp_neg_sq_even : ∀ (t : ℝ), Real.exp (-(-t) ^ 2) = Real.exp (-t ^ 2)"
@@ -150,13 +174,53 @@
       "axioms": "'BSM.hasDerivAt_erf' depends on axioms: [propext, Classical.choice, Quot.sound]",
       "type": "BSM.hasDerivAt_erf : ∀ (x : ℝ), HasDerivAt BSM.erf (2 / √Real.pi * Real.exp (-x ^ 2)) x"
     },
+    "BSM.integrable_exp_mul_phi": {
+      "axioms": "'BSM.integrable_exp_mul_phi' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.integrable_exp_mul_phi : ∀ (s : ℝ), MeasureTheory.Integrable (fun z => Real.exp (s * z) * BSM.phi z) MeasureTheory.volume"
+    },
     "BSM.integrable_exp_neg_abs_rpow": {
       "axioms": "'BSM.integrable_exp_neg_abs_rpow' depends on axioms: [propext, Classical.choice, Quot.sound]",
       "type": "BSM.integrable_exp_neg_abs_rpow : ∀ {c Y : ℝ}, 0 < c → 0 < Y → MeasureTheory.Integrable (fun u => Real.exp (-c * |u| ^ Y)) MeasureTheory.volume"
     },
+    "BSM.integrable_max_spot_sub_strike_mul_phi": {
+      "axioms": "'BSM.integrable_max_spot_sub_strike_mul_phi' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.integrable_max_spot_sub_strike_mul_phi : ∀ (S K tau r q sigma : ℝ), 0 < S → 0 < K → 0 < tau → 0 < sigma → MeasureTheory.Integrable (fun z => max (S * Real.exp ((r - q - sigma ^ 2 / 2) * tau + sigma * √tau * z) - K) 0 * BSM.phi z) MeasureTheory.volume"
+    },
+    "BSM.integrable_spot_mul_phi": {
+      "axioms": "'BSM.integrable_spot_mul_phi' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.integrable_spot_mul_phi : ∀ (S tau r q sigma : ℝ), MeasureTheory.Integrable (fun z => S * Real.exp ((r - q - sigma ^ 2 / 2) * tau + sigma * √tau * z) * BSM.phi z) MeasureTheory.volume"
+    },
+    "BSM.integral_exp_mul_phi": {
+      "axioms": "'BSM.integral_exp_mul_phi' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.integral_exp_mul_phi : ∀ (s : ℝ), ∫ (z : ℝ), Real.exp (s * z) * BSM.phi z = Real.exp (s ^ 2 / 2)"
+    },
+    "BSM.integral_exp_mul_phi_Ioi": {
+      "axioms": "'BSM.integral_exp_mul_phi_Ioi' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.integral_exp_mul_phi_Ioi : ∀ (a s : ℝ), ∫ (z : ℝ) in Set.Ioi a, Real.exp (s * z) * BSM.phi z = Real.exp (s ^ 2 / 2) * BSM.Phi (s - a)"
+    },
+    "BSM.integral_gaussianReal_eq_integral_mul_phi": {
+      "axioms": "'BSM.integral_gaussianReal_eq_integral_mul_phi' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.integral_gaussianReal_eq_integral_mul_phi : ∀ (f : ℝ → ℝ), ∫ (z : ℝ), f z ∂ProbabilityTheory.gaussianReal 0 1 = ∫ (z : ℝ), f z * BSM.phi z"
+    },
+    "BSM.integral_phi": {
+      "axioms": "'BSM.integral_phi' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.integral_phi : ∫ (z : ℝ), BSM.phi z = 1"
+    },
     "BSM.integral_phi_Iic_zero": {
       "axioms": "'BSM.integral_phi_Iic_zero' depends on axioms: [propext, Classical.choice, Quot.sound]",
       "type": "BSM.integral_phi_Iic_zero : ∫ (u : ℝ) in Set.Iic 0, BSM.phi u = 1 / 2"
+    },
+    "BSM.integral_phi_Ioi": {
+      "axioms": "'BSM.integral_phi_Ioi' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.integral_phi_Ioi : ∀ (a : ℝ), ∫ (z : ℝ) in Set.Ioi a, BSM.phi z = BSM.Phi (-a)"
+    },
+    "BSM.integral_phi_sub_Ioi": {
+      "axioms": "'BSM.integral_phi_sub_Ioi' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.integral_phi_sub_Ioi : ∀ (a s : ℝ), ∫ (z : ℝ) in Set.Ioi a, BSM.phi (z - s) = BSM.Phi (s - a)"
+    },
+    "BSM.integral_spot_mul_phi_eq_forward": {
+      "axioms": "'BSM.integral_spot_mul_phi_eq_forward' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.integral_spot_mul_phi_eq_forward : ∀ (S tau r q sigma : ℝ), 0 ≤ tau → ∫ (z : ℝ), S * Real.exp ((r - q - sigma ^ 2 / 2) * tau + sigma * √tau * z) * BSM.phi z = S * Real.exp ((r - q) * tau)"
     },
     "BSM.lintegral_exp_add_eq_top_of_tail_lower_bound": {
       "axioms": "'BSM.lintegral_exp_add_eq_top_of_tail_lower_bound' depends on axioms: [propext, Classical.choice, Quot.sound]",
@@ -165,6 +229,14 @@
     "BSM.lintegral_exp_eq_top_of_tail_lower_bound": {
       "axioms": "'BSM.lintegral_exp_eq_top_of_tail_lower_bound' depends on axioms: [propext, Classical.choice, Quot.sound]",
       "type": "BSM.lintegral_exp_eq_top_of_tail_lower_bound : ∀ (μ : MeasureTheory.Measure ℝ) [MeasureTheory.IsProbabilityMeasure μ] (α c x₀ : ℝ), 0 < c → (∀ x ≥ x₀, ENNReal.ofReal (c * x ^ (-α)) ≤ μ (Set.Ici x)) → ∫⁻ (y : ℝ), ENNReal.ofReal (Real.exp y) ∂μ = ⊤"
+    },
+    "BSM.max_spot_sub_strike_mul_phi": {
+      "axioms": "'BSM.max_spot_sub_strike_mul_phi' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.max_spot_sub_strike_mul_phi : ∀ (S K m s d : ℝ), 0 < S → 0 < K → 0 < s → s * d = Real.log (S / K) + m → ∀ (z : ℝ), max (S * Real.exp (m + s * z) - K) 0 * BSM.phi z = (Set.Ioi (-d)).indicator (fun z => (S * Real.exp (m + s * z) - K) * BSM.phi z) z"
+    },
+    "BSM.max_sub_swap_eq": {
+      "axioms": "'BSM.max_sub_swap_eq' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.max_sub_swap_eq : ∀ (a b : ℝ), max (b - a) 0 = max (a - b) 0 - a + b"
     },
     "BSM.no_drift_makes_spot_integrable": {
       "axioms": "'BSM.no_drift_makes_spot_integrable' depends on axioms: [propext, Classical.choice, Quot.sound]",
@@ -182,6 +254,10 @@
       "axioms": "'BSM.phi_add' depends on axioms: [propext, Classical.choice, Quot.sound]",
       "type": "BSM.phi_add : ∀ (u a : ℝ), Real.exp (a * u + a ^ 2 / 2) * BSM.phi (u + a) = BSM.phi u"
     },
+    "BSM.phi_eq_gaussianPDFReal": {
+      "axioms": "'BSM.phi_eq_gaussianPDFReal' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.phi_eq_gaussianPDFReal : ∀ (x : ℝ), BSM.phi x = ProbabilityTheory.gaussianPDFReal 0 1 x"
+    },
     "BSM.phi_integrable": {
       "axioms": "'BSM.phi_integrable' depends on axioms: [propext, Classical.choice, Quot.sound]",
       "type": "BSM.phi_integrable : MeasureTheory.Integrable BSM.phi MeasureTheory.volume"
@@ -194,9 +270,17 @@
       "axioms": "'BSM.phi_nonneg' depends on axioms: [propext, Classical.choice, Quot.sound]",
       "type": "BSM.phi_nonneg : ∀ (x : ℝ), 0 ≤ BSM.phi x"
     },
+    "BSM.sigma_sqrt_tau_mul_d2": {
+      "axioms": "'BSM.sigma_sqrt_tau_mul_d2' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.sigma_sqrt_tau_mul_d2 : ∀ (S K tau r q sigma : ℝ), 0 < tau → sigma ≠ 0 → sigma * √tau * BSM.d2 S K tau r q sigma = Real.log (S / K) + (r - q - sigma ^ 2 / 2) * tau"
+    },
     "BSM.spot_not_integrable_of_tail_lower_bound": {
       "axioms": "'BSM.spot_not_integrable_of_tail_lower_bound' depends on axioms: [propext, Classical.choice, Quot.sound]",
       "type": "BSM.spot_not_integrable_of_tail_lower_bound : ∀ (μ : MeasureTheory.Measure ℝ) [MeasureTheory.IsProbabilityMeasure μ] (α c x₀ S₀ : ℝ), 0 < S₀ → 0 < c → (∀ x ≥ x₀, ENNReal.ofReal (c * x ^ (-α)) ≤ μ (Set.Ici x)) → ¬MeasureTheory.Integrable (fun x => S₀ * Real.exp x) μ"
+    },
+    "BSM.spot_sub_strike_eq": {
+      "axioms": "'BSM.spot_sub_strike_eq' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.spot_sub_strike_eq : ∀ (S K m s d z : ℝ), 0 < S → 0 < K → s * d = Real.log (S / K) + m → S * Real.exp (m + s * z) - K = K * (Real.exp (s * (z + d)) - 1)"
     },
     "BSM.t1_d1_minus_d2": {
       "axioms": "'BSM.t1_d1_minus_d2' depends on axioms: [propext, Classical.choice, Quot.sound]",
@@ -255,6 +339,11 @@
       "kind": "theorem",
       "pin": "theorem Phi_add_Phi_neg (x : ℝ) : Phi x + Phi (-x) = 1"
     },
+    "BSM.Phi_eq_gaussianReal_Iic": {
+      "file": "ImprovedBS/RiskNeutral.lean",
+      "kind": "theorem",
+      "pin": "theorem Phi_eq_gaussianReal_Iic (x : ℝ) : Phi x = (ProbabilityTheory.gaussianReal 0 1 (Set.Iic x)).toReal"
+    },
     "BSM.Phi_eq_integral_Iic": {
       "file": "ImprovedBS/Core.lean",
       "kind": "theorem",
@@ -285,6 +374,21 @@
       "kind": "def",
       "pin": "def bsCall (S K tau r q sigma : ℝ) : ℝ := S * Real.exp (-q * tau) * Phi (d1 S K tau r q sigma) - K * Real.exp (-r * tau) * Phi (d2 S K tau r q sigma)"
     },
+    "BSM.bsCall_eq_gaussianReal_expectation": {
+      "file": "ImprovedBS/RiskNeutral.lean",
+      "kind": "theorem",
+      "pin": "theorem bsCall_eq_gaussianReal_expectation (S K tau r q sigma : ℝ) (hS : 0 < S) (hK : 0 < K) (htau : 0 < tau) (hsigma : 0 < sigma) : bsCall S K tau r q sigma = Real.exp (-r * tau) * ∫ z, max (S * Real.exp ((r - q - sigma ^ 2 / 2) * tau + sigma * Real.sqrt tau * z) - K) 0 ∂(ProbabilityTheory.gaussianReal 0 1)"
+    },
+    "BSM.bsCall_eq_lognormal_expectation": {
+      "file": "ImprovedBS/RiskNeutral.lean",
+      "kind": "theorem",
+      "pin": "theorem bsCall_eq_lognormal_expectation (S K tau r q sigma : ℝ) (hS : 0 < S) (hK : 0 < K) (htau : 0 < tau) (hsigma : 0 < sigma) (v : NNReal) (hv : (v : ℝ) = sigma ^ 2 * tau) : bsCall S K tau r q sigma = Real.exp (-r * tau) * ∫ x, max (S * Real.exp x - K) 0 ∂(ProbabilityTheory.gaussianReal ((r - q - sigma ^ 2 / 2) * tau) v)"
+    },
+    "BSM.bsCall_eq_riskNeutral_expectation": {
+      "file": "ImprovedBS/RiskNeutral.lean",
+      "kind": "theorem",
+      "pin": "theorem bsCall_eq_riskNeutral_expectation (S K tau r q sigma : ℝ) (hS : 0 < S) (hK : 0 < K) (htau : 0 < tau) (hsigma : 0 < sigma) : bsCall S K tau r q sigma = Real.exp (-r * tau) * ∫ z, max (S * Real.exp ((r - q - sigma ^ 2 / 2) * tau + sigma * Real.sqrt tau * z) - K) 0 * phi z"
+    },
     "BSM.bsCall_nonneg": {
       "file": "ImprovedBS/Core.lean",
       "kind": "theorem",
@@ -294,6 +398,11 @@
       "file": "ImprovedBS/Core.lean",
       "kind": "def",
       "pin": "def bsPut (S K tau r q sigma : ℝ) : ℝ := K * Real.exp (-r * tau) * Phi (-(d2 S K tau r q sigma)) - S * Real.exp (-q * tau) * Phi (-(d1 S K tau r q sigma))"
+    },
+    "BSM.bsPut_eq_riskNeutral_expectation": {
+      "file": "ImprovedBS/RiskNeutral.lean",
+      "kind": "theorem",
+      "pin": "theorem bsPut_eq_riskNeutral_expectation (S K tau r q sigma : ℝ) (hS : 0 < S) (hK : 0 < K) (htau : 0 < tau) (hsigma : 0 < sigma) : bsPut S K tau r q sigma = Real.exp (-r * tau) * ∫ z, max (K - S * Real.exp ((r - q - sigma ^ 2 / 2) * tau + sigma * Real.sqrt tau * z)) 0 * phi z"
     },
     "BSM.bsPut_nonneg": {
       "file": "ImprovedBS/Core.lean",
@@ -385,6 +494,11 @@
       "kind": "theorem",
       "pin": "theorem exp_moment_infinite_of_tail_lower_bound (μ : Measure ℝ) [IsProbabilityMeasure μ] (α c x₀ : ℝ) (hc : 0 < c) (htail : ∀ x ≥ x₀, ENNReal.ofReal (c * x ^ (-α)) ≤ μ (Set.Ici x)) : ¬ Integrable (fun y => Real.exp y) μ"
     },
+    "BSM.exp_mul_phi_eq": {
+      "file": "ImprovedBS/RiskNeutral.lean",
+      "kind": "theorem",
+      "pin": "theorem exp_mul_phi_eq (s z : ℝ) : Real.exp (s * z) * phi z = Real.exp (s ^ 2 / 2) * phi (z - s)"
+    },
     "BSM.exp_neg_sq_even": {
       "file": "ImprovedBS/Core.lean",
       "kind": "theorem",
@@ -430,15 +544,65 @@
       "kind": "theorem",
       "pin": "theorem hasDerivAt_erf (x : ℝ) : HasDerivAt erf ((2 / Real.sqrt Real.pi) * Real.exp (-(x ^ 2))) x"
     },
+    "BSM.integrable_exp_mul_phi": {
+      "file": "ImprovedBS/RiskNeutral.lean",
+      "kind": "theorem",
+      "pin": "theorem integrable_exp_mul_phi (s : ℝ) : Integrable (fun z : ℝ => Real.exp (s * z) * phi z)"
+    },
     "BSM.integrable_exp_neg_abs_rpow": {
       "file": "ImprovedBS/Fourier.lean",
       "kind": "theorem",
       "pin": "theorem integrable_exp_neg_abs_rpow {c Y : ℝ} (hc : 0 < c) (hY : 0 < Y) : Integrable fun u : ℝ => Real.exp (-c * |u| ^ Y)"
     },
+    "BSM.integrable_max_spot_sub_strike_mul_phi": {
+      "file": "ImprovedBS/RiskNeutral.lean",
+      "kind": "theorem",
+      "pin": "theorem integrable_max_spot_sub_strike_mul_phi (S K tau r q sigma : ℝ) (hS : 0 < S) (hK : 0 < K) (htau : 0 < tau) (hsigma : 0 < sigma) : Integrable (fun z : ℝ => max (S * Real.exp ((r - q - sigma ^ 2 / 2) * tau + sigma * Real.sqrt tau * z) - K) 0 * phi z)"
+    },
+    "BSM.integrable_spot_mul_phi": {
+      "file": "ImprovedBS/RiskNeutral.lean",
+      "kind": "theorem",
+      "pin": "theorem integrable_spot_mul_phi (S tau r q sigma : ℝ) : Integrable (fun z : ℝ => S * Real.exp ((r - q - sigma ^ 2 / 2) * tau + sigma * Real.sqrt tau * z) * phi z)"
+    },
+    "BSM.integral_exp_mul_phi": {
+      "file": "ImprovedBS/RiskNeutral.lean",
+      "kind": "theorem",
+      "pin": "theorem integral_exp_mul_phi (s : ℝ) : ∫ z, Real.exp (s * z) * phi z = Real.exp (s ^ 2 / 2)"
+    },
+    "BSM.integral_exp_mul_phi_Ioi": {
+      "file": "ImprovedBS/RiskNeutral.lean",
+      "kind": "theorem",
+      "pin": "theorem integral_exp_mul_phi_Ioi (a s : ℝ) : ∫ z in Set.Ioi a, Real.exp (s * z) * phi z = Real.exp (s ^ 2 / 2) * Phi (s - a)"
+    },
+    "BSM.integral_gaussianReal_eq_integral_mul_phi": {
+      "file": "ImprovedBS/RiskNeutral.lean",
+      "kind": "theorem",
+      "pin": "theorem integral_gaussianReal_eq_integral_mul_phi (f : ℝ → ℝ) : ∫ z, f z ∂(ProbabilityTheory.gaussianReal 0 1) = ∫ z, f z * phi z"
+    },
+    "BSM.integral_phi": {
+      "file": "ImprovedBS/RiskNeutral.lean",
+      "kind": "theorem",
+      "pin": "theorem integral_phi : ∫ z, phi z = 1"
+    },
     "BSM.integral_phi_Iic_zero": {
       "file": "ImprovedBS/Core.lean",
       "kind": "theorem",
       "pin": "theorem integral_phi_Iic_zero : ∫ u in Set.Iic (0:ℝ), phi u = 1 / 2"
+    },
+    "BSM.integral_phi_Ioi": {
+      "file": "ImprovedBS/RiskNeutral.lean",
+      "kind": "theorem",
+      "pin": "theorem integral_phi_Ioi (a : ℝ) : ∫ z in Set.Ioi a, phi z = Phi (-a)"
+    },
+    "BSM.integral_phi_sub_Ioi": {
+      "file": "ImprovedBS/RiskNeutral.lean",
+      "kind": "theorem",
+      "pin": "theorem integral_phi_sub_Ioi (a s : ℝ) : ∫ z in Set.Ioi a, phi (z - s) = Phi (s - a)"
+    },
+    "BSM.integral_spot_mul_phi_eq_forward": {
+      "file": "ImprovedBS/RiskNeutral.lean",
+      "kind": "theorem",
+      "pin": "theorem integral_spot_mul_phi_eq_forward (S tau r q sigma : ℝ) (htau : 0 ≤ tau) : ∫ z, S * Real.exp ((r - q - sigma ^ 2 / 2) * tau + sigma * Real.sqrt tau * z) * phi z = S * Real.exp ((r - q) * tau)"
     },
     "BSM.lintegral_exp_add_eq_top_of_tail_lower_bound": {
       "file": "ImprovedBS/Levy.lean",
@@ -449,6 +613,16 @@
       "file": "ImprovedBS/Levy.lean",
       "kind": "theorem",
       "pin": "theorem lintegral_exp_eq_top_of_tail_lower_bound (μ : Measure ℝ) [IsProbabilityMeasure μ] (α c x₀ : ℝ) (hc : 0 < c) (htail : ∀ x ≥ x₀, ENNReal.ofReal (c * x ^ (-α)) ≤ μ (Set.Ici x)) : ∫⁻ y, ENNReal.ofReal (Real.exp y) ∂μ = ⊤"
+    },
+    "BSM.max_spot_sub_strike_mul_phi": {
+      "file": "ImprovedBS/RiskNeutral.lean",
+      "kind": "theorem",
+      "pin": "theorem max_spot_sub_strike_mul_phi (S K m s d : ℝ) (hS : 0 < S) (hK : 0 < K) (hs : 0 < s) (hd : s * d = Real.log (S / K) + m) (z : ℝ) : max (S * Real.exp (m + s * z) - K) 0 * phi z = Set.indicator (Set.Ioi (-d)) (fun z => (S * Real.exp (m + s * z) - K) * phi z) z"
+    },
+    "BSM.max_sub_swap_eq": {
+      "file": "ImprovedBS/RiskNeutral.lean",
+      "kind": "theorem",
+      "pin": "theorem max_sub_swap_eq (a b : ℝ) : max (b - a) 0 = max (a - b) 0 - a + b"
     },
     "BSM.no_drift_makes_spot_integrable": {
       "file": "ImprovedBS/Levy.lean",
@@ -470,6 +644,11 @@
       "kind": "theorem",
       "pin": "theorem phi_add (u a : ℝ) : Real.exp (a * u + a ^ 2 / 2) * phi (u + a) = phi u"
     },
+    "BSM.phi_eq_gaussianPDFReal": {
+      "file": "ImprovedBS/RiskNeutral.lean",
+      "kind": "theorem",
+      "pin": "theorem phi_eq_gaussianPDFReal (x : ℝ) : phi x = ProbabilityTheory.gaussianPDFReal 0 1 x"
+    },
     "BSM.phi_integrable": {
       "file": "ImprovedBS/Core.lean",
       "kind": "theorem",
@@ -485,10 +664,20 @@
       "kind": "theorem",
       "pin": "theorem phi_nonneg (x : ℝ) : 0 ≤ phi x"
     },
+    "BSM.sigma_sqrt_tau_mul_d2": {
+      "file": "ImprovedBS/RiskNeutral.lean",
+      "kind": "theorem",
+      "pin": "theorem sigma_sqrt_tau_mul_d2 (S K tau r q sigma : ℝ) (htau : 0 < tau) (hsigma : sigma ≠ 0) : sigma * Real.sqrt tau * d2 S K tau r q sigma = Real.log (S / K) + (r - q - sigma ^ 2 / 2) * tau"
+    },
     "BSM.spot_not_integrable_of_tail_lower_bound": {
       "file": "ImprovedBS/Levy.lean",
       "kind": "theorem",
       "pin": "theorem spot_not_integrable_of_tail_lower_bound (μ : Measure ℝ) [IsProbabilityMeasure μ] (α c x₀ S₀ : ℝ) (hS : 0 < S₀) (hc : 0 < c) (htail : ∀ x ≥ x₀, ENNReal.ofReal (c * x ^ (-α)) ≤ μ (Set.Ici x)) : ¬ Integrable (fun x => S₀ * Real.exp x) μ"
+    },
+    "BSM.spot_sub_strike_eq": {
+      "file": "ImprovedBS/RiskNeutral.lean",
+      "kind": "theorem",
+      "pin": "theorem spot_sub_strike_eq (S K m s d z : ℝ) (hS : 0 < S) (hK : 0 < K) (hd : s * d = Real.log (S / K) + m) : S * Real.exp (m + s * z) - K = K * (Real.exp (s * (z + d)) - 1)"
     },
     "BSM.t1_d1_minus_d2": {
       "file": "ImprovedBS/Core.lean",

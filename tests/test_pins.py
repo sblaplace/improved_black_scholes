@@ -294,6 +294,84 @@ def test_elab_layer_is_red_without_a_toolchain():
         LAST_NOTE["test_elab_layer_is_red_without_a_toolchain"] = "lake present, ran"
 
 
+def test_elab_delta_is_exactly_what_is_missing_or_moved():
+    """The delta printed last by `--elab-check` must be the merge set, no more.
+
+    Why it exists: PR #9 (run 35573065136) printed the full 81-entry block, the
+    PR comment carries the last 25k characters of the log, and the tail began
+    mid-block -- one of the 21 new entries was cut off. The delta is the fix, and
+    it is only a fix if it contains every missing/changed entry and nothing else
+    (an entry that is committed verbatim must not be re-listed, or the merge
+    would report phantom changes).
+    """
+    e = lambda t: {"type": t, "axioms": f"'{t.split(' : ')[0]}' depends on axioms: [propext]"}
+    committed = {"BSM.a": e("BSM.a : ℝ"), "BSM.b": e("BSM.b : ℝ → ℝ"), "BSM.gone": e("BSM.gone : ℕ")}
+    fresh = {
+        "BSM.a": e("BSM.a : ℝ"),                       # identical -> not in delta
+        "BSM.b": e("BSM.b : ℝ → ℝ → ℝ"),               # type moved -> in delta
+        "BSM.new": e("BSM.new : ∀ (x : ℝ), x = x"),   # missing   -> in delta
+    }
+    delta = P.elab_delta(fresh, committed)
+    assert set(delta) == {"BSM.b", "BSM.new"}, delta
+    assert delta["BSM.b"] == fresh["BSM.b"] and delta["BSM.new"] == fresh["BSM.new"]
+    # whitespace/prefix differences the writer and checker both normalise away
+    # are not a move: the committed side is normalised before comparing
+    committed_ws = {"BSM.a": {"type": "BSM.a  :  ℝ", "axioms": committed["BSM.a"]["axioms"]}}
+    assert P.elab_delta({"BSM.a": fresh["BSM.a"]}, committed_ws) == {}, "normalisation lost"
+    # bootstrap state (nothing committed): the delta is the whole block
+    assert P.elab_delta(fresh, {}) == fresh
+    LAST_NOTE["test_elab_delta_is_exactly_what_is_missing_or_moved"] = "2 of 3 entries, as required"
+
+
+def test_elab_merge_is_verbatim_and_refuses_unpinned_names(tmp_path=None):
+    """`--elab-merge` may only place CI-printed entries under source-pinned names.
+
+    It must (1) add a missing entry byte-for-byte, (2) leave the source layer and
+    the untouched elab entries alone, (3) report an overwrite rather than doing it
+    silently, and (4) refuse a name the lint does not pin -- an elaborated pin for
+    a declaration outside REQUIRED|PROTECTED would be a pin nothing enforces.
+    """
+    import tempfile
+
+    with open(GOLDEN, encoding="utf-8") as fh:
+        golden = json.load(fh)
+    pinned = sorted(golden["pins"])
+    victim = next(q for q in pinned if q in golden["elab"])
+    with tempfile.TemporaryDirectory() as td:
+        scratch = os.path.join(td, "golden.json")
+        shutil.copy(GOLDEN, scratch)
+        saved = P.GOLDEN_PATH
+        P.GOLDEN_PATH = scratch
+        try:
+            before = json.load(open(scratch, encoding="utf-8"))
+            moved = dict(before["elab"][victim])
+            moved["type"] = moved["type"] + " ∧ True"
+            delta = {"elab_delta": {victim: moved}}
+            f1 = os.path.join(td, "d1.json")
+            json.dump(delta, open(f1, "w", encoding="utf-8"), ensure_ascii=False)
+            import io, contextlib
+            buf = io.StringIO()
+            with contextlib.redirect_stdout(buf):
+                rc = P.elab_merge(f1)
+            after = json.load(open(scratch, encoding="utf-8"))
+            assert rc == 0 and after["elab"][victim] == moved, buf.getvalue()
+            assert "CHANGED " + victim in buf.getvalue(), "an overwrite must be reported"
+            assert after["pins"] == before["pins"], "the source layer must not move"
+            others = {q: v for q, v in before["elab"].items() if q != victim}
+            assert all(after["elab"][q] == v for q, v in others.items()), "collateral change"
+            # (4) an unpinned name is refused and nothing is written
+            f2 = os.path.join(td, "d2.json")
+            json.dump({"elab_delta": {"BSM.not_a_pinned_name": moved}}, open(f2, "w", encoding="utf-8"))
+            err = io.StringIO()
+            with contextlib.redirect_stderr(err), contextlib.redirect_stdout(io.StringIO()):
+                rc2 = P.elab_merge(f2)
+            assert rc2 == 1 and "not a source-pinned declaration" in err.getvalue(), err.getvalue()
+            assert json.load(open(scratch, encoding="utf-8")) == after, "a refused merge wrote"
+        finally:
+            P.GOLDEN_PATH = saved
+    LAST_NOTE["test_elab_merge_is_verbatim_and_refuses_unpinned_names"] = f"scratch copy; victim {victim}"
+
+
 if __name__ == "__main__":
     import traceback
 
