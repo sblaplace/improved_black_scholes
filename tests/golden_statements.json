@@ -656,6 +656,11 @@
       "kind": "theorem",
       "pin": "theorem hasDerivAt_erf (x : ℝ) : HasDerivAt erf ((2 / Real.sqrt Real.pi) * Real.exp (-(x ^ 2))) x"
     },
+    "BSM.integrable_call_payoff": {
+      "file": "ImprovedBS/Skeleton.lean",
+      "kind": "theorem",
+      "pin": "theorem integrable_call_payoff {μ : Measure ℝ} (X : ℝ → ℝ) (K : ℝ) (hX : Integrable X μ) : Integrable (fun s => max (X s - K) 0) μ"
+    },
     "BSM.integrable_exp_mul_phi": {
       "file": "ImprovedBS/RiskNeutral.lean",
       "kind": "theorem",
@@ -666,10 +671,20 @@
       "kind": "theorem",
       "pin": "theorem integrable_exp_neg_abs_rpow {c Y : ℝ} (hc : 0 < c) (hY : 0 < Y) : Integrable fun u : ℝ => Real.exp (-c * |u| ^ Y)"
     },
+    "BSM.integrable_gaussianReal_iff": {
+      "file": "ImprovedBS/Skeleton.lean",
+      "kind": "theorem",
+      "pin": "theorem integrable_gaussianReal_iff (f : ℝ → ℝ) : Integrable f (ProbabilityTheory.gaussianReal 0 1) ↔ Integrable (fun z : ℝ => f z * phi z)"
+    },
     "BSM.integrable_max_spot_sub_strike_mul_phi": {
       "file": "ImprovedBS/RiskNeutral.lean",
       "kind": "theorem",
       "pin": "theorem integrable_max_spot_sub_strike_mul_phi (S K tau r q sigma : ℝ) (hS : 0 < S) (hK : 0 < K) (htau : 0 < tau) (hsigma : 0 < sigma) : Integrable (fun z : ℝ => max (S * Real.exp ((r - q - sigma ^ 2 / 2) * tau + sigma * Real.sqrt tau * z) - K) 0 * phi z)"
+    },
+    "BSM.integrable_put_payoff": {
+      "file": "ImprovedBS/Skeleton.lean",
+      "kind": "theorem",
+      "pin": "theorem integrable_put_payoff {μ : Measure ℝ} (X : ℝ → ℝ) (K : ℝ) (hX : Integrable X μ) : Integrable (fun s => max (K - X s) 0) μ"
     },
     "BSM.integrable_spot_mul_phi": {
       "file": "ImprovedBS/RiskNeutral.lean",
@@ -726,6 +741,16 @@
       "kind": "theorem",
       "pin": "theorem lintegral_exp_eq_top_of_tail_lower_bound (μ : Measure ℝ) [IsProbabilityMeasure μ] (α c x₀ : ℝ) (hc : 0 < c) (htail : ∀ x ≥ x₀, ENNReal.ofReal (c * x ^ (-α)) ≤ μ (Set.Ici x)) : ∫⁻ y, ENNReal.ofReal (Real.exp y) ∂μ = ⊤"
     },
+    "BSM.lognormal_call_bounds": {
+      "file": "ImprovedBS/Skeleton.lean",
+      "kind": "theorem",
+      "pin": "theorem lognormal_call_bounds (S K tau r q sigma : ℝ) (hS : 0 ≤ S) (hK : 0 ≤ K) (htau : 0 ≤ tau) : max (S * Real.exp (-q * tau) - K * Real.exp (-r * tau)) 0 ≤ modelFreeCall (ProbabilityTheory.gaussianReal 0 1) (fun z : ℝ => S * Real.exp ((r - q - sigma ^ 2 / 2) * tau + sigma * Real.sqrt tau * z)) K r tau ∧ modelFreeCall (ProbabilityTheory.gaussianReal 0 1) (fun z : ℝ => S * Real.exp ((r - q - sigma ^ 2 / 2) * tau + sigma * Real.sqrt tau * z)) K r tau ≤ S * Real.exp (-q * tau)"
+    },
+    "BSM.lognormal_parity_gap": {
+      "file": "ImprovedBS/Skeleton.lean",
+      "kind": "theorem",
+      "pin": "theorem lognormal_parity_gap (S K tau r q sigma : ℝ) (htau : 0 ≤ tau) : modelFreeCall (ProbabilityTheory.gaussianReal 0 1) (fun z : ℝ => S * Real.exp ((r - q - sigma ^ 2 / 2) * tau + sigma * Real.sqrt tau * z)) K r tau - modelFreePut (ProbabilityTheory.gaussianReal 0 1) (fun z : ℝ => S * Real.exp ((r - q - sigma ^ 2 / 2) * tau + sigma * Real.sqrt tau * z)) K r tau = S * Real.exp (-q * tau) - K * Real.exp (-r * tau)"
+    },
     "BSM.max_spot_sub_strike_mul_phi": {
       "file": "ImprovedBS/RiskNeutral.lean",
       "kind": "theorem",
@@ -735,6 +760,41 @@
       "file": "ImprovedBS/RiskNeutral.lean",
       "kind": "theorem",
       "pin": "theorem max_sub_swap_eq (a b : ℝ) : max (b - a) 0 = max (a - b) 0 - a + b"
+    },
+    "BSM.modelFreeCall": {
+      "file": "ImprovedBS/Skeleton.lean",
+      "kind": "def",
+      "pin": "noncomputable def modelFreeCall (μ : Measure ℝ) (X : ℝ → ℝ) (K r tau : ℝ) : ℝ := Real.exp (-r * tau) * ∫ s, max (X s - K) 0 ∂μ"
+    },
+    "BSM.modelFreePut": {
+      "file": "ImprovedBS/Skeleton.lean",
+      "kind": "def",
+      "pin": "noncomputable def modelFreePut (μ : Measure ℝ) (X : ℝ → ℝ) (K r tau : ℝ) : ℝ := Real.exp (-r * tau) * ∫ s, max (K - X s) 0 ∂μ"
+    },
+    "BSM.model_free_call_bounds": {
+      "file": "ImprovedBS/Skeleton.lean",
+      "kind": "theorem",
+      "pin": "theorem model_free_call_bounds {μ : Measure ℝ} [IsProbabilityMeasure μ] (S K tau r q : ℝ) (X : ℝ → ℝ) (hX : Integrable X μ) (hE : ∫ s, X s ∂μ = S * Real.exp ((r - q) * tau)) (hK : 0 ≤ K) (hX0 : ∀ᵐ s ∂μ, 0 ≤ X s) : max (S * Real.exp (-q * tau) - K * Real.exp (-r * tau)) 0 ≤ modelFreeCall μ X K r tau ∧ modelFreeCall μ X K r tau ≤ S * Real.exp (-q * tau)"
+    },
+    "BSM.model_free_call_nonneg": {
+      "file": "ImprovedBS/Skeleton.lean",
+      "kind": "theorem",
+      "pin": "theorem model_free_call_nonneg {μ : Measure ℝ} (X : ℝ → ℝ) (K r tau : ℝ) : 0 ≤ modelFreeCall μ X K r tau"
+    },
+    "BSM.model_free_parity_gap": {
+      "file": "ImprovedBS/Skeleton.lean",
+      "kind": "theorem",
+      "pin": "theorem model_free_parity_gap {μ : Measure ℝ} [IsProbabilityMeasure μ] (X : ℝ → ℝ) (K r tau : ℝ) (hX : Integrable X μ) : modelFreeCall μ X K r tau - modelFreePut μ X K r tau = Real.exp (-r * tau) * ((∫ s, X s ∂μ) - K)"
+    },
+    "BSM.model_free_put_bounds": {
+      "file": "ImprovedBS/Skeleton.lean",
+      "kind": "theorem",
+      "pin": "theorem model_free_put_bounds {μ : Measure ℝ} [IsProbabilityMeasure μ] (S K tau r q : ℝ) (X : ℝ → ℝ) (hX : Integrable X μ) (hE : ∫ s, X s ∂μ = S * Real.exp ((r - q) * tau)) (hK : 0 ≤ K) (hX0 : ∀ᵐ s ∂μ, 0 ≤ X s) : max (K * Real.exp (-r * tau) - S * Real.exp (-q * tau)) 0 ≤ modelFreePut μ X K r tau ∧ modelFreePut μ X K r tau ≤ K * Real.exp (-r * tau)"
+    },
+    "BSM.model_free_put_call_parity": {
+      "file": "ImprovedBS/Skeleton.lean",
+      "kind": "theorem",
+      "pin": "theorem model_free_put_call_parity {μ : Measure ℝ} [IsProbabilityMeasure μ] (S K tau r q : ℝ) (X : ℝ → ℝ) (hX : Integrable X μ) (hE : ∫ s, X s ∂μ = S * Real.exp ((r - q) * tau)) : modelFreeCall μ X K r tau - modelFreePut μ X K r tau = S * Real.exp (-q * tau) - K * Real.exp (-r * tau)"
     },
     "BSM.no_drift_makes_spot_integrable": {
       "file": "ImprovedBS/Levy.lean",
@@ -806,6 +866,11 @@
       "kind": "theorem",
       "pin": "theorem t2_put_call_parity_spread (S K tau r q sigma : ℝ) : bsCall S K tau r q sigma - bsPut S K tau r q sigma = S * Real.exp (-q * tau) - K * Real.exp (-r * tau)"
     },
+    "BSM.t2_spread_via_skeleton": {
+      "file": "ImprovedBS/Skeleton.lean",
+      "kind": "theorem",
+      "pin": "theorem t2_spread_via_skeleton (S K tau r q sigma : ℝ) (hS : 0 < S) (hK : 0 < K) (htau : 0 < tau) (hsigma : 0 < sigma) : bsCall S K tau r q sigma - bsPut S K tau r q sigma = S * Real.exp (-q * tau) - K * Real.exp (-r * tau)"
+    },
     "BSM.t3_delta_identity": {
       "file": "ImprovedBS/Core.lean",
       "kind": "theorem",
@@ -815,6 +880,11 @@
       "file": "ImprovedBS/Core.lean",
       "kind": "theorem",
       "pin": "theorem t4_call_bounds (S K tau r q sigma : ℝ) (hS : 0 < S) (hK : 0 < K) (htau : 0 < tau) (hsigma : 0 < sigma) : max (S * Real.exp (-q * tau) - K * Real.exp (-r * tau)) 0 ≤ bsCall S K tau r q sigma ∧ bsCall S K tau r q sigma ≤ S * Real.exp (-q * tau)"
+    },
+    "BSM.t4_call_bounds_via_skeleton": {
+      "file": "ImprovedBS/Skeleton.lean",
+      "kind": "theorem",
+      "pin": "theorem t4_call_bounds_via_skeleton (S K tau r q sigma : ℝ) (hS : 0 < S) (hK : 0 < K) (htau : 0 < tau) (hsigma : 0 < sigma) : max (S * Real.exp (-q * tau) - K * Real.exp (-r * tau)) 0 ≤ bsCall S K tau r q sigma ∧ bsCall S K tau r q sigma ≤ S * Real.exp (-q * tau)"
     },
     "BSM.t4_put_bounds": {
       "file": "ImprovedBS/Core.lean",
