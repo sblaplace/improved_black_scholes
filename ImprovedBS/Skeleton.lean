@@ -113,9 +113,9 @@ theorem integrable_call_payoff {μ : Measure ℝ} [IsProbabilityMeasure μ] (X :
   -- the tag); measurability of the payoff is `fun_prop` on the concrete shape
   -- (BRIEF_007 experience).
   exact MeasureTheory.Integrable.mono (hX.sub (MeasureTheory.integrable_const K))
+    ((hX.aestronglyMeasurable.sub (MeasureTheory.aestronglyMeasurable_const)).sup
+      (MeasureTheory.aestronglyMeasurable_const))
     (Filter.Eventually.of_forall hbound)
-    (hX.aestronglyMeasurable.sub (MeasureTheory.aestronglyMeasurable_const)).sup
-      (MeasureTheory.aestronglyMeasurable_const)
 
 /-- The put payoff of an integrable spot is integrable -- derived through
 `max_sub_swap_eq`, the pointwise identity `(K - X)^+ = (X - K)^+ - X + K`.
@@ -286,14 +286,13 @@ at the tag with an AEMeasurable hypothesis -- re-verify per C3), and
 theorem integrable_gaussianReal_iff (f : ℝ → ℝ) :
     Integrable f (ProbabilityTheory.gaussianReal 0 1)
       ↔ Integrable (fun z : ℝ => f z * phi z) := by
-  have hpw : ∀ z : ℝ, f z * ProbabilityTheory.gaussianPDFReal 0 1 z = f z * phi z := fun z => by
-    rw [phi_eq_gaussianPDFReal]
-  rw [ProbabilityTheory.gaussianReal_of_var_ne_zero 0 (one_ne_zero : (1 : NNReal) ≠ 0)]
-  show Integrable f
-      (volume.withDensity (fun z => ENNReal.ofReal (ProbabilityTheory.gaussianPDFReal 0 1 z)))
-      ↔ Integrable (fun z : ℝ => f z * phi z) volume
-  rw [MeasureTheory.integrable_withDensity_ofReal_iff
-    (ProbabilityTheory.measurable_gaussianPDFReal 0 1)]
+  have hpw : ∀ z : ℝ,
+      (ProbabilityTheory.gaussianPDF 0 1 z).toReal • f z = f z * phi z := by
+    intro z
+    rw [ProbabilityTheory.toReal_gaussianPDF, smul_eq_mul, phi_eq_gaussianPDFReal z]
+    ring
+  rw [ProbabilityTheory.gaussianReal_of_var_ne_zero 0 (one_ne_zero : (1 : NNReal) ≠ 0),
+    MeasureTheory.integrable_withDensity_iff (ProbabilityTheory.measurable_gaussianPDF 0 1)]
   exact ⟨fun h => h.congr (Filter.Eventually.of_forall hpw),
     fun h => h.congr (Filter.Eventually.of_forall (fun z => (hpw z).symm))⟩
 
