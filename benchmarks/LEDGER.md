@@ -723,5 +723,7 @@ imaginary part ≤ 2e-15 on textbook case).
 
 | # | head | what the run decided | outcome |
 |---|------|----------------------|---------|
-| 1 | *(current)* | first push of `ImprovedBS/Inversion.lean`, 13 declarations | PENDING |
+| 1 | `23c41ea` (run 35577403029) | first push of `ImprovedBS/Inversion.lean`, 13 declarations | RED (12 of 13 declarations elaborated; type mismatch on line 211 in `carrMadan_inversion_eq_re`) |
+| 2 | `aef13fb` (run 35577857638) | `rw [Complex.ofReal_re]` fix | RED by design on pins: `lake build` + `#print axioms` audit **GREEN** (all 11 new theorems on `[propext, Classical.choice, Quot.sound]`, zero `sorryAx`), `elab_delta` (13 entries) printed last and published to PR #10 |
+| 3 | *(current)* | merged 13 `elab_delta` pins via `scripts/pin_statements.py --elab-merge` (all 94 elab pins present) | PENDING |
 
