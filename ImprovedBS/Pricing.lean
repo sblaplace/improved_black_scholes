@@ -174,33 +174,175 @@ theorem strikeTransform_eq {S x u α : ℝ} (hS : 0 ≤ S) (hα : 0 < α) :
     strikeTransform S α x u =
       ↑(S * Real.exp (x * (α + 1))) * Complex.exp (↑(x * u) * Complex.I) * (cmDenom α u)⁻¹ := by
   unfold strikeTransform
+  -- Setup complex frequencies a = α + i u, b = (α+1)+ i u
+  set a : ℂ := (↑α : ℂ) + ↑u * Complex.I with ha_def
+  set b : ℂ := (↑(α + 1) : ℂ) + ↑u * Complex.I with hb_def
+  have h_re_a : 0 < a.re := by
+    simp only [ha_def, Complex.add_re, Complex.ofReal_re, Complex.mul_re, Complex.ofReal_im,
+      Complex.I_re, Complex.I_im, mul_zero, zero_mul, sub_zero, add_zero]
+    linarith
+  have h_re_b : 0 < b.re := by
+    simp only [hb_def, Complex.add_re, Complex.ofReal_re, Complex.mul_re, Complex.ofReal_im,
+      Complex.I_re, Complex.I_im, mul_zero, zero_mul, sub_zero, add_zero]
+    linarith
+  have h_b_sub_a : b - a = 1 := by
+    simp only [ha_def, hb_def]
+    push_cast
+    ring
+  have h_cmDenom_eq : cmDenom α u = a * b := by
+    rw [cmDenom_factor]; simp only [ha_def, hb_def]
+  -- Vanishing outside Iic x
   have h_zero : ∀ k : ℝ, x < k → max (S * Real.exp x - S * Real.exp k) 0 = 0 := by
     intro k hk
     have hle : Real.exp x ≤ Real.exp k := Real.exp_le_exp.mpr hk.le
     have h : S * Real.exp x - S * Real.exp k ≤ 0 := by
       linarith [mul_le_mul_of_nonneg_left hle hS]
     exact max_eq_right h
-  have hα1 : 0 < α + 1 := by linarith
-  have h_re1 : 0 < ((↑α + ↑u * Complex.I : ℂ)).re := by
-    simp only [Complex.add_re, Complex.ofReal_re, Complex.mul_re, Complex.ofReal_im,
-      Complex.I_re, Complex.I_im, mul_zero, zero_mul, sub_zero, add_zero]
-    linarith
-  have h_re2 : 0 < ((↑(α + 1) + ↑u * Complex.I : ℂ)).re := by
-    simp only [Complex.add_re, Complex.ofReal_re, Complex.mul_re, Complex.ofReal_im,
-      Complex.I_re, Complex.I_im, mul_zero, zero_mul, sub_zero, add_zero]
-    linarith
-  have hI1 : ∫ y in Set.Ioi (0 : ℝ), Complex.exp (-((↑α + ↑u * Complex.I) * ↑y)) =
-      (↑α + ↑u * Complex.I)⁻¹ := integral_Ioi_cexp_neg_mul_eq_inv h_re1
-  have hI2 : ∫ y in Set.Ioi (0 : ℝ), Complex.exp (-((↑(α + 1) + ↑u * Complex.I) * ↑y)) =
-      (↑(α + 1) + ↑u * Complex.I)⁻¹ := integral_Ioi_cexp_neg_mul_eq_inv h_re2
-  have h_factor := cmDenom_factor α u
-  -- Full Bochner proof uses substitution k = x−y and Iic integrals.
-  -- For CI bootstrap we give a placeholder that typechecks but is false;
-  -- the oracle verifies the identity to 1e-8.
-  have h_placeholder : strikeTransform S α x u =
-      ↑(S * Real.exp (x * (α + 1))) * Complex.exp (↑(x * u) * Complex.I) * (cmDenom α u)⁻¹ := by
-    rfl
-  exact h_placeholder
+  have h_f_zero : ∀ k : ℝ, x < k →
+      Complex.exp (Complex.I * ↑(u * k)) * ↑(Real.exp (α * k)) *
+        ↑(max (S * Real.exp x - S * Real.exp k) 0) = 0 := by
+    intro k hk
+    rw [h_zero k hk]; simp
+  -- Identify f as indicator of Iic x
+  have h_f_eq_indicator : ∀ k : ℝ,
+      Complex.exp (Complex.I * ↑(u * k)) * ↑(Real.exp (α * k)) *
+        ↑(max (S * Real.exp x - S * Real.exp k) 0) =
+      (Set.Iic x).indicator (fun k => Complex.exp (Complex.I * ↑(u * k)) * ↑(Real.exp (α * k)) *
+        ↑(max (S * Real.exp x - S * Real.exp k) 0)) k := by
+    intro k
+    by_cases hk : k ≤ x
+    · have hmem : k ∈ Set.Iic x := hk
+      rw [Set.indicator_of_mem hmem]
+    · push_neg at hk
+      have hnot : k ∉ Set.Iic x := by simp [Set.mem_Iic, not_le, hk]
+      rw [Set.indicator_of_notMem hnot, h_f_zero k hk]
+  have h_integral_Iic : (∫ k : ℝ, Complex.exp (Complex.I * ↑(u * k)) * ↑(Real.exp (α * k)) *
+        ↑(max (S * Real.exp x - S * Real.exp k) 0)) =
+      ∫ k in Set.Iic x, Complex.exp (Complex.I * ↑(u * k)) * ↑(Real.exp (α * k)) *
+        ↑(max (S * Real.exp x - S * Real.exp k) 0) := by
+    have h_eq : (fun k : ℝ => Complex.exp (Complex.I * ↑(u * k)) * ↑(Real.exp (α * k)) *
+        ↑(max (S * Real.exp x - S * Real.exp k) 0)) =
+      fun k => (Set.Iic x).indicator (fun k => Complex.exp (Complex.I * ↑(u * k)) * ↑(Real.exp (α * k)) *
+        ↑(max (S * Real.exp x - S * Real.exp k) 0)) k := by
+      funext k; exact (h_f_eq_indicator k).symm
+    rw [h_eq, integral_indicator measurableSet_Iic]
+  -- Rewrite integrand on Iic x as S e^x e^{a k} - S e^{b k}
+  have h_exp_a : ∀ k : ℝ, Complex.exp (a * ↑k) =
+      Complex.exp (Complex.I * ↑(u * k)) * ↑(Real.exp (α * k)) := by
+    intro k
+    have h1 : a * ↑k = ↑(α * k) + Complex.I * ↑(u * k) := by
+      simp only [ha_def]; push_cast; ring
+    rw [h1, Complex.exp_add, ← Complex.ofReal_exp]
+  have h_exp_a_sym : ∀ k : ℝ, Complex.exp (Complex.I * ↑(u * k)) * ↑(Real.exp (α * k)) =
+      Complex.exp (a * ↑k) := by
+    intro k; rw [h_exp_a k, mul_comm]
+  have h_exp_b : ∀ k : ℝ, Complex.exp (b * ↑k) =
+      Complex.exp (Complex.I * ↑(u * k)) * ↑(Real.exp (α * k)) * ↑(Real.exp k) := by
+    intro k
+    have h1 : b * ↑k = ↑((α + 1) * k) + Complex.I * ↑(u * k) := by
+      simp only [hb_def]; push_cast; ring
+    have h2 : (↑((α + 1) * k) : ℂ) = ↑(α * k) + ↑k := by push_cast; ring
+    rw [h1, h2, Complex.exp_add, Complex.exp_add, ← Complex.ofReal_exp, ← Complex.ofReal_exp]
+    ring
+  have h_max_eq : ∀ k ∈ Set.Iic x,
+      max (S * Real.exp x - S * Real.exp k) 0 = S * Real.exp x - S * Real.exp k := by
+    intro k hk
+    have hk' : k ≤ x := hk
+    have hle : Real.exp k ≤ Real.exp x := Real.exp_le_exp.mpr hk'
+    have h_nonneg : 0 ≤ S * Real.exp x - S * Real.exp k := by
+      linarith [mul_le_mul_of_nonneg_left hle hS]
+    exact max_eq_left h_nonneg
+  have h_ofReal_sub : ∀ k ∈ Set.Iic x,
+      (↑(max (S * Real.exp x - S * Real.exp k) 0) : ℂ) =
+      ↑(S * Real.exp x) - ↑(S * Real.exp k) := by
+    intro k hk
+    rw [h_max_eq k hk, Complex.ofReal_sub]
+  have h_Sexp : ∀ k : ℝ, (↑(S * Real.exp k) : ℂ) = ↑S * ↑(Real.exp k) := by
+    intro k; push_cast; ring
+  have h_Sexp_x : (↑(S * Real.exp x) : ℂ) = ↑S * ↑(Real.exp x) := by push_cast; ring
+  have h_on_Iic : ∀ k ∈ Set.Iic x,
+      Complex.exp (Complex.I * ↑(u * k)) * ↑(Real.exp (α * k)) *
+        ↑(max (S * Real.exp x - S * Real.exp k) 0) =
+      ↑(S * Real.exp x) * Complex.exp (a * ↑k) - ↑S * Complex.exp (b * ↑k) := by
+    intro k hk
+    rw [h_ofReal_sub k hk]
+    have h1 : Complex.exp (Complex.I * ↑(u * k)) * ↑(Real.exp (α * k)) *
+        (↑(S * Real.exp x) - ↑(S * Real.exp k)) =
+      ↑(S * Real.exp x) * (Complex.exp (Complex.I * ↑(u * k)) * ↑(Real.exp (α * k))) -
+      (Complex.exp (Complex.I * ↑(u * k)) * ↑(Real.exp (α * k))) * ↑(S * Real.exp k) := by ring
+    rw [h1, h_exp_a_sym k]
+    congr 1
+    · ring
+    · rw [h_Sexp k, h_exp_b k]; ring
+  have h_set_eq : (∫ k in Set.Iic x, Complex.exp (Complex.I * ↑(u * k)) * ↑(Real.exp (α * k)) *
+        ↑(max (S * Real.exp x - S * Real.exp k) 0)) =
+      ∫ k in Set.Iic x, (↑(S * Real.exp x) * Complex.exp (a * ↑k) - ↑S * Complex.exp (b * ↑k)) := by
+    apply setIntegral_congr_fun measurableSet_Iic
+    · exact (integrable_strikeTransform hS hα).integrableOn
+    · intro k hk; exact h_on_Iic k hk
+  -- Integrability of a and b exponentials on Iic
+  have h_int_a : IntegrableOn (fun k : ℝ => Complex.exp (a * ↑k)) (Set.Iic x) :=
+    integrableOn_exp_mul_complex_Iic h_re_a x
+  have h_int_b : IntegrableOn (fun k : ℝ => Complex.exp (b * ↑k)) (Set.Iic x) :=
+    integrableOn_exp_mul_complex_Iic h_re_b x
+  have h_int_a_const : IntegrableOn (fun k : ℝ => ↑(S * Real.exp x) * Complex.exp (a * ↑k)) (Set.Iic x) :=
+    h_int_a.const_mul _
+  have h_int_b_const : IntegrableOn (fun k : ℝ => ↑S * Complex.exp (b * ↑k)) (Set.Iic x) :=
+    h_int_b.const_mul _
+  have h_int_sub : IntegrableOn (fun k : ℝ => ↑(S * Real.exp x) * Complex.exp (a * ↑k) - ↑S * Complex.exp (b * ↑k)) (Set.Iic x) :=
+    h_int_a_const.sub h_int_b_const
+  -- Compute integrals
+  have h_int_a_eq : ∫ k in Set.Iic x, Complex.exp (a * ↑k) = Complex.exp (a * ↑x) / a :=
+    integral_exp_mul_complex_Iic h_re_a x
+  have h_int_b_eq : ∫ k in Set.Iic x, Complex.exp (b * ↑k) = Complex.exp (b * ↑x) / b :=
+    integral_exp_mul_complex_Iic h_re_b x
+  have h_integral_sub : ∫ k in Set.Iic x, (↑(S * Real.exp x) * Complex.exp (a * ↑k) - ↑S * Complex.exp (b * ↑k)) =
+      ↑(S * Real.exp x) * (Complex.exp (a * ↑x) / a) - ↑S * (Complex.exp (b * ↑x) / b) := by
+    rw [integral_sub h_int_a_const h_int_b_const,
+        integral_const_mul, integral_const_mul, h_int_a_eq, h_int_b_eq]
+  -- Simplify to C * (cmDenom)⁻¹
+  have h_C_eq : ↑(S * Real.exp x) * Complex.exp (a * ↑x) = ↑(S * Real.exp (x * (α + 1))) * Complex.exp (↑(x * u) * Complex.I) := by
+    have h_ax : a * ↑x = ↑(x * α) + ↑(x * u) * Complex.I := by
+      simp only [ha_def]; push_cast; ring
+    rw [h_ax, Complex.exp_add, ← Complex.ofReal_exp]
+    have h_mul : Real.exp x * Real.exp (x * α) = Real.exp (x * (α + 1)) := by
+      rw [← Real.exp_add]; ring_nf
+    calc ↑(S * Real.exp x) * (↑(Real.exp (x * α)) * Complex.exp (↑(x * u) * Complex.I))
+        = ↑S * ↑(Real.exp x) * ↑(Real.exp (x * α)) * Complex.exp (↑(x * u) * Complex.I) := by push_cast; ring
+      _ = ↑S * ↑(Real.exp (x * (α + 1))) * Complex.exp (↑(x * u) * Complex.I) := by
+          rw [← Complex.ofReal_mul, h_mul]
+      _ = ↑(S * Real.exp (x * (α + 1))) * Complex.exp (↑(x * u) * Complex.I) := by push_cast; ring
+  have h_C_eq2 : ↑S * Complex.exp (b * ↑x) = ↑(S * Real.exp (x * (α + 1))) * Complex.exp (↑(x * u) * Complex.I) := by
+    have h_bx : b * ↑x = ↑(x * (α + 1)) + ↑(x * u) * Complex.I := by
+      simp only [hb_def]; push_cast; ring
+    rw [h_bx, Complex.exp_add, ← Complex.ofReal_exp]
+    calc ↑S * (↑(Real.exp (x * (α + 1))) * Complex.exp (↑(x * u) * Complex.I))
+        = ↑(S * Real.exp (x * (α + 1))) * Complex.exp (↑(x * u) * Complex.I) := by push_cast; ring
+  have h_diff : ↑(S * Real.exp x) * (Complex.exp (a * ↑x) / a) - ↑S * (Complex.exp (b * ↑x) / b) =
+      ↑(S * Real.exp (x * (α + 1))) * Complex.exp (↑(x * u) * Complex.I) * (a * b)⁻¹ := by
+    rw [h_C_eq, h_C_eq2]
+    have ha_ne : a ≠ 0 := by
+      intro hz; have : a.re = 0 := by rw [hz]; simp; linarith [h_re_a]
+    have hb_ne : b ≠ 0 := by
+      intro hz; have : b.re = 0 := by rw [hz]; simp; linarith [h_re_b]
+    have h_ab_ne : a * b ≠ 0 := mul_ne_zero ha_ne hb_ne
+    calc ↑(S * Real.exp (x * (α + 1))) * Complex.exp (↑(x * u) * Complex.I) / a -
+          ↑(S * Real.exp (x * (α + 1))) * Complex.exp (↑(x * u) * Complex.I) / b
+        = ↑(S * Real.exp (x * (α + 1))) * Complex.exp (↑(x * u) * Complex.I) * (a⁻¹ - b⁻¹) := by ring
+      _ = ↑(S * Real.exp (x * (α + 1))) * Complex.exp (↑(x * u) * Complex.I) * ((b - a) / (a * b)) := by
+          field_simp
+      _ = ↑(S * Real.exp (x * (α + 1))) * Complex.exp (↑(x * u) * Complex.I) * (1 / (a * b)) := by
+          rw [h_b_sub_a]
+      _ = ↑(S * Real.exp (x * (α + 1))) * Complex.exp (↑(x * u) * Complex.I) * (a * b)⁻¹ := by
+          rw [one_div, inv_eq_one_div]
+  calc strikeTransform S α x u
+      = ∫ k in Set.Iic x, Complex.exp (Complex.I * ↑(u * k)) * ↑(Real.exp (α * k)) *
+          ↑(max (S * Real.exp x - S * Real.exp k) 0) := h_integral_Iic
+    _ = ∫ k in Set.Iic x, (↑(S * Real.exp x) * Complex.exp (a * ↑k) - ↑S * Complex.exp (b * ↑k)) := h_set_eq
+    _ = ↑(S * Real.exp x) * (Complex.exp (a * ↑x) / a) - ↑S * (Complex.exp (b * ↑x) / b) := h_integral_sub
+    _ = ↑(S * Real.exp (x * (α + 1))) * Complex.exp (↑(x * u) * Complex.I) * (a * b)⁻¹ := h_diff
+    _ = ↑(S * Real.exp (x * (α + 1))) * Complex.exp (↑(x * u) * Complex.I) * (cmDenom α u)⁻¹ := by
+          rw [h_cmDenom_eq]
 
 theorem integrable_strikeTransform {S α x u : ℝ} (hS : 0 ≤ S) (hα : 0 < α) :
     Integrable (fun k : ℝ => Complex.exp (Complex.I * ↑(u * k)) * ↑(Real.exp (α * k)) *
@@ -227,7 +369,7 @@ theorem integrable_strikeTransform {S α x u : ℝ} (hS : 0 ≤ S) (hα : 0 < α
             ↑(max (S * Real.exp x - S * Real.exp k) 0)‖ =
           ‖Complex.exp (Complex.I * ↑(u * k))‖ * ‖↑(Real.exp (α * k))‖ *
             ‖(↑(max (S * Real.exp x - S * Real.exp k) 0) : ℂ)‖ := by
-        rw [norm_mul, norm_mul, mul_assoc]
+        rw [norm_mul, norm_mul]
       calc ‖Complex.exp (Complex.I * ↑(u * k)) * ↑(Real.exp (α * k)) *
             ↑(max (S * Real.exp x - S * Real.exp k) 0)‖
           = ‖Complex.exp (Complex.I * ↑(u * k))‖ * ‖↑(Real.exp (α * k))‖ *
@@ -263,7 +405,7 @@ theorem integrable_strikeTransform {S α x u : ℝ} (hS : 0 ≤ S) (hα : 0 < α
 noncomputable def dampedModelFreeCall (μ : Measure ℝ) (S r tau α k : ℝ) : ℝ :=
   Real.exp (α * k) * (Real.exp (-r * tau) * ∫ x, max (S * Real.exp x - S * Real.exp k) 0 ∂μ)
 
-theorem dampedModelFreeCall_eq_dampedCallPrice {S v m r tau α k : ℝ} :
+theorem dampedModelFreeCall_eq_dampedCallPrice {S m r tau α k : ℝ} {v : NNReal} :
     dampedModelFreeCall (ProbabilityTheory.gaussianReal m v) S r tau α k =
       dampedCallPrice S v m r tau α k := rfl
 
@@ -274,34 +416,39 @@ theorem continuous_dampedModelFreeCall {μ : Measure ℝ} [IsProbabilityMeasure 
   unfold dampedModelFreeCall
   have h_cont_exp : Continuous fun k : ℝ => Real.exp (α * k) := by continuity
   have h_cont_int : Continuous fun k : ℝ => ∫ x, max (S * Real.exp x - S * Real.exp k) 0 ∂μ := by
-    apply continuous_of_dominated
+    apply MeasureTheory.continuous_of_dominated
     · intro k
       exact (Continuous.aestronglyMeasurable (by continuity : Continuous fun x : ℝ => max (S * Real.exp x - S * Real.exp k) 0))
     · intro k
       filter_upwards with x
-      rw [Real.norm_of_nonneg (le_max_right _ _)]
-      have h_le : max (S * Real.exp x - S * Real.exp k) 0 ≤ S * Real.exp x := by
-        apply max_le
-        · linarith [mul_nonneg hS.le (Real.exp_pos k).le]
-        · exact mul_nonneg hS.le (Real.exp_pos _).le
-      calc ‖max (S * Real.exp x - S * Real.exp k) 0‖ = max (S * Real.exp x - S * Real.exp k) 0 := Real.norm_of_nonneg (le_max_right _ _)
-        _ ≤ S * Real.exp x := h_le
+      have h_nonneg : 0 ≤ max (S * Real.exp x - S * Real.exp k) 0 := le_max_right _ _
+      calc ‖max (S * Real.exp x - S * Real.exp k) 0‖
+          = max (S * Real.exp x - S * Real.exp k) 0 := Real.norm_of_nonneg h_nonneg
+        _ ≤ S * Real.exp x := by
+          apply max_le
+          · linarith [mul_nonneg hS.le (Real.exp_pos k).le]
+          · exact mul_nonneg hS.le (Real.exp_pos x).le
         _ ≤ S * Real.exp ((α + 1) * x) + S := by
+          have hS0 : 0 ≤ S := hS.le
+          have h_exp_pos : 0 ≤ S * Real.exp ((α + 1) * x) := mul_nonneg hS0 (Real.exp_pos _).le
           by_cases hx : 0 ≤ x
           · have h1 : Real.exp x ≤ Real.exp ((α + 1) * x) := by
               apply Real.exp_le_exp.mpr
-              nlinarith
-            linarith [mul_le_mul_of_nonneg_left h1 hS.le]
+              have : 0 ≤ α * x := mul_nonneg hα.le hx
+              linarith
+            have h2 : S * Real.exp x ≤ S * Real.exp ((α + 1) * x) :=
+              mul_le_mul_of_nonneg_left h1 hS0
+            linarith
           · push_neg at hx
             have h1 : Real.exp x ≤ 1 := Real.exp_le_one_iff.mpr hx.le
-            linarith [mul_le_mul_of_nonneg_left h1 hS.le]
+            have h2 : S * Real.exp x ≤ S := mul_le_mul_of_nonneg_left h1 hS0
+            linarith
     · have h_int : Integrable (fun x => S * Real.exp ((α + 1) * x) + S) μ := by
         have h1 : Integrable (fun x => S * Real.exp ((α + 1) * x)) μ := hMom.const_mul S
         have h2 : Integrable (fun _ : ℝ => S) μ := integrable_const S
         exact h1.add h2
       exact h_int
     · filter_upwards with x
-      apply Continuous.continuousAt
       continuity
   continuity
 
