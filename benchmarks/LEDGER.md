@@ -25,6 +25,7 @@ Verdict discipline:
 | 7 | BRIEF_007 (T6 sub-goal 3a: the closed form is the risk-neutral expectation) | arena-ai-coding-agent | [#9](https://github.com/sblaplace/improved_black_scholes/pull/9) | **GREEN** @ `f50a256`, lean run 35574194681 (oracle lane run 35574194638) — `lake build` + `#print axioms` audit + **Statement pins (elab, all 81)** + the oracle↔Lean pointwise cross-verifier + `lint` all pass; the build line is `✔ [8927/8929] Built ImprovedBS.RiskNeutral`, and all 71 audited constants (50 previous + the 21 below) sit on `[propext, Classical.choice, Quot.sound]`, never `sorryAx`. Reached on the 4th run; the arc (two build runs, one of them the first push with 20 of 21 declarations already elaborating, then the two-run pin bootstrap that this time also fixed its own channel — C10) is in the CI history below. Scope: new module `ImprovedBS/RiskNeutral.lean`, 21 declarations (`phi_eq_gaussianPDFReal`, `Phi_eq_gaussianReal_Iic`, `integral_gaussianReal_eq_integral_mul_phi`, `integral_phi`, `exp_mul_phi_eq`, `integrable_exp_mul_phi`, `integral_exp_mul_phi`, `integral_phi_Ioi`, `integral_phi_sub_Ioi`, `integral_exp_mul_phi_Ioi`, `sigma_sqrt_tau_mul_d2`, `spot_sub_strike_eq`, `max_spot_sub_strike_mul_phi`, `max_sub_swap_eq`, `integrable_spot_mul_phi`, `integral_spot_mul_phi_eq_forward`, `integrable_max_spot_sub_strike_mul_phi`, `bsCall_eq_riskNeutral_expectation`, `bsPut_eq_riskNeutral_expectation`, `bsCall_eq_gaussianReal_expectation`, `bsCall_eq_lognormal_expectation`), all in `REQUIRED` + `PROTECTED`, statement pins 60 → 81 in both layers with the 60 pre-existing entries byte-identical, audit list extended by 21, `deferred: {}` untouched, T1–T5 and BRIEF_004/005 statements unchanged. Oracle side: `bs_call_by_expectation` / `bs_put_by_expectation` / `forward_by_expectation` (Simpson, no `norm_cdf`/`_d1d2`), `test_risk_neutral_expectation` (closed form vs expectation ≤ 1.6e-12 rel on the 39-point grid, forward ≤ 1.2e-14 rel) and mutant M11 (drift sign), killed by that test alone. Authored without a toolchain; see the CI history for row 7. |
 | 8 | BRIEF_008 (T6 sub-goal 3b: Fourier inversion and real-valuedness) | arena-ai-coding-agent | [#10](https://github.com/sblaplace/improved_black_scholes/pull/10) | **GREEN** @ `e974bd7`, lean run 35578278238 (oracle lane run 35578278250) — `lake build` + `#print axioms` audit + **Statement pins (elab, all 94)** + the oracle↔Lean pointwise cross-verifier + `lint` all pass; the build line is `✔ [8928/8930] Built ImprovedBS.Inversion`, and all 82 audited constants (71 previous + the 11 below) sit on `[propext, Classical.choice, Quot.sound]`, never `sorryAx`. Scope: new module `ImprovedBS/Inversion.lean`, 13 declarations (`carrMadanInversion`, `dampedCallPrice`, `carrMadanInversion_integrand_integrable`, `gbm_carrMadanInversion_integrable`, `dampedCallPrice_log_eq`, `undamped_dampedCallPrice`, `fourierInversion_dampedCallPrice`, `fourierInversion_dampedCallPrice_at`, `carrMadan_inversion_eq_lognormal_expectation`, `carrMadan_inversion_eq_bsCall`, `carrMadan_inversion_im_eq_zero`, `carrMadan_inversion_eq_re`, `carrMadan_inversion_re_eq_bsCall`), all in `REQUIRED` + `PROTECTED`, statement pins 81 → 94 in both layers with the 81 pre-existing entries byte-identical, audit list extended by 11, `deferred: {}` untouched, T1–T5 and BRIEF_004/005/007 statements unchanged. Oracle side: `carr_madan_denom`, `bs_call_by_fourier_inversion` (Simpson with adaptive truncation), `bs_call_by_fourier_inversion_complex` (two-sided complex integral verifying imaginary part ≤ 2e-15), `test_fourier_inversion` (closed form vs inversion ≤ 2.02e-11 rel on 39-point grid, expectation vs inversion, imaginary part < 1e-13, α ≤ 0 rejected) and mutant M12, killed by that test alone. Authored without a toolchain; see the CI history for row 8. |
 | 9 | BRIEF_009 (the model-free skeleton: parity + bounds at the expectation level) | arena-ai-coding-agent | [#11](https://github.com/sblaplace/improved_black_scholes/pull/11) | **GREEN** @ `8f6c656`, lean run 35589005865 (oracle lane run 35589005799) — `lake build` + `#print axioms` audit + **Statement pins (elab, all 108)** + the oracle↔Lean pointwise cross-verifier + `lint` (incl. `[SKELETON]`) all pass; the build line is `✔ [8928/8931] Built ImprovedBS.Skeleton`, and all 94 audited constants (82 previous + the 12 theorems below; `modelFreeCall`/`modelFreePut` are pins but not audit entries) sit on `[propext, Classical.choice, Quot.sound]`, never `sorryAx`. Scope: new module `ImprovedBS/Skeleton.lean`, 14 declarations (`modelFreeCall`, `modelFreePut`, `integrable_call_payoff`, `integrable_put_payoff`, `model_free_parity_gap`, `model_free_put_call_parity`, `model_free_call_nonneg`, `model_free_call_bounds`, `model_free_put_bounds`, `integrable_gaussianReal_iff`, `lognormal_parity_gap`, `lognormal_call_bounds`, `t2_spread_via_skeleton`, `t4_call_bounds_via_skeleton`), all in `REQUIRED` + `PROTECTED`, statement pins 94 → 108 in both layers with the 94 pre-existing entries byte-identical, audit list extended by 12, `deferred: {}` untouched, T1–T5 and BRIEF_004/005/007/008 statements unchanged. The layer holds at any terminal-spot law with the drift condition (parity unfixed at the expectation level; `lognormal_parity_gap` carries `htau : 0 ≤ tau` and nothing else; the T4′ put half rides parity and must cite it — mutant K1; `t2_spread_via_skeleton`/`t4_call_bounds_via_skeleton` re-derive T2/T4 through the layer and are graded to consume it and not the closed forms — mutant K2). `[SKELETON]` route checks with cheats K1/K2 (27 lint mutants, 5 controls). Oracle side: `model_free_prices`/`model_free_forward`, `test_model_free_skeleton` (gap identity + forward parity at 3 laws + degenerate, drift canary where the gap is not the forward spread, bounds at (a)/(b)/(d), degenerate edge tightness at K=100/110) and mutants M13 (put payoff `max (K−s) 0` flipped to `max (s−K) 0`) / M14 (spot's second moment in the gap), killed by that test alone. Seven-run lean arc, all elaboration and API shape at the tag (not mathematics): 35583242988 (9 errors) → 35584511555 (a same-file batch-edit race lost the block rewrite — see the follow-up commit) → 35584605087 (5: the un-instantiated payoff-integrability statements were *false* at infinite measures and now carry `[IsProbabilityMeasure μ]`; `AEStronglyMeasurable.sup`, not `.max`) → 35586213657 (2: `Integrable.mono` arg order) → 35586918124 (2: the density iff is `g x * (ρ x).toReal` and takes an a.e.-finiteness side goal) → 35588330009 **build GREEN**, elab pins red by design → 35589005865 green with the block merged (`added 14, changed 0, elab now 108`, golden diff pure insertion). Authored without a toolchain; see the CI history for row 9. |
+| — | *(brief issuance, no theorem)* BRIEF_010 issued: T6 at any strip law, and the contour correction C12 | arena-ai-coding-agent | [#12](https://github.com/sblaplace/improved_black_scholes/pull/12) | **PENDING** — no `.lean` file changed, no pin moved; graded on whether the docs lane stays green. The brief carries its own numeric route-check (ledger C4, incl. the 74.2% contour discrepancy that produced C12) and specifies the two guards its implementation lands: oracle mutant M15 and the `[CONTOUR]` lint check. Its predecessor's row (row 9) is the reason this one is separate: "a brief whose proof is asserted but not checker-backed is RED", so the verdict here is about the documentation, and the theorem's verdict waits for the implementation PR. |
 
 ## Corrections and co-recorded changes to the ask
 
@@ -785,3 +786,59 @@ toolchain-free iteration convergent.
 The oracle lane went green on every push including the first (`16/16` from
 `a8cf4ac` onward); its runs are paired with the lean runs in row 9.
 
+
+### C12 — the Carr–Madan contour in `Fourier.lean` is not the pricing contour (found while scoping BRIEF_010)
+
+**Date:** 2026-09-21. **Trigger:** BRIEF_010's route-check, run before any Lean
+was written (ledger C4). Found by the brief, recorded here rather than edited
+away (the C1 posture, one level down).
+
+`ImprovedBS/Fourier.lean`'s
+`carrMadanKernel φ α u = φ (↑u + ↑α * I) * (cmDenom α u)⁻¹` — and
+`ImprovedBS/Inversion.lean`'s `carrMadanInversion`, which inherits it — puts the
+model factor on the line `Im v = +α`, and BRIEF_005's module header states the
+call value as `V = e^{−rτ}/(2π)·∫ e^{−iuτ} φ(u + iα)/cmDenom du`. The price the
+tree actually damps (`dampedCallPrice`, BRIEF_008) is
+`k ↦ e^{αk}·e^{−rτ}·E[(S e^X − S e^k)⁺]`, and *its* forward transform sits on the
+line `Im v = −(α+1)`:
+
+    ∫_ℝ e^{iuk} f(k) dk = e^{−rτ} · S · φ(u − i(α+1)) / cmDenom(α,u)
+
+The two lines coincide only at `α = −1/2`, which `0 < α` excludes. Measured on
+2026-09-21 at `S=100, K=110, τ=1, r=0.05, q=0.02, σ=0.25, α=1.5`: the formula on
+`u − i(α+1)` reproduces the closed form `7.112102348131359` to **9.99e-16**
+relative — this is what the oracle's `bs_call_by_fourier_inversion` implements,
+and what `test_fourier_inversion` asserts at `2e-11` — while the same formula on
+`u + iα` returns `1.819563153701569`, a **74.2% relative error**. From the
+definition side, direct quadrature of `∫ e^{iuk} f(k) dk` matches
+`e^{−rτ}·S·φ(u − i(α+1))/cmDenom(α,u)` to `1.16e-16` / `5.38e-16` / `8.16e-16` at
+`u = 0, 0.7, −2.0`, and misses the `u + iα` identity by `1.28e-01` / `2.25e-01` /
+`5.41e-01` at the same points.
+
+**Why it survived, and what is not affected.** BRIEF_005's deliverable is a
+*conditional* integrability theorem whose hypothesis names its own contour, so the
+theorem is true on either line — the hypothesis is a hypothesis. The tempered decay
+is contour-independent to leading order (CGMY at `C=1, G=5, M=10, Y=0.7, τ=1`:
+`−Re ψ/|u|^Y` at `u = 2000` measures `3.731206` on the pricing line and `3.731207`
+on the tree's), which is precisely why the mismatch was invisible to it. And
+`Inversion.lean` §4 never consumes `carrMadanKernel`: its five main theorems are
+about `𝓕⁻ (𝓕 f)` at the lognormal law and are correct as stated. **No pinned
+statement moves, and no def body is edited**: the correction is to an
+*identification* — a docstring's claim about what an integrable kernel is — not to
+a proof. It is the C1-item-1 failure mode (a claim that certifies nothing) in its
+identification-level form, and it is the reason BRIEF_010's pricing identity is
+stated on `u − i(α+1)`.
+
+**What it costs, and what now guards it.** BRIEF_010 adds the kernel on the
+pricing line (`cmPriceKernel`) and proves the exact relation
+`cmPriceKernel φ α u = carrMadanKernel (fun v => φ (v − (2α+1)·i)) α u`, so
+BRIEF_005's integrability theorem applies to it verbatim, with the same
+`c, D, Y, u₀` — the correction costs one pointwise identity, not a new domination
+argument. The prose correction lands in the doc-comments of `Fourier.lean` and
+`Inversion.lean`, which is free under the pins (comments are stripped: the 108
+pre-existing entries stay byte-identical, and the audit trail for the change is
+this entry, not a pin diff). The guard lands with the same PR: a `[CONTOUR]` route
+check in `scripts/lean_lint.py` with a cheat seeded in `tests/test_lint.py`, and
+oracle mutant **M15** (contour swap in `bs_call_by_fourier_inversion`), killed by
+the existing `test_fourier_inversion` alone — measured relative error `7.44e-01`
+against that test's `2e-11` tolerance.

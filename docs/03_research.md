@@ -119,13 +119,24 @@ one above — **in the same tree, under the same skeleton**, with all six of:
    `E[e^{u·X_τ}] < ∞` on the interior of `(−G, M)`, and that interior contains
    the pricing contour and the numéraire point — the positive twin of
    `Levy.lean`'s obstruction theorem, and the point at which the tempered
-   repair stops being asserted.
+   repair stops being asserted. (The pricing contour is the line
+   `v = u − i(α+1)`; its containment in the strip is `α + 1 < G`, and the
+   principal branch of the exponent's `(M−iv)^Y` term adds `α + 1 < M`, so the
+   working condition is `α + 1 < min(G, M)`. The numéraire point is `u = 1`,
+   needing `1 < M`. Ledger C12 and BRIEF_010.)
 3. **The drift is fixed by the martingale condition** and
    `E[S_T] = S·e^{(r−q)τ}` is proved at the new law (the CGMY twin of
    `integral_spot_mul_phi_eq_forward`).
 4. **T6's triangle holds at the new exponent.** The Carr–Madan integral
    converges absolutely on the contour, inverts to `e^{−rτ}·E[(S_T − K)⁺]`,
    and is real-valued — the full pricing claim where no closed form exists.
+   **Issued as BRIEF_010, re-scoped** (`docs/04`'s queue records it): the
+   pricing identity is proved at *any* law satisfying the strip conditions, and
+   instantiated at GBM, which closes the triangle at the lognormal instance
+   through the kernel route; the concrete exponent's continuity and decay enter
+   as the one recorded hypothesis and become BRIEF_011's deliverable. Note the
+   contour it is stated on — `v = u − i(α+1)`, not `φ(u + iα)`; ledger C12
+   records why, and what the difference costs.
 5. **The skeleton is preserved.** Put-call parity and the no-arbitrage bounds
    hold at the new law — by *instantiation* of the model-free layer
    (`ImprovedBS/Skeleton.lean`, BRIEF_009), not by re-proof. **This item's
