@@ -1,7 +1,6 @@
 # Improved Black-Scholes
 
-> "How to improve on Black-Scholes" is listed as an open question in
-> quantitative finance. The claim this repo commits to: Black-Scholes-Merton
+> The claim this repo commits to: Black-Scholes-Merton
 > is a theorem about one specific stochastic process, and its famous
 > failures are failures of that process's **increment law**, not of the
 > arbitrage-free skeleton that makes a closed form exist. So "improving" BS
@@ -21,14 +20,24 @@ exist in the first place.
 
 That split is the lever:
 
-- The **skeleton** (arbitrage-free pricing by risk-neutral expectation ⇒ heat
-  equation ⇒ closed form when the increment is lognormal with constant vol)
-  is robust and worth formalizing. It is *why BS is a theorem about GBM*. This
-  is the provable part.
+- The **skeleton** has two layers, and they do not survive equally. The
+  *static* layer — parity, no-arbitrage bounds, price as a discounted
+  expectation under a pricing measure — is model-free and survives any
+  increment law with the drift condition (machine-checked in
+  `ImprovedBS/Skeleton.lean`). The *dynamic* layer — a self-financing
+  replicating portfolio, a *unique* martingale measure, the PDE as its
+  consequence — is what makes BS a theorem about GBM specifically, and it
+  does not survive jumps: outside the complete-market cases the martingale
+  condition no longer selects a measure, and different admissible choices
+  price the same call differently. So the widening's honest shape is
+  *increment law + a named selection principle*, and the non-uniqueness
+  itself is a formalization target (docs/03 §D1 item 7; ledger C13). This
+  split is the provable part.
 - The **increment law** (lognormal, constant σ, single factor) is the fragile
   bit markets reject. Improving BS = widening the class of increment laws
-  that still admit a *closed pricing kernel*, and proving the widening
-  preserves the skeleton.
+  that still admit a *closed pricing kernel* — an explicit one-dimensional
+  Fourier integral where no elementary closed form exists — and proving the
+  widening preserves the static skeleton.
 
 So the program in one line: **widen the increment law, and prove you did.**
 The proof checker is the judge — a theorem is done when `lake build` is
@@ -150,8 +159,10 @@ the chain rule plus `Φ′ = φ`, not an independent slog through `erf` derivati
 The route is now checked rather than asserted: `[SPINE]` in `scripts/lean_lint.py`
 fails if `t5_delta` stops consuming `t3_delta_identity`, and
 `tests/test_lint.py` seeds the mutant that proves the check can fire. T6 is the
-research claim, and it is the place where a genuinely new approach, not a
-reimplementation, is the deliverable.
+research claim; its mathematical content is the Carr–Madan / CGMY
+Fourier-pricing machinery (1999–2002) restated as machine-checked theorems —
+the deliverable is the formalization and its grading apparatus, not new
+mathematics.
 
 **T6 carries a warning that saves a brief.** A *pure* α-stable log-increment
 has infinite first moment (`P(X > x) ~ x^{−α}` ⇒ `E[e^X] = ∞`), so
