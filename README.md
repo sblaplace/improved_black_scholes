@@ -136,7 +136,7 @@ against.
 | T2 | `t2_put_call_parity` | put-call parity | easy | **machine-checked** |
 | T3 | `t3_delta_identity` | `S e^{−qτ} φ(d1) = K e^{−rτ} φ(d2)` | medium | **machine-checked** |
 | T4 | `t4_call_bounds`, `t4_put_bounds` | no-arbitrage price bounds | medium | **machine-checked** |
-| T5 | `t5_bsCall_pde`, `t5_delta`, `t5_gamma`, `t5_tau` | closed form solves the BSM PDE | heavy | **LANDED** (BRIEF_006) — CI verdict in `benchmarks/LEDGER.md` |
+| T5 | `t5_bsCall_pde`, `t5_delta`, `t5_gamma`, `t5_tau` | closed form solves the BSM PDE | heavy | **LANDED GREEN** (BRIEF_006) — run 35566569107; `benchmarks/LEDGER.md` row 6 |
 | T6 | *(not declared)* | Fourier kernel survives a tempered-stable increment | open | restated, see docs/03 D1 |
 
 T1–T4 are the warm-up tier, and all four are now machine-checked. T4 turned
@@ -175,18 +175,21 @@ cheapest high-value theorem in the research tier. Details in docs/03 §D1.
 | Lean theorems | T3, T4, T4′ + the `Φ = ∫ φ` infrastructure (18 lemmas) | **GREEN** — `lake build` + `#print axioms` audit, run 35514867674 |
 | Lean theorems | T6 sub-goal 1: the moment obstruction (`ImprovedBS/Levy.lean`, 7 declarations) | **GREEN** — `lake build` + `#print axioms` audit + statement pins, run 35523250105 |
 | Lean theorems | T6 sub-goal 2: tempered-contour absolute convergence (`ImprovedBS/Fourier.lean`, 7 declarations) | **GREEN** — `lake build` + `#print axioms` audit + statement pins, run 35536031936 |
-| Lean theorems | T5: the closed form solves the BSM PDE (`ImprovedBS/Core.lean`, 11 declarations) | **LANDED** (BRIEF_006) — CI verdict in `benchmarks/LEDGER.md` |
+| Lean theorems | T5: the closed form solves the BSM PDE (`ImprovedBS/Core.lean`, 11 declarations) | **GREEN** — `lake build` + `#print axioms` audit + statement pins (elab, 60), run 35566569107 |
 | Deferred | *(nothing)* | ratcheted at 0 `sorry`s — `deferred: {}` |
 | Lint is a falsifier | `tests/test_lint.py`: 25 seeded cheats each killed by a named check, 5 legitimate edits green, 1 residual gap asserted open | verified — 7/7 tests |
 | Pinned claims | `tests/golden_statements.json`: 60 declarations — theorem statements, definition bodies | machine-checked (source level, no toolchain); `#check`/axioms layer runs in the build job |
 | Grading lane | briefs/ + benchmarks/ + 2 CI workflows + toolchain-free lint + pins | standing |
 | First brief | BRIEF_001, re-scoped to what is actually checkable | see briefs/ |
 
-**T5 is landed too** (BRIEF_006): `t5_delta`, `t5_gamma`, `t5_tau` and the two
-forms of the PDE identity, in `(S, τ)` coordinates and without a `sorry` — the
-one genuinely new analytic input is `Φ′ = φ`, derived from the interval-integral
-FTC because mathlib v4.34.0 has no `Real.erf`. Its CI verdict is recorded in
-`benchmarks/LEDGER.md`.
+**T5 is landed and green too** (BRIEF_006, run 35566569107): `t5_delta`,
+`t5_gamma`, `t5_tau` and the two forms of the PDE identity, in `(S, τ)`
+coordinates and without a `sorry` — the one genuinely new analytic input is
+`Φ′ = φ`, derived from the interval-integral FTC because mathlib v4.34.0 has no
+`Real.erf`. The audit puts the 11 new constants on
+`[propext, Classical.choice, Quot.sound]`, and the pins grew 49 → 60 with the
+49 pre-existing entries unchanged. Its verdict, and the four-run elaboration
+arc that got there, are recorded in `benchmarks/LEDGER.md` row 6.
 
 **T1 through T4 are machine-checked.** `lake build` is green against mathlib
 v4.34.0 / Lean v4.34.0 and the `#print axioms` audit confirms that all 25

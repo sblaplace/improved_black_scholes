@@ -42,7 +42,7 @@ point of the audit step, since a `sorry` builds fine. The ratchet baseline is
 | T3 | `t3_delta_identity` | `S e^{−qτ} φ(d1) = K e^{−rτ} φ(d2)` | easy, given the tilting identity `phi_add` | **machine-checked** |
 | T4 | `t4_call_bounds` | `max(S e^{−qτ} − K e^{−rτ}, 0) ≤ bsCall ≤ S e^{−qτ}` | medium — positivity via `Φ = ∫ φ`, *not* monotonicity (ledger C4) | **machine-checked** |
 | T4′| `t4_put_bounds` | mirrored put bounds | corollary of T4 + T2 (`linarith` only) | **machine-checked** |
-| T5 | `t5_bsCall_pde` (+ `t5_delta`, `t5_gamma`, `t5_tau`, `t5_bsCall_pde_tau` and six supporting lemmas) | `V_t + (r−q)S V_S + (σ²/2)S² V_SS = r V` in calendar time for `bsCall` | heavy — the one new analytic input is `Φ′ = φ`, derived from the interval-integral FTC because mathlib has no `Real.erf` | **LANDED** (BRIEF_006); CI verdict in `benchmarks/LEDGER.md` row 6 |
+| T5 | `t5_bsCall_pde` (+ `t5_delta`, `t5_gamma`, `t5_tau`, `t5_bsCall_pde_tau` and six supporting lemmas) | `V_t + (r−q)S V_S + (σ²/2)S² V_SS = r V` in calendar time for `bsCall` | heavy — the one new analytic input is `Φ′ = φ`, derived from the interval-integral FTC because mathlib has no `Real.erf` | **LANDED GREEN** (BRIEF_006), lean run 35566569107 — `benchmarks/LEDGER.md` row 6 |
 | T6 | *(not yet declared)* | Fourier pricing kernel survives a wider increment law | open — research | restated in docs/03 D1 |
 
 Three honest corrections to earlier versions of this table:
@@ -319,7 +319,7 @@ not yet exist. BRIEF_001–006 have landed, in this order.
 | ~~BRIEF_003~~ | **LANDED GREEN** — T3, T4, T4′ machine-checked; sorry baseline → 0 (run 35514867674) | 001 | was CI-only |
 | ~~BRIEF_004~~ | **LANDED GREEN** — α-stable exponential-moment obstruction (T6 sub-goal 1; PR #5, run 35523250105) | none | no — CI only |
 | ~~BRIEF_005~~ | **LANDED GREEN** — T6 sub-goal 2: Carr–Madan absolute convergence on the tempered contour, GBM instance machine-checked (`ImprovedBS/Fourier.lean`; PR #6, run 35536031936) | 004 | no — CI only |
-| ~~BRIEF_006~~ | **T5** — the closed form solves the BSM PDE, directly in `(S, τ)` via T3 + chain rule + `Φ′ = φ`; 11 declarations in `ImprovedBS/Core.lean`, `[SPINE]` check + mutant, 60 statement pins | 003 | no — CI only |
+| ~~BRIEF_006~~ | **LANDED GREEN** — T5, the closed form solves the BSM PDE, directly in `(S, τ)` via T3 + chain rule + `Φ′ = φ`; 11 declarations in `ImprovedBS/Core.lean`, `[SPINE]` check + mutant, statement pins 49 → 60 with the existing 49 unchanged (PR #8, run 35566569107) | 003 | no — CI only |
 | *(queued)* | **T6** sub-goal 3 — Fourier inversion: agreement with the risk-neutral expectation, for a tempered-stable exponent | 005 | no — CI only |
 
 BRIEF_004 is deliberately listed as depending on nothing: it is pure analysis
