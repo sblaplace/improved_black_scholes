@@ -659,7 +659,7 @@
     "BSM.integrable_call_payoff": {
       "file": "ImprovedBS/Skeleton.lean",
       "kind": "theorem",
-      "pin": "theorem integrable_call_payoff {μ : Measure ℝ} (X : ℝ → ℝ) (K : ℝ) (hX : Integrable X μ) : Integrable (fun s => max (X s - K) 0) μ"
+      "pin": "theorem integrable_call_payoff {μ : Measure ℝ} [IsProbabilityMeasure μ] (X : ℝ → ℝ) (K : ℝ) (hX : Integrable X μ) : Integrable (fun s => max (X s - K) 0) μ"
     },
     "BSM.integrable_exp_mul_phi": {
       "file": "ImprovedBS/RiskNeutral.lean",
@@ -684,7 +684,7 @@
     "BSM.integrable_put_payoff": {
       "file": "ImprovedBS/Skeleton.lean",
       "kind": "theorem",
-      "pin": "theorem integrable_put_payoff {μ : Measure ℝ} (X : ℝ → ℝ) (K : ℝ) (hX : Integrable X μ) : Integrable (fun s => max (K - X s) 0) μ"
+      "pin": "theorem integrable_put_payoff {μ : Measure ℝ} [IsProbabilityMeasure μ] (X : ℝ → ℝ) (K : ℝ) (hX : Integrable X μ) : Integrable (fun s => max (K - X s) 0) μ"
     },
     "BSM.integrable_spot_mul_phi": {
       "file": "ImprovedBS/RiskNeutral.lean",
