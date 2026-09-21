@@ -381,6 +381,14 @@ jobs:
                 | head -60 || echo "(no lines matched; see the tail below)"
               echo '```'
               echo
+              echo "<details><summary>\`$log\` — each error with its goal context</summary>"
+              echo
+              echo '```'
+              grep -E "^error:" -A 6 "$log" | head -400 || true
+              echo '```'
+              echo
+              echo "</details>"
+              echo
               echo "<details><summary>\`$log\` tail (last 25k characters)</summary>"
               echo
               echo '```'
