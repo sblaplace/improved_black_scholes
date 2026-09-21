@@ -636,6 +636,8 @@ occurrence:
   and works; that is what the already-green `hasDerivAt_d_spot` did, which is
   why the pattern was worth copying rather than inventing a `show`.
 
+| 5 | `d8153aa` | the wording commit itself: row 6's verdict, this history section, and the `README`/`docs/04` placeholders | no verdict to decide — docs only, and re-graded anyway: **GREEN** (lean run 35567331284, oracle lane run 35567331328), every step of both jobs, which is what makes the wording citable rather than merely typed |
+
 A third, smaller one belongs with C9's arity notes: **`Real.hasDerivAt_sqrt`'s
 hypothesis is `x ≠ 0`, so the proof handed in *is* the point.** Passing
 `√tau ≠ 0` instantiates it at `√tau` (derivative `1/(2*√√tau)`), which is
