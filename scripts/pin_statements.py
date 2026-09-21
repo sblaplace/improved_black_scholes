@@ -610,7 +610,8 @@ def main(argv: list[str]) -> int:
                                     ensure_ascii=False))
             print(
                 f"\nThe `elab_delta` block above holds only the {len(delta)} entr"
-                f"{'y' if len(delta) == 1 else 'ies'} that are missing or differ. Save it to "
+                f"{'y that is' if len(delta) == 1 else 'ies that are'} missing or "
+                "different from the committed block. Save it to "
                 "a file and run `python3 scripts/pin_statements.py --elab-merge <file>`; the "
                 "merge is verbatim and reports every entry it overwrites."
             )

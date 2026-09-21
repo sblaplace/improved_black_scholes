@@ -10,6 +10,10 @@
       "axioms": "'BSM.Phi_add_Phi_neg' depends on axioms: [propext, Classical.choice, Quot.sound]",
       "type": "BSM.Phi_add_Phi_neg : ∀ (x : ℝ), BSM.Phi x + BSM.Phi (-x) = 1"
     },
+    "BSM.Phi_eq_gaussianReal_Iic": {
+      "axioms": "'BSM.Phi_eq_gaussianReal_Iic' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.Phi_eq_gaussianReal_Iic : ∀ (x : ℝ), BSM.Phi x = ((ProbabilityTheory.gaussianReal 0 1) (Set.Iic x)).toReal"
+    },
     "BSM.Phi_eq_integral_Iic": {
       "axioms": "'BSM.Phi_eq_integral_Iic' depends on axioms: [propext, Classical.choice, Quot.sound]",
       "type": "BSM.Phi_eq_integral_Iic : ∀ (x : ℝ), BSM.Phi x = ∫ (u : ℝ) in Set.Iic x, BSM.phi u"

@@ -643,3 +643,55 @@ A third, smaller one belongs with C9's arity notes: **`Real.hasDerivAt_sqrt`'s
 hypothesis is `x ≠ 0`, so the proof handed in *is* the point.** Passing
 `√tau ≠ 0` instantiates it at `√tau` (derivative `1/(2*√√tau)`), which is
 type-correct-looking and silently not the lemma you want.
+
+### C10 — the pins channel truncates, and the pins step did not know it
+
+**Date:** 2026-09-21. **Trigger:** PR #9, run 35573065136 — the first run of
+BRIEF_007 whose build was green.
+
+The mechanism the two-run pin arc rests on is: the build job's pins step prints
+the freshly elaborated `elab` block, the failure publisher posts the log to the
+PR, and a toolchain-less sandbox commits the block verbatim. That publisher posts
+the **last 25 000 characters** of each log (`tail -c 25000`, `lean.yml`), which
+was ample for 49 and 60 entries. At 81 entries the block is ~30k characters, so
+the PR comment began mid-block and the first-sorted new entry,
+`BSM.Phi_eq_gaussianReal_Iic`, was cut off. Actions logs and artifacts sit
+behind blob storage the sandbox cannot reach (the same fact that made the
+publisher necessary, C6), so there was no second copy to read.
+
+Two things were wrong and both are fixed in this PR, not worked around:
+
+1. **The step printed only a block that grows with the tree.** It now also
+   prints an `elab_delta` block — the entries that are missing from or differ
+   from the committed `elab` — *after* the full block, so whatever the tree's
+   size the tail of the log contains exactly what must be committed
+   (`elab_delta` in `scripts/pin_statements.py`; run 35573718718 exercised it:
+   one entry, printed last, inside the tail).
+2. **"Commit verbatim" was a manual paste.** `--elab-merge <file>` now merges a
+   CI-printed `elab`/`elab_delta` block into `tests/golden_statements.json`,
+   refuses a name the source layer does not pin, and reports every entry it
+   overwrites. `tests/test_pins.py` gained two tests: the delta is exactly the
+   merge set (identical entries excluded, normalisation respected, bootstrap =
+   whole block), and the merge is verbatim, reports overwrites, and refuses
+   unpinned names — 12/12.
+
+What was **not** done: hand-typing the missing elaborated type. It was
+guessable (`BSM.Phi x = (ProbabilityTheory.gaussianReal 0 1 (Set.Iic x)).toReal`)
+and the guess would have been wrong — Lean prints the measure application as
+`((ProbabilityTheory.gaussianReal 0 1) (Set.Iic x)).toReal`. The 20 entries that
+were inside the tail were merged from run 35573065136's comment, the 21st from
+run 35573718718's delta, and the rule that every `elab` entry in the golden file
+was produced by CI holds for all 81.
+
+## CI history for row 7 (PR #9)
+
+Authored without a toolchain; every mathlib name read in the v4.34.0 source
+via the GitHub contents API before the first push (ledger C3), and the route
+checked numerically first (C4: `bs_call_by_expectation` vs the closed form,
+≤ 1.6e-12 relative on the golden grid).
+
+| # | head | what the run decided | outcome |
+|---|------|----------------------|---------|
+| 1 | `31ea20e` | first push of `ImprovedBS/RiskNeutral.lean`, 21 declarations | build fail, **2 errors**, both in the last theorem `bsCall_eq_lognormal_expectation` and both one cause: at the tag `NNReal` is a `def` over `{r // 0 ≤ r}` with a *protected* `NNReal.mk`, and the anonymous constructor `⟨(σ√τ)^2, _⟩` elaborates at the subtype, which is "not type-correct under `HMul ℝ≥0`" — so `NNReal.coe_mul` found no pattern, and `rw [hw]` could not match the `NNReal.mk (c ^ 2) _ * v` that `gaussianReal_map_const_mul` produces. The other **20 declarations elaborated on the first run**, including both main theorems, the Gaussian bridge and the `integral_map` pull-backs. `lint` and `oracle` green. |
+| 2 | `5b34b2b` | `hw` restated with `NNReal.mk`, consumed by `congrArg` (defeq) instead of `rw` | **build GREEN** (`✔ [8927/8929] Built ImprovedBS.RiskNeutral (5.2s)`, `✔ [8928/8929] Built ImprovedBS`), sorryAx audit **GREEN** — all 21 new constants on `[propext, Classical.choice, Quot.sound]`. Red *by design* at the pins step (21 constants with no `elab` entry) — and the printed block overflowed the 25k-character PR comment (C10): 20 of the 21 new entries recovered from the tail, one cut off. Four `fun_prop` fallbacks flagged as never executed (warnings, not errors) — `fun_prop` closes all four goals at the tag. |
+| 3 | `2b12957` | the 20 recovered entries merged verbatim (60 → 80 `elab`; the 60 pre-existing entries byte-identical); `elab_delta` printed last + `--elab-merge` (C10); fallbacks removed | build **GREEN** with no `RiskNeutral.lean` warnings, audit **GREEN**, pins red *by design* for exactly one constant — and the new `elab_delta` block sat at the end of the tail with that one entry, `((ProbabilityTheory.gaussianReal 0 1) (Set.Iic x)).toReal`, whose parenthesised coercion form is the reason it was not typed by hand. |
