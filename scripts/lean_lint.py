@@ -57,6 +57,13 @@ Checks
                   cancellation (and T1's `S`-action), which is exactly the drift
                   docs/04's "spine, not six unrelated chores" is about. A mutant
                   is seeded for it in tests/test_lint.py.
+11. SKELETON      BRIEF_009's route commitments at the model-free layer. The
+                  put bounds must cite the parity theorem (T4'-via-T2 mirror),
+                  and the `*_via_skeleton` re-derivations must consume the
+                  model-free layer and must not cite the closed-form proofs they
+                  re-derive -- otherwise "the widening preserves the skeleton"
+                  would be graded by the very theorems it underpins, and a green
+                  build would certify nothing. Two mutants in tests/test_lint.py.
 
 Exit status is non-zero on any failure, with every failure printed.
 
@@ -217,6 +224,21 @@ REQUIRED = {
     "carrMadan_inversion_im_eq_zero": "ImprovedBS/Inversion.lean",
     "carrMadan_inversion_eq_re": "ImprovedBS/Inversion.lean",
     "carrMadan_inversion_re_eq_bsCall": "ImprovedBS/Inversion.lean",
+    # BRIEF_009: the model-free skeleton (parity + bounds at the expectation level)
+    "modelFreeCall": "ImprovedBS/Skeleton.lean",
+    "modelFreePut": "ImprovedBS/Skeleton.lean",
+    "integrable_call_payoff": "ImprovedBS/Skeleton.lean",
+    "integrable_put_payoff": "ImprovedBS/Skeleton.lean",
+    "model_free_parity_gap": "ImprovedBS/Skeleton.lean",
+    "model_free_put_call_parity": "ImprovedBS/Skeleton.lean",
+    "model_free_call_nonneg": "ImprovedBS/Skeleton.lean",
+    "model_free_call_bounds": "ImprovedBS/Skeleton.lean",
+    "model_free_put_bounds": "ImprovedBS/Skeleton.lean",
+    "integrable_gaussianReal_iff": "ImprovedBS/Skeleton.lean",
+    "lognormal_parity_gap": "ImprovedBS/Skeleton.lean",
+    "lognormal_call_bounds": "ImprovedBS/Skeleton.lean",
+    "t2_spread_via_skeleton": "ImprovedBS/Skeleton.lean",
+    "t4_call_bounds_via_skeleton": "ImprovedBS/Skeleton.lean",
 }
 
 # Zero deferred-proof markers allowed. The T1/T2 node per BRIEF_001; the T3/T4
@@ -325,6 +347,21 @@ PROTECTED = {
     "carrMadan_inversion_im_eq_zero",
     "carrMadan_inversion_eq_re",
     "carrMadan_inversion_re_eq_bsCall",
+    # BRIEF_009: the model-free skeleton
+    "modelFreeCall",
+    "modelFreePut",
+    "integrable_call_payoff",
+    "integrable_put_payoff",
+    "model_free_parity_gap",
+    "model_free_put_call_parity",
+    "model_free_call_nonneg",
+    "model_free_call_bounds",
+    "model_free_put_bounds",
+    "integrable_gaussianReal_iff",
+    "lognormal_parity_gap",
+    "lognormal_call_bounds",
+    "t2_spread_via_skeleton",
+    "t4_call_bounds_via_skeleton",
 }
 
 # The T5 node, in dependency order, and the two citations docs/04's spine
@@ -338,6 +375,33 @@ T5_NODE = (
     "t5_bsCall_pde",
 )
 SPINE_WITNESSES = ("t3_delta_identity", "hasDerivAt_Phi")
+
+# BRIEF_009's route commitments, checked in [SKELETON]. The model-free layer's
+# put bounds must be the parity corollary (the T4'-via-T2 mirror: parity + call
+# bounds + linarith, no new integration), and the closed-form re-derivations
+# `*_via_skeleton` must go THROUGH the model-free layer -- citing one of
+# SKELETON_WITNESSES -- and must NOT cite the closed-form proofs they
+# re-derive, or the abstraction certifies nothing (it would be graded by the
+# very theorems it is supposed to underpin). Bodies are comment-stripped, so
+# the honest doc-comments that name the forbidden proofs do not trip this.
+SKELETON_PUT_BOUNDS = "model_free_put_bounds"
+SKELETON_PARITY_WITNESS = "model_free_put_call_parity"
+SKELETON_VIA_NODES = ("t2_spread_via_skeleton", "t4_call_bounds_via_skeleton")
+SKELETON_WITNESSES = (
+    "model_free_put_call_parity",
+    "model_free_call_bounds",
+    "lognormal_parity_gap",
+    "lognormal_call_bounds",
+)
+SKELETON_FORBIDDEN = (
+    "t2_put_call_parity",
+    "t2_put_call_parity_spread",
+    "t4_call_bounds",
+    "t4_put_bounds",
+    "bsCall_nonneg",
+    "bsPut_nonneg",
+    "Phi_le_exp_mul_Phi_add",
+)
 
 # A `sorry` that survives `lake build` is an axiom. Allow none by default.
 AXIOM_ALLOWLIST: set[str] = set()
@@ -769,6 +833,68 @@ def main() -> int:
         notes.append(
             "[SPINE] T5 cites `t3_delta_identity` and `hasDerivAt_Phi`: the route "
             "docs/04 states (T3 + chain rule + `Phi' = phi`) holds"
+        )
+
+    # 11. skeleton -- BRIEF_009's route commitments at the model-free layer.
+    #     (a) `model_free_put_bounds` must cite `model_free_put_call_parity`:
+    #     the put bounds are the parity corollary (T4'-via-T2 one layer down),
+    #     not an independent integration. (b) each `*_via_skeleton` node must
+    #     cite a model-free witness and must not cite the closed-form proof it
+    #     re-derives -- the vacuity guard on the abstraction: a re-derivation
+    #     that leans on T2/T4 proves the layer is hooked up to nothing. Bodies
+    #     are comment-stripped (declarations() runs on strip_comments output),
+    #     so the doc-comments that *discuss* the forbidden names stay legal.
+    skeleton_failures: list[str] = []
+    skel_bodies = {name: body for name, (_, _, _, body) in all_decls.items()}
+    putb = skel_bodies.get(SKELETON_PUT_BOUNDS)
+    if putb is None:
+        skeleton_failures.append(
+            "[SKELETON] `model_free_put_bounds` is missing from the tree. The "
+            "model-free layer's put bounds are the parity corollary docs/03 §D1 "
+            "item 5 instantiates at every later law; the route can only be "
+            "checked while the declaration exists."
+        )
+    elif not re.search(rf"\b{re.escape(SKELETON_PARITY_WITNESS)}\b", putb):
+        skeleton_failures.append(
+            "[SKELETON] `model_free_put_bounds` does not cite "
+            "`model_free_put_call_parity`. The put bounds are parity + call "
+            "bounds + `linarith` (the `t4_put_bounds` route one layer down), "
+            "not an independent integration: re-deriving them from the payoffs "
+            "breaks the chain every later law is supposed to inherit. Cite the "
+            "parity theorem, or change BRIEF_009 and this check in the same PR."
+        )
+    for node in SKELETON_VIA_NODES:
+        b = skel_bodies.get(node)
+        if b is None:
+            skeleton_failures.append(
+                f"[SKELETON] `{node}` is missing from the tree. These nodes are "
+                "the wire test that the model-free layer is hooked up to the "
+                "closed form; without them the abstraction is ungraded."
+            )
+            continue
+        if not any(re.search(rf"\b{re.escape(w)}\b", b) for w in SKELETON_WITNESSES):
+            skeleton_failures.append(
+                f"[SKELETON] `{node}` cites none of the model-free layer "
+                "(" + ", ".join(f"`{w}`" for w in SKELETON_WITNESSES) + "). A "
+                "`via_skeleton` node must consume the abstraction it is "
+                "grading, or it is just a second copy of the old proof."
+            )
+        for bad in SKELETON_FORBIDDEN:
+            if re.search(rf"\b{re.escape(bad)}\b", b):
+                skeleton_failures.append(
+                    f"[SKELETON] `{node}` cites `{bad}`. The `via_skeleton` "
+                    "nodes exist to RE-DERIVE the closed-form claims through "
+                    "the model-free layer; a proof that consumes the very "
+                    "theorem it re-derives (or its analytic spine) makes the "
+                    "abstraction vacuous. Route: the model-free witnesses plus "
+                    "the BRIEF_007 expectation bridge, and nothing else."
+                )
+    if skeleton_failures:
+        failures.extend(skeleton_failures)
+    else:
+        notes.append(
+            "[SKELETON] `model_free_put_bounds` rides parity; the `via_skeleton` "
+            "nodes consume the model-free layer and not the closed-form proofs"
         )
 
     if "--write-baseline" in sys.argv:

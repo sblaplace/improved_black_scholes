@@ -17,6 +17,10 @@ checked between two *independently derived* expressions:
   T6(3a) closed form = e^{-r tau} E[payoff]
                                  the expectation is a quadrature against
                                  norm_pdf; no norm_cdf, no d1/d2 in the route
+  BRIEF_009 parity/bounds        checked at hand-built NON-lognormal discrete
+                                 laws, so no Gaussian route can vouch for the
+                                 model-free skeleton; the drift hypothesis is
+                                 proved load-bearing by a wrong-drift canary
 
 `tests/test_mutants.py` enforces this rule mechanically: it seeds bugs that
 violate each identity and asserts the *targeted* test goes red. If a future
@@ -42,6 +46,8 @@ from experiments.black_scholes import (
     bs_put_by_expectation,
     bs_put_by_parity,
     forward_by_expectation,
+    model_free_forward,
+    model_free_prices,
     norm_cdf,
     norm_pdf,
 )
@@ -273,6 +279,97 @@ def test_fourier_inversion():
         raise AssertionError("expected ValueError for alpha <= 0")
     except ValueError:
         pass
+
+
+def test_model_free_skeleton():
+    """BRIEF_009 (numerical shadow): parity and bounds at laws that are NOT lognormal.
+
+    This is the model-free skeleton (Lean `ImprovedBS/Skeleton.lean`), checked
+    at hand-built discrete laws -- a skewed 3-point law, a 32-point uniform
+    discretization, a wrong-drift law, and a degenerate one-point law -- so
+    nothing here can lean on the Gaussian routes:
+
+        call - put = e^{-r tau} (E[S_T] - K)              (model_free_parity_gap)
+        E[S_T] = S e^{(r-q) tau}  =>  call - put = S e^{-q tau} - K e^{-r tau}
+                                                  (model_free_put_call_parity)
+        0 <= S_T, 0 <= K, drift  =>  bounds      (model_free_call_bounds/_put_)
+
+    The drift hypothesis is proved load-bearing, not decorative (the `sigma <
+    0` discipline of test_risk_neutral_expectation, one layer up): at the
+    wrong-drift law the forward form of parity FAILS while the unfixed gap
+    identity still holds -- which is exactly the seam between Lean's
+    `model_free_parity_gap` and `model_free_put_call_parity`. The degenerate
+    law pins the bound constants: the call's lower edge binds exactly in both
+    regimes (K < F and K > F), so a slack bound could not pass as the bound.
+    Mutants M13 (put payoff corrupted to the call payoff) and M14 (mean
+    corrupted to the second moment) are killed by this test alone.
+    """
+    S, K, r, q, tau = 100.0, 100.0, 0.05, 0.02, 1.0
+    disc = math.exp(-r * tau)
+    target = S * math.exp((r - q) * tau)          # the forward S e^{(r-q) tau}
+    fwd_spread = S * math.exp(-q * tau) - K * math.exp(-r * tau)
+    lo_c = max(S * math.exp(-q * tau) - K * math.exp(-r * tau), 0.0)
+    hi_c = S * math.exp(-q * tau)
+    lo_p = max(K * math.exp(-r * tau) - S * math.exp(-q * tau), 0.0)
+    hi_p = K * math.exp(-r * tau)
+
+    def scaled_law(probs, raw):
+        # rescale so the law's mean IS the forward (the drift condition)
+        scale = target / model_free_forward(probs, raw)
+        return [x * scale for x in raw]
+
+    probs_a = [0.25, 0.5, 0.25]
+    law_a = (probs_a, scaled_law(probs_a, [60.0, 100.0, 150.0]))   # skewed, correct drift
+    probs_b = [1.0 / 32.0] * 32
+    raw_b = [40.0 + i * (220.0 - 40.0) / 31.0 for i in range(32)]
+    law_b = (probs_b, scaled_law(probs_b, raw_b))                  # uniform-ish, correct drift
+    law_c = ([0.25, 0.5, 0.25], [50.0, 90.0, 200.0])               # mean 107.5 != forward
+    law_d = ([1.0], [target])                                      # degenerate at the forward
+
+    for tag, (probs, spots) in [("a", law_a), ("b", law_b), ("c", law_c), ("d", law_d)]:
+        call, put = model_free_prices(probs, spots, K, r, tau)
+        mean = model_free_forward(probs, spots)
+        # (1) the unfixed gap identity: true for every law, drift or no drift
+        assert abs((call - put) - disc * (mean - K)) < 1e-12, (
+            f"[{tag}] gap identity fails: call-put={call - put} vs e^(-r tau)(E[S_T]-K)={disc * (mean - K)}"
+        )
+
+    for tag, (probs, spots) in [("a", law_a), ("b", law_b), ("d", law_d)]:
+        call, put = model_free_prices(probs, spots, K, r, tau)
+        mean = model_free_forward(probs, spots)
+        assert abs(mean - target) < 1e-12, f"[{tag}] law not at the forward: {mean} vs {target}"
+        # (2) forward parity under the drift condition
+        assert abs((call - put) - fwd_spread) < 1e-12, (
+            f"[{tag}] forward parity fails: {call - put} vs {fwd_spread}"
+        )
+        # (4) the no-arb bounds (q != 0 on purpose, so a missing e^{-q tau} dies)
+        assert lo_c - 1e-12 <= call <= hi_c + 1e-12, f"[{tag}] call bounds fail: {call} not in [{lo_c}, {hi_c}]"
+        assert lo_p - 1e-12 <= put <= hi_p + 1e-12, f"[{tag}] put bounds fail: {put} not in [{lo_p}, {hi_p}]"
+
+    # (3) the drift canary: at the wrong-drift law the forward form FAILS while
+    # the unfixed gap identity (asserted above) still holds. This assertion is
+    # the proof that the drift hypothesis is load-bearing -- delete the
+    # hypothesis from the Lean statement and this is the test that notices.
+    call, put = model_free_prices(*law_c, K, r, tau)
+    mean_c = model_free_forward(*law_c)
+    assert abs(mean_c - target) > 1.0, f"law_c unexpectedly at the forward: {mean_c}"
+    assert abs((call - put) - fwd_spread) > 1e-6, (
+        f"forward parity held at a wrong-drift law (mean={mean_c}, target={target}): "
+        f"the drift hypothesis is NOT load-bearing and the Lean statement is over-claimed"
+    )
+
+    # (5) the degenerate law pins the bound constants: values are the
+    # discounted intrinsic and the call's lower edge binds exactly in both
+    # regimes, so the bound constants are the right ones, not slack.
+    for k_ in (100.0, 110.0):                    # K < F and K > F
+        call, put = model_free_prices(*law_d, k_, r, tau)
+        f_ = target
+        assert abs(call - disc * max(f_ - k_, 0.0)) < 1e-12, f"degenerate call wrong at K={k_}: {call}"
+        assert abs(put - disc * max(k_ - f_, 0.0)) < 1e-12, f"degenerate put wrong at K={k_}: {put}"
+        lo_c_ = max(S * math.exp(-q * tau) - k_ * math.exp(-r * tau), 0.0)
+        lo_p_ = max(k_ * math.exp(-r * tau) - S * math.exp(-q * tau), 0.0)
+        assert abs(call - lo_c_) < 1e-12, f"call lower edge does not bind at K={k_}: {call} vs {lo_c_}"
+        assert abs(put - lo_p_) < 1e-12, f"put lower edge does not bind at K={k_}: {put} vs {lo_p_}"
 
 
 if __name__ == "__main__":

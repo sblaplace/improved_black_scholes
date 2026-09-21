@@ -1294,6 +1294,18 @@ Provable sub-goals, in increasing order of commitment:
              ImprovedBS/Inversion.lean (BRIEF_008): `carrMadan_inversion_eq_lognormal_expectation`,
              `carrMadan_inversion_eq_bsCall`, and real-valuedness (`carrMadan_inversion_im_eq_zero`).
 
+Landed outside the T6 gate but load-bearing for it (comment only — no
+statement in this file moved): ImprovedBS/Skeleton.lean (BRIEF_009) now
+holds parity and the no-arbitrage bounds at *every* terminal-spot law with
+the drift condition (`model_free_parity_gap`, `model_free_call_bounds`), and
+the GBM instantiations `t2_spread_via_skeleton` /
+`t4_call_bounds_via_skeleton` re-derive T2's spread and T4's call bounds
+through the model-free layer, graded to consume its proofs and not the
+closed-form ones. When T6 widens the law, the skeleton comes by
+instantiation — three facts (`Integrable X`, the drift condition, `0 <= X`)
+and a plug-in — and `t4_put_bounds` above has its model-free mirror in
+`model_free_put_bounds`.
+
 See docs/03_research.md D1, which carries the falsifier (fitted `alpha`
 concentrating in `(1.3, 1.9)` and being materially *less* moneyness-dependent
 than the GBM `sigma` it replaces).

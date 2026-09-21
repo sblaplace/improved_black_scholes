@@ -65,6 +65,7 @@ if ROOT not in sys.path:
 CORE = "ImprovedBS/Core.lean"
 ORACLE = "experiments/black_scholes.py"
 CROSSCHECK = "ImprovedBS/Crosscheck.lean"
+SKELETON = "ImprovedBS/Skeleton.lean"
 GOLDEN = "tests/golden_statements.json"
 BASELINE = ".github/lean_lint_baseline.json"
 
@@ -311,6 +312,38 @@ MUTANTS = [
                "leaves T3 as an orphan and the spine as a claim about a dependency "
                "graph nobody traverses.",
     },
+    # ---- BRIEF_009's route, one layer down: `[SKELETON]` is [SPINE]'s twin at
+    # the model-free layer. Both cheats leave every statement untouched and
+    # every proof honest-looking; what they break is the *route* the abstraction
+    # needs to certify anything.
+    {
+        "name": "K1 model-free put bounds re-derived without the parity cite",
+        "file": SKELETON,
+        "from": "  have hpar := model_free_put_call_parity S K tau r q X hX hE",
+        "to": "  have hpar := model_free_parity_gap X K r tau hX",
+        "tag": "[SKELETON]",
+        "why": "`model_free_put_bounds` is the T4'-via-T2 mirror: parity + call "
+               "bounds + linarith, no new integration. Deriving the needed fact "
+               "locally from the unfixed gap identity (or from the payoffs) is "
+               "the same drift `[SPINE]` catches at T5 -- the route is what makes "
+               "the parity theorem load-bearing for every later law that inherits "
+               "the put bounds by instantiation.",
+    },
+    {
+        "name": "K2 t4 via_skeleton shortcut-circuited through t4_call_bounds itself",
+        "file": SKELETON,
+        "from": "  exact lognormal_call_bounds S K tau r q sigma hS.le hK.le htau.le",
+        "to": "  exact t4_call_bounds S K tau r q sigma hS hK htau hsigma",
+        "tag": "[SKELETON]",
+        "why": "The `via_skeleton` nodes are the wire test that the model-free "
+               "layer is hooked up to the closed form. A re-derivation that "
+               "consumes the very theorem it re-derives is vacuous -- the "
+               "abstraction would be graded by its own conclusion -- which is "
+               "the sin `d2 := d1 - sigma*sqrt(tau)` committed at the "
+               "definition level, one layer up. Note what the other lanes say "
+               "about this edit: statement untouched, nothing deferred, no "
+               "marker, nothing deleted. Only `[SKELETON]` can see it.",
+    },
 ]
 
 # Attacks the toolchain-free lanes provably CANNOT see, kept as
@@ -499,7 +532,7 @@ def test_baseline_is_green():
 def test_mutation_anchors_exist():
     """Guard: every anchor must be present in the committed source.
 
-    A mutant whose anchor has been edited away is a silent no-op, and 25 silent
+    A mutant whose anchor has been edited away is a silent no-op, and 27 silent
     no-ops read exactly like 25 kills.
     """
     missing = []

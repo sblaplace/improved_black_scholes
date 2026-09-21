@@ -3,6 +3,7 @@ import ImprovedBS.Levy
 import ImprovedBS.Fourier
 import ImprovedBS.RiskNeutral
 import ImprovedBS.Inversion
+import ImprovedBS.Skeleton
 
 /-!
 # ImprovedBS
@@ -32,6 +33,12 @@ Root module of the `ImprovedBS` library. Modules imported here are built by
   §2 the damped call price and lognormal expectation, §3 the Fourier inversion formula
   via mathlib's `Continuous.fourierInv_fourier_eq` / `Integrable.fourierInv_fourier_eq`,
   §4 the main theorems landing on `bsCall_eq_lognormal_expectation` and real-valuedness.
+* `ImprovedBS.Skeleton` — BRIEF_009: the model-free skeleton. §1–2 the
+  price-by-expectation operators `modelFreeCall`/`modelFreePut` and payoff
+  integrability, §3 parity at any terminal-spot law with the drift condition,
+  §4 the no-arbitrage bounds and their put twin through parity, §5 the GBM
+  instance (`lognormal_parity_gap`, `lognormal_call_bounds`), §6 the T2′/T4
+  re-derivations (`*_via_skeleton`) that grade the abstraction for vacuity.
 
 ## Why the module is not called `Lean.*`
 
