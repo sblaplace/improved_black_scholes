@@ -177,10 +177,10 @@ cheapest high-value theorem in the research tier. Details in docs/03 §D1.
 | Lean theorems | T6 sub-goal 2: tempered-contour absolute convergence (`ImprovedBS/Fourier.lean`, 7 declarations) | **GREEN** — `lake build` + `#print axioms` audit + statement pins, run 35536031936 |
 | Lean theorems | T5: the closed form solves the BSM PDE (`ImprovedBS/Core.lean`, 11 declarations) | **GREEN** — `lake build` + `#print axioms` audit + statement pins (elab, 60), run 35566569107 |
 | Lean theorems | T6 sub-goal 3(a): the closed form is the discounted risk-neutral expectation, plus the `phi`/`Phi` ↔ mathlib-Gaussian bridge (`ImprovedBS/RiskNeutral.lean`, 21 declarations) | **GREEN** — `lake build` + `#print axioms` audit + statement pins (elab, 81), run 35574194681; `benchmarks/LEDGER.md` row 7 |
-| Lean theorems | T6 sub-goal 3(b): Fourier inversion of the Carr–Madan pricing kernel onto the lognormal expectation, and real-valuedness (`ImprovedBS/Inversion.lean`, 13 declarations) | **PENDING CI** (BRIEF_008) — statement pins (source 94) |
+| Lean theorems | T6 sub-goal 3(b): Fourier inversion of the Carr–Madan pricing kernel onto the lognormal expectation, and real-valuedness (`ImprovedBS/Inversion.lean`, 13 declarations) | **GREEN** — `lake build` + `#print axioms` audit + statement pins (elab, 94), run 35578278238; `benchmarks/LEDGER.md` row 8 |
 | Deferred | *(nothing)* | ratcheted at 0 `sorry`s — `deferred: {}` |
 | Lint is a falsifier | `tests/test_lint.py`: 25 seeded cheats each killed by a named check, 5 legitimate edits green, 1 residual gap asserted open | verified — 7/7 tests |
-| Pinned claims | `tests/golden_statements.json`: 94 declarations — theorem statements, definition bodies | machine-checked (source level, no toolchain); `#check`/axioms layer runs in the build job |
+| Pinned claims | `tests/golden_statements.json`: 94 declarations — theorem statements, definition bodies | machine-checked (source + elab 94/94); `#check`/axioms layer verified in build job |
 | Grading lane | briefs/ + benchmarks/ + 2 CI workflows + toolchain-free lint + pins | standing |
 | First brief | BRIEF_001, re-scoped to what is actually checkable | see briefs/ |
 

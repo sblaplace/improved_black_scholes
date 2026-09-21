@@ -148,7 +148,7 @@ Provable sub-goals, in increasing order of commitment:
      drift condition `E[S_T] = S·e^{(r−q)τ}`. This is the GBM instance of the
      right-hand side of T6; until it existed the closed form had never been
      connected in the tree to the expectation it is supposed to be.
-   - **(3b) the inversion — LANDED** as `ImprovedBS/Inversion.lean`
+   - **(3b) the inversion — LANDED GREEN** (run 35578278238) as `ImprovedBS/Inversion.lean`
      (BRIEF_008): `Continuous.fourierInv_fourier_eq` /
      `Integrable.fourierInv_fourier_eq` against `carrMadanKernel`, landing on
      `bsCall_eq_lognormal_expectation`, and proving real-valuedness of the
