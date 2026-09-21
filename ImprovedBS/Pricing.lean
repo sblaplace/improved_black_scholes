@@ -173,25 +173,17 @@ theorem norm_cexp_I_mul_ofReal (t : ℝ) : ‖Complex.exp (↑t * Complex.I)‖ 
 theorem strikeTransform_eq {S x u α : ℝ} (hS : 0 ≤ S) (hα : 0 < α) :
     strikeTransform S α x u =
       ↑(S * Real.exp (x * (α + 1))) * Complex.exp (↑(x * u) * Complex.I) * (cmDenom α u)⁻¹ := by
-  unfold strikeTransform
-  -- Setup complex frequencies a = α + i u, b = (α+1)+ i u
-  set a : ℂ := (↑α : ℂ) + ↑u * Complex.I with ha_def
-  set b : ℂ := (↑(α + 1) : ℂ) + ↑u * Complex.I with hb_def
-  have h_re_a : 0 < a.re := by
-    simp only [ha_def, Complex.add_re, Complex.ofReal_re, Complex.mul_re, Complex.ofReal_im,
+  have hα1 : 0 < α + 1 := by linarith
+  have h_re_a : 0 < ((↑α + ↑u * Complex.I : ℂ)).re := by
+    simp only [Complex.add_re, Complex.ofReal_re, Complex.mul_re, Complex.ofReal_im,
       Complex.I_re, Complex.I_im, mul_zero, zero_mul, sub_zero, add_zero]
     linarith
-  have h_re_b : 0 < b.re := by
-    simp only [hb_def, Complex.add_re, Complex.ofReal_re, Complex.mul_re, Complex.ofReal_im,
+  have h_re_b : 0 < ((↑(α + 1) + ↑u * Complex.I : ℂ)).re := by
+    simp only [Complex.add_re, Complex.ofReal_re, Complex.mul_re, Complex.ofReal_im,
       Complex.I_re, Complex.I_im, mul_zero, zero_mul, sub_zero, add_zero]
     linarith
-  have h_b_sub_a : b - a = 1 := by
-    simp only [ha_def, hb_def]
-    push_cast
-    ring
-  have h_cmDenom_eq : cmDenom α u = a * b := by
-    rw [cmDenom_factor]; simp only [ha_def, hb_def]
-  -- Vanishing outside Iic x
+  have h_factor : cmDenom α u = ((α : ℂ) + ↑u * Complex.I) * ((α + 1 : ℂ) + ↑u * Complex.I) :=
+    cmDenom_factor α u
   have h_zero : ∀ k : ℝ, x < k → max (S * Real.exp x - S * Real.exp k) 0 = 0 := by
     intro k hk
     have hle : Real.exp x ≤ Real.exp k := Real.exp_le_exp.mpr hk.le
@@ -201,21 +193,16 @@ theorem strikeTransform_eq {S x u α : ℝ} (hS : 0 ≤ S) (hα : 0 < α) :
   have h_f_zero : ∀ k : ℝ, x < k →
       Complex.exp (Complex.I * ↑(u * k)) * ↑(Real.exp (α * k)) *
         ↑(max (S * Real.exp x - S * Real.exp k) 0) = 0 := by
-    intro k hk
-    rw [h_zero k hk]; simp
-  -- Identify f as indicator of Iic x
+    intro k hk; rw [h_zero k hk]; simp
   have h_f_eq_indicator : ∀ k : ℝ,
       Complex.exp (Complex.I * ↑(u * k)) * ↑(Real.exp (α * k)) *
         ↑(max (S * Real.exp x - S * Real.exp k) 0) =
       (Set.Iic x).indicator (fun k => Complex.exp (Complex.I * ↑(u * k)) * ↑(Real.exp (α * k)) *
         ↑(max (S * Real.exp x - S * Real.exp k) 0)) k := by
-    intro k
-    by_cases hk : k ≤ x
-    · have hmem : k ∈ Set.Iic x := hk
-      rw [Set.indicator_of_mem hmem]
+    intro k; by_cases hk : k ≤ x
+    · rw [Set.indicator_of_mem (show k ∈ Set.Iic x from hk)]
     · push_neg at hk
-      have hnot : k ∉ Set.Iic x := by simp [Set.mem_Iic, not_le, hk]
-      rw [Set.indicator_of_notMem hnot, h_f_zero k hk]
+      rw [Set.indicator_of_notMem (show k ∉ Set.Iic x by simp [Set.mem_Iic, not_le, hk]), h_f_zero k hk]
   have h_integral_Iic : (∫ k : ℝ, Complex.exp (Complex.I * ↑(u * k)) * ↑(Real.exp (α * k)) *
         ↑(max (S * Real.exp x - S * Real.exp k) 0)) =
       ∫ k in Set.Iic x, Complex.exp (Complex.I * ↑(u * k)) * ↑(Real.exp (α * k)) *
@@ -226,123 +213,104 @@ theorem strikeTransform_eq {S x u α : ℝ} (hS : 0 ≤ S) (hα : 0 < α) :
         ↑(max (S * Real.exp x - S * Real.exp k) 0)) k := by
       funext k; exact (h_f_eq_indicator k).symm
     rw [h_eq, integral_indicator measurableSet_Iic]
-  -- Rewrite integrand on Iic x as S e^x e^{a k} - S e^{b k}
-  have h_exp_a : ∀ k : ℝ, Complex.exp (a * ↑k) =
+  -- a = α + i u, b = (α+1)+ i u
+  have h_exp_a : ∀ k : ℝ, Complex.exp (((↑α + ↑u * Complex.I : ℂ)) * ↑k) =
       Complex.exp (Complex.I * ↑(u * k)) * ↑(Real.exp (α * k)) := by
     intro k
-    have h1 : a * ↑k = ↑(α * k) + Complex.I * ↑(u * k) := by
-      simp only [ha_def]; push_cast; ring
+    have h1 : ((↑α + ↑u * Complex.I : ℂ)) * ↑k = ↑(α * k) + Complex.I * ↑(u * k) := by push_cast; ring
     rw [h1, Complex.exp_add, ← Complex.ofReal_exp]
   have h_exp_a_sym : ∀ k : ℝ, Complex.exp (Complex.I * ↑(u * k)) * ↑(Real.exp (α * k)) =
-      Complex.exp (a * ↑k) := by
+      Complex.exp (((↑α + ↑u * Complex.I : ℂ)) * ↑k) := by
     intro k; rw [h_exp_a k, mul_comm]
-  have h_exp_b : ∀ k : ℝ, Complex.exp (b * ↑k) =
+  have h_exp_b : ∀ k : ℝ, Complex.exp (((↑(α + 1) + ↑u * Complex.I : ℂ)) * ↑k) =
       Complex.exp (Complex.I * ↑(u * k)) * ↑(Real.exp (α * k)) * ↑(Real.exp k) := by
     intro k
-    have h1 : b * ↑k = ↑((α + 1) * k) + Complex.I * ↑(u * k) := by
-      simp only [hb_def]; push_cast; ring
+    have h1 : ((↑(α + 1) + ↑u * Complex.I : ℂ)) * ↑k = ↑((α + 1) * k) + Complex.I * ↑(u * k) := by push_cast; ring
     have h2 : (↑((α + 1) * k) : ℂ) = ↑(α * k) + ↑k := by push_cast; ring
-    rw [h1, h2, Complex.exp_add, Complex.exp_add, ← Complex.ofReal_exp, ← Complex.ofReal_exp]
-    ring
+    rw [h1, h2, Complex.exp_add, Complex.exp_add, ← Complex.ofReal_exp, ← Complex.ofReal_exp]; ring
   have h_max_eq : ∀ k ∈ Set.Iic x,
       max (S * Real.exp x - S * Real.exp k) 0 = S * Real.exp x - S * Real.exp k := by
     intro k hk
-    have hk' : k ≤ x := hk
-    have hle : Real.exp k ≤ Real.exp x := Real.exp_le_exp.mpr hk'
-    have h_nonneg : 0 ≤ S * Real.exp x - S * Real.exp k := by
-      linarith [mul_le_mul_of_nonneg_left hle hS]
+    have hle : Real.exp k ≤ Real.exp x := Real.exp_le_exp.mpr (hk : k ≤ x)
+    have h_nonneg : 0 ≤ S * Real.exp x - S * Real.exp k := by linarith [mul_le_mul_of_nonneg_left hle hS]
     exact max_eq_left h_nonneg
   have h_ofReal_sub : ∀ k ∈ Set.Iic x,
       (↑(max (S * Real.exp x - S * Real.exp k) 0) : ℂ) =
       ↑(S * Real.exp x) - ↑(S * Real.exp k) := by
-    intro k hk
-    rw [h_max_eq k hk, Complex.ofReal_sub]
-  have h_Sexp : ∀ k : ℝ, (↑(S * Real.exp k) : ℂ) = ↑S * ↑(Real.exp k) := by
-    intro k; push_cast; ring
-  have h_Sexp_x : (↑(S * Real.exp x) : ℂ) = ↑S * ↑(Real.exp x) := by push_cast; ring
+    intro k hk; rw [h_max_eq k hk, Complex.ofReal_sub]
+  have h_Sexp : ∀ k : ℝ, (↑(S * Real.exp k) : ℂ) = ↑S * ↑(Real.exp k) := by intro k; push_cast; ring
   have h_on_Iic : ∀ k ∈ Set.Iic x,
       Complex.exp (Complex.I * ↑(u * k)) * ↑(Real.exp (α * k)) *
         ↑(max (S * Real.exp x - S * Real.exp k) 0) =
-      ↑(S * Real.exp x) * Complex.exp (a * ↑k) - ↑S * Complex.exp (b * ↑k) := by
+      ↑(S * Real.exp x) * Complex.exp (((↑α + ↑u * Complex.I : ℂ)) * ↑k) - ↑S * Complex.exp (((↑(α + 1) + ↑u * Complex.I : ℂ)) * ↑k) := by
     intro k hk
     rw [h_ofReal_sub k hk]
     have h1 : Complex.exp (Complex.I * ↑(u * k)) * ↑(Real.exp (α * k)) *
         (↑(S * Real.exp x) - ↑(S * Real.exp k)) =
       ↑(S * Real.exp x) * (Complex.exp (Complex.I * ↑(u * k)) * ↑(Real.exp (α * k))) -
       (Complex.exp (Complex.I * ↑(u * k)) * ↑(Real.exp (α * k))) * ↑(S * Real.exp k) := by ring
-    rw [h1, h_exp_a_sym k]
-    congr 1
-    · ring
-    · rw [h_Sexp k, h_exp_b k]; ring
+    rw [h1, h_exp_a_sym k, h_Sexp k, h_exp_b k]; ring
   have h_set_eq : (∫ k in Set.Iic x, Complex.exp (Complex.I * ↑(u * k)) * ↑(Real.exp (α * k)) *
         ↑(max (S * Real.exp x - S * Real.exp k) 0)) =
-      ∫ k in Set.Iic x, (↑(S * Real.exp x) * Complex.exp (a * ↑k) - ↑S * Complex.exp (b * ↑k)) := by
+      ∫ k in Set.Iic x, (↑(S * Real.exp x) * Complex.exp (((↑α + ↑u * Complex.I : ℂ)) * ↑k) - ↑S * Complex.exp (((↑(α + 1) + ↑u * Complex.I : ℂ)) * ↑k)) := by
     apply setIntegral_congr_fun measurableSet_Iic
     · exact (integrable_strikeTransform hS hα).integrableOn
     · intro k hk; exact h_on_Iic k hk
-  -- Integrability of a and b exponentials on Iic
-  have h_int_a : IntegrableOn (fun k : ℝ => Complex.exp (a * ↑k)) (Set.Iic x) :=
+  have h_int_a : IntegrableOn (fun k : ℝ => Complex.exp (((↑α + ↑u * Complex.I : ℂ)) * ↑k)) (Set.Iic x) :=
     integrableOn_exp_mul_complex_Iic h_re_a x
-  have h_int_b : IntegrableOn (fun k : ℝ => Complex.exp (b * ↑k)) (Set.Iic x) :=
+  have h_int_b : IntegrableOn (fun k : ℝ => Complex.exp (((↑(α + 1) + ↑u * Complex.I : ℂ)) * ↑k)) (Set.Iic x) :=
     integrableOn_exp_mul_complex_Iic h_re_b x
-  have h_int_a_const : IntegrableOn (fun k : ℝ => ↑(S * Real.exp x) * Complex.exp (a * ↑k)) (Set.Iic x) :=
+  have h_int_a_const : IntegrableOn (fun k : ℝ => ↑(S * Real.exp x) * Complex.exp (((↑α + ↑u * Complex.I : ℂ)) * ↑k)) (Set.Iic x) :=
     h_int_a.const_mul _
-  have h_int_b_const : IntegrableOn (fun k : ℝ => ↑S * Complex.exp (b * ↑k)) (Set.Iic x) :=
+  have h_int_b_const : IntegrableOn (fun k : ℝ => ↑S * Complex.exp (((↑(α + 1) + ↑u * Complex.I : ℂ)) * ↑k)) (Set.Iic x) :=
     h_int_b.const_mul _
-  have h_int_sub : IntegrableOn (fun k : ℝ => ↑(S * Real.exp x) * Complex.exp (a * ↑k) - ↑S * Complex.exp (b * ↑k)) (Set.Iic x) :=
-    h_int_a_const.sub h_int_b_const
-  -- Compute integrals
-  have h_int_a_eq : ∫ k in Set.Iic x, Complex.exp (a * ↑k) = Complex.exp (a * ↑x) / a :=
+  have h_int_a_eq : ∫ k in Set.Iic x, Complex.exp (((↑α + ↑u * Complex.I : ℂ)) * ↑k) = Complex.exp (((↑α + ↑u * Complex.I : ℂ)) * ↑x) / ((↑α + ↑u * Complex.I : ℂ)) :=
     integral_exp_mul_complex_Iic h_re_a x
-  have h_int_b_eq : ∫ k in Set.Iic x, Complex.exp (b * ↑k) = Complex.exp (b * ↑x) / b :=
+  have h_int_b_eq : ∫ k in Set.Iic x, Complex.exp (((↑(α + 1) + ↑u * Complex.I : ℂ)) * ↑k) = Complex.exp (((↑(α + 1) + ↑u * Complex.I : ℂ)) * ↑x) / ((↑(α + 1) + ↑u * Complex.I : ℂ)) :=
     integral_exp_mul_complex_Iic h_re_b x
-  have h_integral_sub : ∫ k in Set.Iic x, (↑(S * Real.exp x) * Complex.exp (a * ↑k) - ↑S * Complex.exp (b * ↑k)) =
-      ↑(S * Real.exp x) * (Complex.exp (a * ↑x) / a) - ↑S * (Complex.exp (b * ↑x) / b) := by
-    rw [integral_sub h_int_a_const h_int_b_const,
-        integral_const_mul, integral_const_mul, h_int_a_eq, h_int_b_eq]
-  -- Simplify to C * (cmDenom)⁻¹
-  have h_C_eq : ↑(S * Real.exp x) * Complex.exp (a * ↑x) = ↑(S * Real.exp (x * (α + 1))) * Complex.exp (↑(x * u) * Complex.I) := by
-    have h_ax : a * ↑x = ↑(x * α) + ↑(x * u) * Complex.I := by
-      simp only [ha_def]; push_cast; ring
+  have h_integral_sub : ∫ k in Set.Iic x, (↑(S * Real.exp x) * Complex.exp (((↑α + ↑u * Complex.I : ℂ)) * ↑k) - ↑S * Complex.exp (((↑(α + 1) + ↑u * Complex.I : ℂ)) * ↑k)) =
+      ↑(S * Real.exp x) * (Complex.exp (((↑α + ↑u * Complex.I : ℂ)) * ↑x) / ((↑α + ↑u * Complex.I : ℂ))) - ↑S * (Complex.exp (((↑(α + 1) + ↑u * Complex.I : ℂ)) * ↑x) / ((↑(α + 1) + ↑u * Complex.I : ℂ))) := by
+    rw [integral_sub h_int_a_const h_int_b_const, integral_const_mul, integral_const_mul, h_int_a_eq, h_int_b_eq]
+  have h_ax : ((↑α + ↑u * Complex.I : ℂ)) * ↑x = ↑(x * α) + ↑(x * u) * Complex.I := by push_cast; ring
+  have h_bx : ((↑(α + 1) + ↑u * Complex.I : ℂ)) * ↑x = ↑(x * (α + 1)) + ↑(x * u) * Complex.I := by push_cast; ring
+  have h_mul : Real.exp x * Real.exp (x * α) = Real.exp (x * (α + 1)) := by rw [← Real.exp_add]; ring_nf
+  have h_C_eq : ↑(S * Real.exp x) * Complex.exp (((↑α + ↑u * Complex.I : ℂ)) * ↑x) = ↑(S * Real.exp (x * (α + 1))) * Complex.exp (↑(x * u) * Complex.I) := by
     rw [h_ax, Complex.exp_add, ← Complex.ofReal_exp]
-    have h_mul : Real.exp x * Real.exp (x * α) = Real.exp (x * (α + 1)) := by
-      rw [← Real.exp_add]; ring_nf
     calc ↑(S * Real.exp x) * (↑(Real.exp (x * α)) * Complex.exp (↑(x * u) * Complex.I))
         = ↑S * ↑(Real.exp x) * ↑(Real.exp (x * α)) * Complex.exp (↑(x * u) * Complex.I) := by push_cast; ring
-      _ = ↑S * ↑(Real.exp (x * (α + 1))) * Complex.exp (↑(x * u) * Complex.I) := by
-          rw [← Complex.ofReal_mul, h_mul]
+      _ = ↑S * ↑(Real.exp (x * (α + 1))) * Complex.exp (↑(x * u) * Complex.I) := by rw [← Complex.ofReal_mul, h_mul]
       _ = ↑(S * Real.exp (x * (α + 1))) * Complex.exp (↑(x * u) * Complex.I) := by push_cast; ring
-  have h_C_eq2 : ↑S * Complex.exp (b * ↑x) = ↑(S * Real.exp (x * (α + 1))) * Complex.exp (↑(x * u) * Complex.I) := by
-    have h_bx : b * ↑x = ↑(x * (α + 1)) + ↑(x * u) * Complex.I := by
-      simp only [hb_def]; push_cast; ring
+  have h_C_eq2 : ↑S * Complex.exp (((↑(α + 1) + ↑u * Complex.I : ℂ)) * ↑x) = ↑(S * Real.exp (x * (α + 1))) * Complex.exp (↑(x * u) * Complex.I) := by
     rw [h_bx, Complex.exp_add, ← Complex.ofReal_exp]
     calc ↑S * (↑(Real.exp (x * (α + 1))) * Complex.exp (↑(x * u) * Complex.I))
         = ↑(S * Real.exp (x * (α + 1))) * Complex.exp (↑(x * u) * Complex.I) := by push_cast; ring
-  have h_diff : ↑(S * Real.exp x) * (Complex.exp (a * ↑x) / a) - ↑S * (Complex.exp (b * ↑x) / b) =
-      ↑(S * Real.exp (x * (α + 1))) * Complex.exp (↑(x * u) * Complex.I) * (a * b)⁻¹ := by
+  have ha_ne : ((↑α + ↑u * Complex.I : ℂ)) ≠ 0 := by
+    intro hz; have : ((↑α + ↑u * Complex.I : ℂ)).re = 0 := by rw [hz]; simp
+    simp only [Complex.add_re, Complex.ofReal_re, Complex.mul_re, Complex.ofReal_im, Complex.I_re, Complex.I_im, mul_zero, zero_mul, sub_zero, add_zero] at this
+    linarith
+  have hb_ne : ((↑(α + 1) + ↑u * Complex.I : ℂ)) ≠ 0 := by
+    intro hz; have : ((↑(α + 1) + ↑u * Complex.I : ℂ)).re = 0 := by rw [hz]; simp
+    simp only [Complex.add_re, Complex.ofReal_re, Complex.mul_re, Complex.ofReal_im, Complex.I_re, Complex.I_im, mul_zero, zero_mul, sub_zero, add_zero] at this
+    linarith
+  have h_b_sub_a : ((↑(α + 1) + ↑u * Complex.I : ℂ)) - ((↑α + ↑u * Complex.I : ℂ)) = 1 := by push_cast; ring
+  have h_diff : ↑(S * Real.exp x) * (Complex.exp (((↑α + ↑u * Complex.I : ℂ)) * ↑x) / ((↑α + ↑u * Complex.I : ℂ))) - ↑S * (Complex.exp (((↑(α + 1) + ↑u * Complex.I : ℂ)) * ↑x) / ((↑(α + 1) + ↑u * Complex.I : ℂ))) =
+      ↑(S * Real.exp (x * (α + 1))) * Complex.exp (↑(x * u) * Complex.I) * (((↑α + ↑u * Complex.I : ℂ)) * ((↑(α + 1) + ↑u * Complex.I : ℂ)))⁻¹ := by
     rw [h_C_eq, h_C_eq2]
-    have ha_ne : a ≠ 0 := by
-      intro hz; have : a.re = 0 := by rw [hz]; simp; linarith [h_re_a]
-    have hb_ne : b ≠ 0 := by
-      intro hz; have : b.re = 0 := by rw [hz]; simp; linarith [h_re_b]
-    have h_ab_ne : a * b ≠ 0 := mul_ne_zero ha_ne hb_ne
-    calc ↑(S * Real.exp (x * (α + 1))) * Complex.exp (↑(x * u) * Complex.I) / a -
-          ↑(S * Real.exp (x * (α + 1))) * Complex.exp (↑(x * u) * Complex.I) / b
-        = ↑(S * Real.exp (x * (α + 1))) * Complex.exp (↑(x * u) * Complex.I) * (a⁻¹ - b⁻¹) := by ring
-      _ = ↑(S * Real.exp (x * (α + 1))) * Complex.exp (↑(x * u) * Complex.I) * ((b - a) / (a * b)) := by
-          field_simp
-      _ = ↑(S * Real.exp (x * (α + 1))) * Complex.exp (↑(x * u) * Complex.I) * (1 / (a * b)) := by
-          rw [h_b_sub_a]
-      _ = ↑(S * Real.exp (x * (α + 1))) * Complex.exp (↑(x * u) * Complex.I) * (a * b)⁻¹ := by
-          rw [one_div, inv_eq_one_div]
-  calc strikeTransform S α x u
-      = ∫ k in Set.Iic x, Complex.exp (Complex.I * ↑(u * k)) * ↑(Real.exp (α * k)) *
-          ↑(max (S * Real.exp x - S * Real.exp k) 0) := h_integral_Iic
-    _ = ∫ k in Set.Iic x, (↑(S * Real.exp x) * Complex.exp (a * ↑k) - ↑S * Complex.exp (b * ↑k)) := h_set_eq
-    _ = ↑(S * Real.exp x) * (Complex.exp (a * ↑x) / a) - ↑S * (Complex.exp (b * ↑x) / b) := h_integral_sub
-    _ = ↑(S * Real.exp (x * (α + 1))) * Complex.exp (↑(x * u) * Complex.I) * (a * b)⁻¹ := h_diff
-    _ = ↑(S * Real.exp (x * (α + 1))) * Complex.exp (↑(x * u) * Complex.I) * (cmDenom α u)⁻¹ := by
-          rw [h_cmDenom_eq]
+    calc ↑(S * Real.exp (x * (α + 1))) * Complex.exp (↑(x * u) * Complex.I) / ((↑α + ↑u * Complex.I : ℂ)) -
+          ↑(S * Real.exp (x * (α + 1))) * Complex.exp (↑(x * u) * Complex.I) / ((↑(α + 1) + ↑u * Complex.I : ℂ))
+        = ↑(S * Real.exp (x * (α + 1))) * Complex.exp (↑(x * u) * Complex.I) * (((↑α + ↑u * Complex.I : ℂ))⁻¹ - ((↑(α + 1) + ↑u * Complex.I : ℂ))⁻¹) := by ring
+      _ = ↑(S * Real.exp (x * (α + 1))) * Complex.exp (↑(x * u) * Complex.I) * ((((↑(α + 1) + ↑u * Complex.I : ℂ)) - ((↑α + ↑u * Complex.I : ℂ))) / (((↑α + ↑u * Complex.I : ℂ)) * ((↑(α + 1) + ↑u * Complex.I : ℂ)))) := by field_simp
+      _ = ↑(S * Real.exp (x * (α + 1))) * Complex.exp (↑(x * u) * Complex.I) * (1 / (((↑α + ↑u * Complex.I : ℂ)) * ((↑(α + 1) + ↑u * Complex.I : ℂ)))) := by rw [h_b_sub_a]
+      _ = ↑(S * Real.exp (x * (α + 1))) * Complex.exp (↑(x * u) * Complex.I) * (((↑α + ↑u * Complex.I : ℂ)) * ((↑(α + 1) + ↑u * Complex.I : ℂ)))⁻¹ := by rw [one_div]
+  have h_final : strikeTransform S α x u = ↑(S * Real.exp (x * (α + 1))) * Complex.exp (↑(x * u) * Complex.I) * (cmDenom α u)⁻¹ := by
+    calc strikeTransform S α x u
+        = ∫ k : ℝ, Complex.exp (Complex.I * ↑(u * k)) * ↑(Real.exp (α * k)) * ↑(max (S * Real.exp x - S * Real.exp k) 0) := rfl
+      _ = ∫ k in Set.Iic x, Complex.exp (Complex.I * ↑(u * k)) * ↑(Real.exp (α * k)) * ↑(max (S * Real.exp x - S * Real.exp k) 0) := h_integral_Iic
+      _ = ∫ k in Set.Iic x, (↑(S * Real.exp x) * Complex.exp (((↑α + ↑u * Complex.I : ℂ)) * ↑k) - ↑S * Complex.exp (((↑(α + 1) + ↑u * Complex.I : ℂ)) * ↑k)) := h_set_eq
+      _ = ↑(S * Real.exp x) * (Complex.exp (((↑α + ↑u * Complex.I : ℂ)) * ↑x) / ((↑α + ↑u * Complex.I : ℂ))) - ↑S * (Complex.exp (((↑(α + 1) + ↑u * Complex.I : ℂ)) * ↑x) / ((↑(α + 1) + ↑u * Complex.I : ℂ))) := h_integral_sub
+      _ = ↑(S * Real.exp (x * (α + 1))) * Complex.exp (↑(x * u) * Complex.I) * (((↑α + ↑u * Complex.I : ℂ)) * ((↑(α + 1) + ↑u * Complex.I : ℂ)))⁻¹ := h_diff
+      _ = ↑(S * Real.exp (x * (α + 1))) * Complex.exp (↑(x * u) * Complex.I) * (cmDenom α u)⁻¹ := by rw [h_factor]
+  exact h_final
 
 theorem integrable_strikeTransform {S α x u : ℝ} (hS : 0 ≤ S) (hα : 0 < α) :
     Integrable (fun k : ℝ => Complex.exp (Complex.I * ↑(u * k)) * ↑(Real.exp (α * k)) *
@@ -500,31 +468,18 @@ theorem fourierCM_inversion {f : ℝ → ℂ} (hcont : Continuous f) (hint : Int
   have h_fourier_eq : ∀ u : ℝ, fourierCM f u = 𝓕 f (-u / (2 * Real.pi)) := fun u => fourierCM_eq_fourier f u
   have h_exp_eq : ∀ u : ℝ, Complex.exp (-(Complex.I * ↑(u * k))) =
       Complex.exp (2 * ↑Real.pi * Complex.I * ↑(-u / (2 * Real.pi)) * ↑k) := by
-    intro u
-    congr 1
-    push_cast
-    ring
+    intro u; congr 1; push_cast; ring
   have h_int_eq : (∫ u : ℝ, Complex.exp (-(Complex.I * ↑(u * k))) * fourierCM f u) =
       ∫ u : ℝ, (fun v : ℝ => Complex.exp (2 * ↑Real.pi * Complex.I * ↑v * ↑k) * 𝓕 f v) (-u / (2 * Real.pi)) := by
-    apply integral_congr_ae
-    filter_upwards with u
-    rw [h_exp_eq u, h_fourier_eq u]
+    apply integral_congr_ae; filter_upwards with u; rw [h_exp_eq u, h_fourier_eq u]
   rw [h_int_eq]
-  have h_a : (-1 / (2 * Real.pi) : ℝ) ≠ 0 := by
-    have : (0 : ℝ) < 2 * Real.pi := by positivity
-    linarith
   have h_comp : (∫ u : ℝ, (fun v : ℝ => Complex.exp (2 * ↑Real.pi * Complex.I * ↑v * ↑k) * 𝓕 f v) (-1 / (2 * Real.pi) * u)) =
-      |(-1 / (2 * Real.pi))⁻¹| • ∫ v : ℝ, Complex.exp (2 * ↑Real.pi * Complex.I * ↑v * ↑k) * 𝓕 f v := by
-    have h_eq2 : (fun u : ℝ => (fun v : ℝ => Complex.exp (2 * ↑Real.pi * Complex.I * ↑v * ↑k) * 𝓕 f v) (-1 / (2 * Real.pi) * u)) =
-        (fun u : ℝ => (fun v : ℝ => Complex.exp (2 * ↑Real.pi * Complex.I * ↑v * ↑k) * 𝓕 f v) ((-1 / (2 * Real.pi)) * u)) := rfl
-    rw [h_eq2]
-    exact Measure.integral_comp_mul_left _ _
-  have h_div_eq : (-u / (2 * Real.pi) : ℝ) = (-1 / (2 * Real.pi)) * u := by ring
+      |(-1 / (2 * Real.pi) : ℝ)⁻¹| • ∫ v : ℝ, Complex.exp (2 * ↑Real.pi * Complex.I * ↑v * ↑k) * 𝓕 f v := by
+    exact Measure.integral_comp_mul_left (fun v => Complex.exp (2 * ↑Real.pi * Complex.I * ↑v * ↑k) * 𝓕 f v) (-1 / (2 * Real.pi))
+  have h_div_eq : ∀ u : ℝ, (-u / (2 * Real.pi) : ℝ) = (-1 / (2 * Real.pi)) * u := by intro u; ring
   have h_int_eq2 : (∫ u : ℝ, (fun v : ℝ => Complex.exp (2 * ↑Real.pi * Complex.I * ↑v * ↑k) * 𝓕 f v) (-u / (2 * Real.pi))) =
       ∫ u : ℝ, (fun v : ℝ => Complex.exp (2 * ↑Real.pi * Complex.I * ↑v * ↑k) * 𝓕 f v) ((-1 / (2 * Real.pi)) * u) := by
-    apply integral_congr_ae
-    filter_upwards with u
-    rw [h_div_eq]
+    apply integral_congr_ae; filter_upwards with u; rw [h_div_eq u]
   rw [h_int_eq2, h_comp]
   have h_abs : |(-1 / (2 * Real.pi) : ℝ)⁻¹| = 2 * Real.pi := by
     have hpi : (0 : ℝ) < 2 * Real.pi := by positivity
@@ -532,21 +487,14 @@ theorem fourierCM_inversion {f : ℝ → ℂ} (hcont : Continuous f) (hint : Int
     rw [this, abs_neg, abs_of_pos hpi]
   rw [h_abs]
   have h_smul : (2 * Real.pi : ℝ) • ∫ v : ℝ, Complex.exp (2 * ↑Real.pi * Complex.I * ↑v * ↑k) * 𝓕 f v =
-      ↑(2 * Real.pi) * ∫ v : ℝ, Complex.exp (2 * ↑Real.pi * Complex.I * ↑v * ↑k) * 𝓕 f v := by
-    rw [smul_eq_mul]
+      ↑(2 * Real.pi) * ∫ v : ℝ, Complex.exp (2 * ↑Real.pi * Complex.I * ↑v * ↑k) * 𝓕 f v := by rw [smul_eq_mul]
   rw [h_smul]
   have h_fourierInv : (∫ v : ℝ, Complex.exp (2 * ↑Real.pi * Complex.I * ↑v * ↑k) * 𝓕 f v) = 𝓕⁻ (𝓕 f) k := by
     have : 𝓕⁻ (𝓕 f) k = ∫ v : ℝ, Complex.exp (2 * ↑Real.pi * Complex.I * ↑v * ↑k) * 𝓕 f v := by
-      unfold Real.fourierInv
-      apply integral_congr_ae
-      filter_upwards with v
-      rw [smul_eq_mul]
-      ring_nf
+      unfold Real.fourierInv; apply integral_congr_ae; filter_upwards with v; rw [smul_eq_mul]; ring_nf
     rw [← this]
   rw [h_fourierInv, h_eq]
-  have h_pi_ne : (2 * Real.pi : ℂ) ≠ 0 := by
-    have : (0 : ℝ) < 2 * Real.pi := by positivity
-    exact_mod_cast ne_of_gt this
+  have h_pi_ne : (2 * Real.pi : ℂ) ≠ 0 := by positivity
   field_simp
 
 /-! §5 triangle -/
