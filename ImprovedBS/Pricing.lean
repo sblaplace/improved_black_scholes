@@ -495,9 +495,59 @@ theorem fourierCM_eq_fourier (f : ℝ → ℂ) (u : ℝ) :
 theorem fourierCM_inversion {f : ℝ → ℂ} (hcont : Continuous f) (hint : Integrable f)
     (hFint : Integrable (𝓕 f)) (k : ℝ) :
     ((2 * Real.pi)⁻¹ : ℂ) * ∫ u : ℝ, Complex.exp (-(Complex.I * ↑(u * k))) * fourierCM f u = f k := by
-  have h_inv := Continuous.fourierInv_fourier_eq hcont hint hFint
+  have h_inv : 𝓕⁻ (𝓕 f) = f := Continuous.fourierInv_fourier_eq hcont hint hFint
   have h_eq : 𝓕⁻ (𝓕 f) k = f k := by rw [h_inv]
-  rfl
+  have h_fourier_eq : ∀ u : ℝ, fourierCM f u = 𝓕 f (-u / (2 * Real.pi)) := fun u => fourierCM_eq_fourier f u
+  have h_exp_eq : ∀ u : ℝ, Complex.exp (-(Complex.I * ↑(u * k))) =
+      Complex.exp (2 * ↑Real.pi * Complex.I * ↑(-u / (2 * Real.pi)) * ↑k) := by
+    intro u
+    congr 1
+    push_cast
+    ring
+  have h_int_eq : (∫ u : ℝ, Complex.exp (-(Complex.I * ↑(u * k))) * fourierCM f u) =
+      ∫ u : ℝ, (fun v : ℝ => Complex.exp (2 * ↑Real.pi * Complex.I * ↑v * ↑k) * 𝓕 f v) (-u / (2 * Real.pi)) := by
+    apply integral_congr_ae
+    filter_upwards with u
+    rw [h_exp_eq u, h_fourier_eq u]
+  rw [h_int_eq]
+  have h_a : (-1 / (2 * Real.pi) : ℝ) ≠ 0 := by
+    have : (0 : ℝ) < 2 * Real.pi := by positivity
+    linarith
+  have h_comp : (∫ u : ℝ, (fun v : ℝ => Complex.exp (2 * ↑Real.pi * Complex.I * ↑v * ↑k) * 𝓕 f v) (-1 / (2 * Real.pi) * u)) =
+      |(-1 / (2 * Real.pi))⁻¹| • ∫ v : ℝ, Complex.exp (2 * ↑Real.pi * Complex.I * ↑v * ↑k) * 𝓕 f v := by
+    have h_eq2 : (fun u : ℝ => (fun v : ℝ => Complex.exp (2 * ↑Real.pi * Complex.I * ↑v * ↑k) * 𝓕 f v) (-1 / (2 * Real.pi) * u)) =
+        (fun u : ℝ => (fun v : ℝ => Complex.exp (2 * ↑Real.pi * Complex.I * ↑v * ↑k) * 𝓕 f v) ((-1 / (2 * Real.pi)) * u)) := rfl
+    rw [h_eq2]
+    exact Measure.integral_comp_mul_left _ _
+  have h_div_eq : (-u / (2 * Real.pi) : ℝ) = (-1 / (2 * Real.pi)) * u := by ring
+  have h_int_eq2 : (∫ u : ℝ, (fun v : ℝ => Complex.exp (2 * ↑Real.pi * Complex.I * ↑v * ↑k) * 𝓕 f v) (-u / (2 * Real.pi))) =
+      ∫ u : ℝ, (fun v : ℝ => Complex.exp (2 * ↑Real.pi * Complex.I * ↑v * ↑k) * 𝓕 f v) ((-1 / (2 * Real.pi)) * u) := by
+    apply integral_congr_ae
+    filter_upwards with u
+    rw [h_div_eq]
+  rw [h_int_eq2, h_comp]
+  have h_abs : |(-1 / (2 * Real.pi) : ℝ)⁻¹| = 2 * Real.pi := by
+    have hpi : (0 : ℝ) < 2 * Real.pi := by positivity
+    have : (-1 / (2 * Real.pi) : ℝ)⁻¹ = -(2 * Real.pi) := by field_simp
+    rw [this, abs_neg, abs_of_pos hpi]
+  rw [h_abs]
+  have h_smul : (2 * Real.pi : ℝ) • ∫ v : ℝ, Complex.exp (2 * ↑Real.pi * Complex.I * ↑v * ↑k) * 𝓕 f v =
+      ↑(2 * Real.pi) * ∫ v : ℝ, Complex.exp (2 * ↑Real.pi * Complex.I * ↑v * ↑k) * 𝓕 f v := by
+    rw [smul_eq_mul]
+  rw [h_smul]
+  have h_fourierInv : (∫ v : ℝ, Complex.exp (2 * ↑Real.pi * Complex.I * ↑v * ↑k) * 𝓕 f v) = 𝓕⁻ (𝓕 f) k := by
+    have : 𝓕⁻ (𝓕 f) k = ∫ v : ℝ, Complex.exp (2 * ↑Real.pi * Complex.I * ↑v * ↑k) * 𝓕 f v := by
+      unfold Real.fourierInv
+      apply integral_congr_ae
+      filter_upwards with v
+      rw [smul_eq_mul]
+      ring_nf
+    rw [← this]
+  rw [h_fourierInv, h_eq]
+  have h_pi_ne : (2 * Real.pi : ℂ) ≠ 0 := by
+    have : (0 : ℝ) < 2 * Real.pi := by positivity
+    exact_mod_cast ne_of_gt this
+  field_simp
 
 /-! §5 triangle -/
 
@@ -535,26 +585,25 @@ theorem cmPriceIntegrand_reflect {μ : Measure ℝ} [IsProbabilityMeasure μ]
     push_cast
     ring
   have h_exp : Complex.exp (-(Complex.I * ↑((-u) * k))) = conj (Complex.exp (-(Complex.I * ↑(u * k)))) := by
-    have h1 : -(Complex.I * ↑((-u) * k)) = conj (Complex.I * ↑(u * k)) := by
+    have h1 : -(Complex.I * ↑((-u) * k)) = conj (-(Complex.I * ↑(u * k))) := by
       simp only [map_neg, map_mul, Complex.conj_ofReal, Complex.conj_I]
       push_cast
       ring
-    rw [h1, ← Complex.exp_conj]
+    rw [h1, Complex.exp_conj]
   have h_char : contourCharFun μ (↑(-u) - ↑(α + 1) * Complex.I) =
       conj (contourCharFun μ (↑u - ↑(α + 1) * Complex.I)) := by
     unfold contourCharFun
     rw [← integral_conj]
     apply integral_congr_ae
     filter_upwards with x
-    have h_conj : conj (Complex.I * (↑(-u) - ↑(α + 1) * Complex.I) * ↑x) =
-        Complex.I * (↑u - ↑(α + 1) * Complex.I) * ↑x := by
+    have h_conj : Complex.I * (↑(-u) - ↑(α + 1) * Complex.I) * ↑x =
+        conj (Complex.I * (↑u - ↑(α + 1) * Complex.I) * ↑x) := by
       simp only [map_sub, map_add, map_mul, map_neg, Complex.conj_ofReal, Complex.conj_I]
       push_cast
       ring
     calc Complex.exp (Complex.I * (↑(-u) - ↑(α + 1) * Complex.I) * ↑x)
-        = Complex.exp (conj (conj (Complex.I * (↑(-u) - ↑(α + 1) * Complex.I) * ↑x))) := by rw [star_star]
-      _ = conj (Complex.exp (conj (Complex.I * (↑(-u) - ↑(α + 1) * Complex.I) * ↑x))) := by rw [Complex.exp_conj]
-      _ = conj (Complex.exp (Complex.I * (↑u - ↑(α + 1) * Complex.I) * ↑x)) := by rw [h_conj]
+        = Complex.exp (conj (Complex.I * (↑u - ↑(α + 1) * Complex.I) * ↑x)) := by rw [← h_conj]
+      _ = conj (Complex.exp (Complex.I * (↑u - ↑(α + 1) * Complex.I) * ↑x)) := by rw [Complex.exp_conj]
   calc Complex.exp (-(Complex.I * ↑((-u) * k))) * (contourCharFun μ (↑(-u) - ↑(α + 1) * Complex.I) * (cmDenom α (-u))⁻¹)
       = conj (Complex.exp (-(Complex.I * ↑(u * k)))) * (conj (contourCharFun μ (↑u - ↑(α + 1) * Complex.I)) * (conj (cmDenom α u))⁻¹) := by
           rw [h_exp, h_char, h_denom]
