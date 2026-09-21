@@ -801,11 +801,11 @@ theorem fourierDampedModelFreeCall_eq {μ : Measure ℝ} [IsProbabilityMeasure �
         Complex.ofReal (∫ a : ℝ, max (S * Real.exp a - S * Real.exp k) 0 ∂μ) :=
       integral_ofReal (X := ℝ) (μ := μ) (𝕜 := ℂ)
         (f := fun a : ℝ => max (S * Real.exp a - S * Real.exp k) 0)
-    unfold dampedModelFreeCall
-    rw [Complex.ofReal_mul, Complex.ofReal_mul]
     rw [hF_def]
     simp only [integral_const_mul]
     rw [hkey]
+    unfold dampedModelFreeCall
+    rw [Complex.ofReal_mul, Complex.ofReal_mul, Complex.ofReal_mul]
   have h_outer : ∀ x : ℝ, (∫ k : ℝ, F k x) =
       Complex.ofReal (Real.exp (-r * tau)) *
         (↑(S * Real.exp (x * (α + 1))) * Complex.exp (↑(x * u) * Complex.I) * (cmDenom α u)⁻¹) := by
