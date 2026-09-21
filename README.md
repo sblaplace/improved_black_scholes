@@ -118,7 +118,7 @@ CI-only, so nobody spends a budget discovering this.
 ## Repository layout
 
 ```
-ImprovedBS/         # Lean 4 library, `namespace BSM`: Core.lean (T1..T5), Levy.lean, Fourier.lean, RiskNeutral.lean, Inversion.lean (T6 sub-goals 1, 2, 3a, 3b), Skeleton.lean (model-free parity + bounds), Crosscheck.lean (#eval twin, guard 3)
+ImprovedBS/         # Lean 4 library, `namespace BSM`: Core.lean (T1..T5), Levy.lean, Fourier.lean, RiskNeutral.lean, Inversion.lean (T6 sub-goals 1, 2, 3a, 3b), Skeleton.lean (model-free parity + bounds), Pricing.lean (T6 at any strip law: kernel on the pricing contour, strike transform, Fubini exchange, inversion, pricing identity), Crosscheck.lean (#eval twin, guard 3)
 ImprovedBS.lean     # library root module
 lakefile.toml       # mathlib pinned by tag; leanOptions (autoImplicit off)
 lean-toolchain      # pinned toolchain — must match lake-manifest.json
@@ -179,8 +179,8 @@ cheapest high-value theorem in the research tier. Details in docs/03 §D1.
 
 | Layer | what | status |
 |---|---|---|
-| Numeric oracle | independent `d1`/`d2`, independent call and put closed forms, PDE residual, delta identity, quadrature of the risk-neutral expectation, Carr–Madan Fourier inversion, model-free expectation route | verified — 16/16 tests |
-| Oracle is a falsifier | mutation harness: 15 seeded bugs, each killed by its targeted test, incl. 2 vacuity canaries | verified — 4/4 harness tests |
+| Numeric oracle | independent `d1`/`d2`, independent call and put closed forms, PDE residual, delta identity, quadrature of the risk-neutral expectation, Carr–Madan Fourier inversion, model-free expectation route, Carr–Madan at any strip law | verified — 17/17 tests |
+| Oracle is a falsifier | mutation harness: 17 seeded bugs, each killed by its targeted test, incl. 2 vacuity canaries | verified — 4/4 harness tests |
 | Failure modes + research dirs w/ falsifiers | docs/02, docs/03 | written |
 | Lean definitions | `erf`, Φ, φ, d1, d2, bsCall, bsPut — independent, matching the oracle | machine-checked |
 | Lean theorems | `Phi_add_Phi_neg`, T1, T2, T2′ | **GREEN** — `lake build` + `#print axioms` audit, run 35509578689 |
@@ -191,9 +191,10 @@ cheapest high-value theorem in the research tier. Details in docs/03 §D1.
 | Lean theorems | T6 sub-goal 3(a): the closed form is the discounted risk-neutral expectation, plus the `phi`/`Phi` ↔ mathlib-Gaussian bridge (`ImprovedBS/RiskNeutral.lean`, 21 declarations) | **GREEN** — `lake build` + `#print axioms` audit + statement pins (elab, 81), run 35574194681; `benchmarks/LEDGER.md` row 7 |
 | Lean theorems | T6 sub-goal 3(b): Fourier inversion of the Carr–Madan pricing kernel onto the lognormal expectation, and real-valuedness (`ImprovedBS/Inversion.lean`, 13 declarations) | **GREEN** — `lake build` + `#print axioms` audit + statement pins (elab, 94), run 35578278238; `benchmarks/LEDGER.md` row 8 |
 | Lean theorems | the model-free skeleton: put-call parity + no-arbitrage bounds at the expectation level, for any terminal-spot law with the drift condition (`ImprovedBS/Skeleton.lean`, 14 declarations) | **GREEN** — `lake build` + `#print axioms` audit + statement pins (elab, 108), run 35589005865; `benchmarks/LEDGER.md` row 9 |
+| Lean theorems | T6's triangle at *any* strip law: the Carr–Madan kernel on the pricing contour `u − i(α+1)` (C12 corrected), the strike transform, the Fubini exchange, Fourier inversion in the tree's own normalization, and the pricing identity landing on the model-free layer — instantiated at GBM, the CGMY decay entering only as a recorded hypothesis (`ImprovedBS/Pricing.lean`, 31 declarations) | **GREEN** — `lake build` + `#print axioms` audit + statement pins (elab, 139), run 35646623031; `benchmarks/LEDGER.md` row 10 |
 | Deferred | *(nothing)* | ratcheted at 0 `sorry`s — `deferred: {}` |
-| Lint is a falsifier | `tests/test_lint.py`: 27 seeded cheats each killed by a named check, 5 legitimate edits green, 1 residual gap asserted open | verified — 7/7 tests |
-| Pinned claims | `tests/golden_statements.json`: 108 declarations — theorem statements, definition bodies | machine-checked (source + elab 108/108); `#check`/axioms layer verified in build job |
+| Lint is a falsifier | `tests/test_lint.py`: 28 seeded cheats each killed by a named check, 5 legitimate edits green, 1 residual gap asserted open | verified — 7/7 tests |
+| Pinned claims | `tests/golden_statements.json`: 139 declarations — theorem statements, definition bodies | machine-checked (source + elab 139/139); `#check`/axioms layer verified in build job |
 | Grading lane | briefs/ + benchmarks/ + 2 CI workflows + toolchain-free lint + pins | standing |
 | First brief | BRIEF_001, re-scoped to what is actually checkable | see briefs/ |
 
@@ -243,6 +244,20 @@ skeleton" is a theorem schema now — a later law inherits T2/T4 by supplying
 three facts (`Integrable X`, the drift condition, `0 ≤ X`), not by re-proof.
 All 12 new audited constants sit on `[propext, Classical.choice, Quot.sound]`,
 and the pins grew 94 → 108 with the 94 pre-existing entries unchanged.
+
+**T6's triangle holds at any strip law** (BRIEF_010, PR #16, run 35646623031):
+the Carr–Madan kernel now lives on the pricing contour `u − i(α+1)` — the
+contour correction C12 implemented, not edited away — and the full pricing
+chain (`strikeTransform`, the Fubini exchange `fourierDampedModelFreeCall_eq`,
+inversion `fourierCM_inversion`, and `carrMadan_eq_modelFreeCall` landing on
+BRIEF_009's model-free layer) is proved for *any* law satisfying the strip
+conditions, with GBM as the closed instance (`gbm_carrMadan_eq_bsCall`). The
+CGMY decay enters only as a recorded hypothesis — the exponent itself is
+BRIEF_011's deliverable. This is item 4 of the BSM-2 kit (docs/03 §D1) under
+the re-scope `docs/04` pre-committed for it. All 25 new audited theorems sit on
+`[propext, Classical.choice, Quot.sound]`, the pins grew 108 → 139 in both
+layers with the 108 pre-existing entries byte-identical, and the `[CONTOUR]`
+lint check with its own mutant guards the contour from here on.
 
 **T1 through T4 are machine-checked.** `lake build` is green against mathlib
 v4.34.0 / Lean v4.34.0 and the `#print axioms` audit confirms that all 25
