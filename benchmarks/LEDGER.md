@@ -785,3 +785,59 @@ toolchain-free iteration convergent.
 The oracle lane went green on every push including the first (`16/16` from
 `a8cf4ac` onward); its runs are paired with the lean runs in row 9.
 
+
+### C12 — the Carr–Madan contour in `Fourier.lean` is not the pricing contour (found while scoping BRIEF_010)
+
+**Date:** 2026-09-21. **Trigger:** BRIEF_010's route-check, run before any Lean
+was written (ledger C4). Found by the brief, recorded here rather than edited
+away (the C1 posture, one level down).
+
+`ImprovedBS/Fourier.lean`'s
+`carrMadanKernel φ α u = φ (↑u + ↑α * I) * (cmDenom α u)⁻¹` — and
+`ImprovedBS/Inversion.lean`'s `carrMadanInversion`, which inherits it — puts the
+model factor on the line `Im v = +α`, and BRIEF_005's module header states the
+call value as `V = e^{−rτ}/(2π)·∫ e^{−iuτ} φ(u + iα)/cmDenom du`. The price the
+tree actually damps (`dampedCallPrice`, BRIEF_008) is
+`k ↦ e^{αk}·e^{−rτ}·E[(S e^X − S e^k)⁺]`, and *its* forward transform sits on the
+line `Im v = −(α+1)`:
+
+    ∫_ℝ e^{iuk} f(k) dk = e^{−rτ} · S · φ(u − i(α+1)) / cmDenom(α,u)
+
+The two lines coincide only at `α = −1/2`, which `0 < α` excludes. Measured on
+2026-09-21 at `S=100, K=110, τ=1, r=0.05, q=0.02, σ=0.25, α=1.5`: the formula on
+`u − i(α+1)` reproduces the closed form `7.112102348131359` to **9.99e-16**
+relative — this is what the oracle's `bs_call_by_fourier_inversion` implements,
+and what `test_fourier_inversion` asserts at `2e-11` — while the same formula on
+`u + iα` returns `1.819563153701569`, a **74.2% relative error**. From the
+definition side, direct quadrature of `∫ e^{iuk} f(k) dk` matches
+`e^{−rτ}·S·φ(u − i(α+1))/cmDenom(α,u)` to `1.16e-16` / `5.38e-16` / `8.16e-16` at
+`u = 0, 0.7, −2.0`, and misses the `u + iα` identity by `1.28e-01` / `2.25e-01` /
+`5.41e-01` at the same points.
+
+**Why it survived, and what is not affected.** BRIEF_005's deliverable is a
+*conditional* integrability theorem whose hypothesis names its own contour, so the
+theorem is true on either line — the hypothesis is a hypothesis. The tempered decay
+is contour-independent to leading order (CGMY at `C=1, G=5, M=10, Y=0.7, τ=1`:
+`−Re ψ/|u|^Y` at `u = 2000` measures `3.731206` on the pricing line and `3.731207`
+on the tree's), which is precisely why the mismatch was invisible to it. And
+`Inversion.lean` §4 never consumes `carrMadanKernel`: its five main theorems are
+about `𝓕⁻ (𝓕 f)` at the lognormal law and are correct as stated. **No pinned
+statement moves, and no def body is edited**: the correction is to an
+*identification* — a docstring's claim about what an integrable kernel is — not to
+a proof. It is the C1-item-1 failure mode (a claim that certifies nothing) in its
+identification-level form, and it is the reason BRIEF_010's pricing identity is
+stated on `u − i(α+1)`.
+
+**What it costs, and what now guards it.** BRIEF_010 adds the kernel on the
+pricing line (`cmPriceKernel`) and proves the exact relation
+`cmPriceKernel φ α u = carrMadanKernel (fun v => φ (v − (2α+1)·i)) α u`, so
+BRIEF_005's integrability theorem applies to it verbatim, with the same
+`c, D, Y, u₀` — the correction costs one pointwise identity, not a new domination
+argument. The prose correction lands in the doc-comments of `Fourier.lean` and
+`Inversion.lean`, which is free under the pins (comments are stripped: the 108
+pre-existing entries stay byte-identical, and the audit trail for the change is
+this entry, not a pin diff). The guard lands with the same PR: a `[CONTOUR]` route
+check in `scripts/lean_lint.py` with a cheat seeded in `tests/test_lint.py`, and
+oracle mutant **M15** (contour swap in `bs_call_by_fourier_inversion`), killed by
+the existing `test_fourier_inversion` alone — measured relative error `7.44e-01`
+against that test's `2e-11` tolerance.
