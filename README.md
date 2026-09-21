@@ -137,7 +137,7 @@ against.
 | T3 | `t3_delta_identity` | `S e^{−qτ} φ(d1) = K e^{−rτ} φ(d2)` | medium | **machine-checked** |
 | T4 | `t4_call_bounds`, `t4_put_bounds` | no-arbitrage price bounds | medium | **machine-checked** |
 | T5 | `t5_bsCall_pde`, `t5_delta`, `t5_gamma`, `t5_tau` | closed form solves the BSM PDE | heavy | **LANDED GREEN** (BRIEF_006) — run 35566569107; `benchmarks/LEDGER.md` row 6 |
-| T6 | sub-goals 1, 2, 3(a): `ImprovedBS/Levy.lean`, `ImprovedBS/Fourier.lean`, `ImprovedBS/RiskNeutral.lean` (`bsCall_eq_riskNeutral_expectation`, `bsPut_eq_riskNeutral_expectation`, `bsCall_eq_lognormal_expectation`) | Fourier kernel survives a tempered-stable increment; the closed form *is* `e^{−rτ}E[(S_T−K)⁺]` | open — 3(b), the Fourier inversion, remains | restated, see docs/03 D1; 3(a) is BRIEF_007 (PR #9, pending CI) |
+| T6 | sub-goals 1, 2, 3(a): `ImprovedBS/Levy.lean`, `ImprovedBS/Fourier.lean`, `ImprovedBS/RiskNeutral.lean` (`bsCall_eq_riskNeutral_expectation`, `bsPut_eq_riskNeutral_expectation`, `bsCall_eq_lognormal_expectation`) | Fourier kernel survives a tempered-stable increment; the closed form *is* `e^{−rτ}E[(S_T−K)⁺]` | open — 3(b), the Fourier inversion, remains | restated, see docs/03 D1; 3(a) **LANDED GREEN** (BRIEF_007, PR #9, run 35574194681) |
 
 T1–T4 are the warm-up tier, and all four are now machine-checked. T4 turned
 out to be less routine than "algebra and monotonicity": its lower bound is the
@@ -176,7 +176,7 @@ cheapest high-value theorem in the research tier. Details in docs/03 §D1.
 | Lean theorems | T6 sub-goal 1: the moment obstruction (`ImprovedBS/Levy.lean`, 7 declarations) | **GREEN** — `lake build` + `#print axioms` audit + statement pins, run 35523250105 |
 | Lean theorems | T6 sub-goal 2: tempered-contour absolute convergence (`ImprovedBS/Fourier.lean`, 7 declarations) | **GREEN** — `lake build` + `#print axioms` audit + statement pins, run 35536031936 |
 | Lean theorems | T5: the closed form solves the BSM PDE (`ImprovedBS/Core.lean`, 11 declarations) | **GREEN** — `lake build` + `#print axioms` audit + statement pins (elab, 60), run 35566569107 |
-| Lean theorems | T6 sub-goal 3(a): the closed form is the discounted risk-neutral expectation, plus the `phi`/`Phi` ↔ mathlib-Gaussian bridge (`ImprovedBS/RiskNeutral.lean`, 21 declarations) | **PENDING** — BRIEF_007, PR #9; `benchmarks/LEDGER.md` row 7 |
+| Lean theorems | T6 sub-goal 3(a): the closed form is the discounted risk-neutral expectation, plus the `phi`/`Phi` ↔ mathlib-Gaussian bridge (`ImprovedBS/RiskNeutral.lean`, 21 declarations) | **GREEN** — `lake build` + `#print axioms` audit + statement pins (elab, 81), run 35574194681; `benchmarks/LEDGER.md` row 7 |
 | Deferred | *(nothing)* | ratcheted at 0 `sorry`s — `deferred: {}` |
 | Lint is a falsifier | `tests/test_lint.py`: 25 seeded cheats each killed by a named check, 5 legitimate edits green, 1 residual gap asserted open | verified — 7/7 tests |
 | Pinned claims | `tests/golden_statements.json`: 81 declarations — theorem statements, definition bodies | machine-checked (source level, no toolchain); `#check`/axioms layer runs in the build job |
@@ -192,7 +192,7 @@ coordinates and without a `sorry` — the one genuinely new analytic input is
 49 pre-existing entries unchanged. Its verdict, and the four-run elaboration
 arc that got there, are recorded in `benchmarks/LEDGER.md` row 6.
 
-**T6 sub-goal 3(a) is in flight** (BRIEF_007, PR #9): until now every Lean
+**T6 sub-goal 3(a) is landed and green** (BRIEF_007, PR #9, run 35574194681): until it, every Lean
 theorem in the tree was a theorem *about the closed form* — its parity, its
 bounds, its PDE — and nothing connected the closed form to the expectation it
 is supposed to be. `ImprovedBS/RiskNeutral.lean` states and proves that
@@ -210,8 +210,12 @@ lower bound already used. The oracle grew a quadrature route
 with the closed form to 1.6e-12 on the golden grid, and mutant M11 shows the
 new test can fail. `0 < σ` is load-bearing: at `−σ` the closed form is
 `−bsPut(σ)` while the expectation does not move, and the test asserts exactly
-that, so the theorem is not being claimed for a sign it is false at. Verdict:
-`benchmarks/LEDGER.md` row 7, once CI has spoken.
+that, so the theorem is not being claimed for a sign it is false at. The audit
+puts all 21 new constants on `[propext, Classical.choice, Quot.sound]`, the pins
+grew 60 → 81 with the 60 pre-existing entries unchanged, and 20 of the 21
+declarations elaborated on the first CI run. Verdict and arc:
+`benchmarks/LEDGER.md` row 7 (and C10, the pin channel defect that arc found and
+fixed).
 
 **T1 through T4 are machine-checked.** `lake build` is green against mathlib
 v4.34.0 / Lean v4.34.0 and the `#print axioms` audit confirms that all 25

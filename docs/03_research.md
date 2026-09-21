@@ -139,8 +139,8 @@ Provable sub-goals, in increasing order of commitment:
    inside the strip, for a tempered-stable exponent.
 3. **Agreement** with the risk-neutral expectation, i.e. Fourier inversion
    against the payoff transform. This splits in two (BRIEF_007):
-   - **(3a) the expectation itself — LANDED** as `ImprovedBS/RiskNeutral.lean`
-     (PR #9): `bsCall_eq_riskNeutral_expectation` and
+   - **(3a) the expectation itself — LANDED GREEN** as `ImprovedBS/RiskNeutral.lean`
+     (PR #9, run 35574194681): `bsCall_eq_riskNeutral_expectation` and
      `bsPut_eq_riskNeutral_expectation` prove that the T1–T5 closed form *is*
      `e^{−rτ}·E[(S_T − K)⁺]` under `log(S_T/S) ~ N((r−q−σ²/2)τ, σ²τ)`, stated
      both as a Lebesgue integral against `phi` and against mathlib's

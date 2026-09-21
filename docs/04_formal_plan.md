@@ -43,7 +43,7 @@ point of the audit step, since a `sorry` builds fine. The ratchet baseline is
 | T4 | `t4_call_bounds` | `max(S e^{−qτ} − K e^{−rτ}, 0) ≤ bsCall ≤ S e^{−qτ}` | medium — positivity via `Φ = ∫ φ`, *not* monotonicity (ledger C4) | **machine-checked** |
 | T4′| `t4_put_bounds` | mirrored put bounds | corollary of T4 + T2 (`linarith` only) | **machine-checked** |
 | T5 | `t5_bsCall_pde` (+ `t5_delta`, `t5_gamma`, `t5_tau`, `t5_bsCall_pde_tau` and six supporting lemmas) | `V_t + (r−q)S V_S + (σ²/2)S² V_SS = r V` in calendar time for `bsCall` | heavy — the one new analytic input is `Φ′ = φ`, derived from the interval-integral FTC because mathlib has no `Real.erf` | **LANDED GREEN** (BRIEF_006), lean run 35566569107 — `benchmarks/LEDGER.md` row 6 |
-| T6 | sub-goals 1–2 and 3(a) declared: `ImprovedBS/Levy.lean` (7), `ImprovedBS/Fourier.lean` (7), `ImprovedBS/RiskNeutral.lean` (21: `bsCall_eq_riskNeutral_expectation`, `bsPut_eq_riskNeutral_expectation`, `bsCall_eq_lognormal_expectation`, the Gaussian bridge and the tilted integrals) | Fourier pricing kernel survives a wider increment law; the GBM instance of "the price is `e^{−rτ}E[(S_T−K)⁺]`" is now a theorem | open — research; sub-goal 3(b) (Fourier inversion) remains | restated in docs/03 D1; (3a) is BRIEF_007 (PR #9) |
+| T6 | sub-goals 1–2 and 3(a) declared: `ImprovedBS/Levy.lean` (7), `ImprovedBS/Fourier.lean` (7), `ImprovedBS/RiskNeutral.lean` (21: `bsCall_eq_riskNeutral_expectation`, `bsPut_eq_riskNeutral_expectation`, `bsCall_eq_lognormal_expectation`, the Gaussian bridge and the tilted integrals) | Fourier pricing kernel survives a wider increment law; the GBM instance of "the price is `e^{−rτ}E[(S_T−K)⁺]`" is now a theorem | open — research; sub-goal 3(b) (Fourier inversion) remains | restated in docs/03 D1; (3a) **LANDED GREEN** (BRIEF_007, PR #9, run 35574194681) — `benchmarks/LEDGER.md` row 7 |
 
 Three honest corrections to earlier versions of this table:
 
@@ -329,7 +329,7 @@ local `--elab-check` is a red with a message, never a skip.
 
 Order is chosen so that each brief's acceptance bar is checkable by the time it
 is worked on, and so that no brief depends on a machine-checked result that does
-not yet exist. BRIEF_001–006 have landed, in this order; BRIEF_007 is in flight.
+not yet exist. BRIEF_001–007 have landed, in this order.
 
 | brief | what it lands | depends on | locally checkable? |
 |---|---|---|---|
@@ -339,7 +339,7 @@ not yet exist. BRIEF_001–006 have landed, in this order; BRIEF_007 is in fligh
 | ~~BRIEF_004~~ | **LANDED GREEN** — α-stable exponential-moment obstruction (T6 sub-goal 1; PR #5, run 35523250105) | none | no — CI only |
 | ~~BRIEF_005~~ | **LANDED GREEN** — T6 sub-goal 2: Carr–Madan absolute convergence on the tempered contour, GBM instance machine-checked (`ImprovedBS/Fourier.lean`; PR #6, run 35536031936) | 004 | no — CI only |
 | ~~BRIEF_006~~ | **LANDED GREEN** — T5, the closed form solves the BSM PDE, directly in `(S, τ)` via T3 + chain rule + `Φ′ = φ`; 11 declarations in `ImprovedBS/Core.lean`, `[SPINE]` check + mutant, statement pins 49 → 60 with the existing 49 unchanged (PR #8, run 35566569107) | 003 | no — CI only |
-| ~~BRIEF_007~~ | **LANDED (this PR, #9)** — T6 sub-goal 3(a): the closed form *is* the discounted risk-neutral expectation, `bsCall_eq_riskNeutral_expectation` / `bsPut_eq_riskNeutral_expectation`, the Gaussian bridge `phi`/`Phi` ↔ `gaussianPDFReal 0 1`/`gaussianReal 0 1`, the drift condition and the lognormal form; 21 declarations in `ImprovedBS/RiskNeutral.lean`, statement pins 60 → 81 with the existing 60 unchanged, oracle expectation route + mutant M11 | 005, 006 | no — CI only |
+| ~~BRIEF_007~~ | **LANDED GREEN** (PR #9, run 35574194681) — T6 sub-goal 3(a): the closed form *is* the discounted risk-neutral expectation, `bsCall_eq_riskNeutral_expectation` / `bsPut_eq_riskNeutral_expectation`, the Gaussian bridge `phi`/`Phi` ↔ `gaussianPDFReal 0 1`/`gaussianReal 0 1`, the drift condition and the lognormal form; 21 declarations in `ImprovedBS/RiskNeutral.lean`, statement pins 60 → 81 with the existing 60 unchanged, oracle expectation route + mutant M11 | 005, 006 | no — CI only |
 | *(queued)* | **T6** sub-goal 3(b) — Fourier inversion: `Integrable.fourier_inversion` against BRIEF_005's `carrMadanKernel`, landing on BRIEF_007's `bsCall_eq_lognormal_expectation`; real-valuedness of the inverted integral | 005, 007 | no — CI only |
 
 BRIEF_004 is deliberately listed as depending on nothing: it is pure analysis

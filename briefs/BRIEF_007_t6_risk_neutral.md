@@ -1,8 +1,9 @@
 # BRIEF_007 — T6 sub-goal 3(a): the closed form IS the risk-neutral expectation
 
-- **Status:** IN FLIGHT (this PR) — the item `docs/04` §"The brief queue"
-  recorded as *"(queued) T6 sub-goal 3 — depends on 005, CI-only"*, and the
-  half of that item this brief takes.
+- **Status:** **LANDED GREEN** — PR #9, lean run 35574194681 (oracle lane run
+  35574194638), `benchmarks/LEDGER.md` row 7. This was the item `docs/04`
+  §"The brief queue" recorded as *"(queued) T6 sub-goal 3 — depends on 005,
+  CI-only"*, and the half of that item this brief took.
 - **Prerequisite PRs:** BRIEF_005 (T6 sub-goal 2, `ImprovedBS/Fourier.lean`)
   and BRIEF_006 (T5) merged. No edit to `ImprovedBS/Levy.lean`,
   `ImprovedBS/Fourier.lean` or `ImprovedBS/Crosscheck.lean`; the only edit to

@@ -1224,7 +1224,8 @@ T6  [IN PROGRESS — research]  the Fourier pricing kernel survives a wider
                        increment law — sub-goal (b) below LANDED GREEN as
                        BRIEF_005 (PR #6, run 35536031936): see
                        ImprovedBS/Fourier.lean; sub-goal (c)'s expectation
-                       half is BRIEF_007 (PR #9): see ImprovedBS/RiskNeutral.lean
+                       half LANDED GREEN as BRIEF_007 (PR #9, run 35574194681):
+                       see ImprovedBS/RiskNeutral.lean
 --------------------------------------------------------------------------
 
 RESTATED. The previous formulation ("transport (Fourier) kernel survives
@@ -1284,7 +1285,8 @@ Provable sub-goals, in increasing order of commitment:
              and the same identity against mathlib's `gaussianReal` in
              standard-normal and lognormal form — `bsCall_eq_riskNeutral_expectation`,
              `bsPut_eq_riskNeutral_expectation`, `bsCall_eq_lognormal_expectation`
-             in ImprovedBS/RiskNeutral.lean (BRIEF_007, PR #9). This is the GBM
+             in ImprovedBS/RiskNeutral.lean (BRIEF_007, PR #9, run 35574194681,
+             LANDED GREEN). This is the GBM
              instance of the target's right-hand side; before it, no theorem in
              this tree connected the closed form to the expectation it prices.
       (c-ii) Fourier inversion (`Integrable.fourier_inversion` against
