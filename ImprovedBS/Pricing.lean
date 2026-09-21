@@ -135,11 +135,13 @@ theorem cmDenom_factor (α u : ℝ) :
     cmDenom α u = ((α : ℂ) + ↑u * Complex.I) * ((α + 1 : ℂ) + ↑u * Complex.I) := by
   unfold cmDenom
   apply Complex.ext
-  · simp only [Complex.add_re, Complex.mul_re, Complex.ofReal_re, Complex.ofReal_im,
-      Complex.I_re, Complex.I_im, mul_zero, sub_zero, zero_mul, add_zero]
+  · simp only [Complex.add_re, Complex.mul_re, Complex.sub_re, Complex.ofReal_re, Complex.ofReal_im,
+      Complex.I_re, Complex.I_im, Complex.one_re, Complex.one_im, Complex.zero_re, Complex.zero_im,
+      mul_zero, sub_zero, zero_mul, add_zero]
     ring
-  · simp only [Complex.add_im, Complex.mul_im, Complex.ofReal_re, Complex.ofReal_im,
-      Complex.I_re, Complex.I_im, mul_zero, sub_zero, zero_mul, add_zero]
+  · simp only [Complex.add_im, Complex.mul_im, Complex.sub_im, Complex.ofReal_re, Complex.ofReal_im,
+      Complex.I_re, Complex.I_im, Complex.one_re, Complex.one_im, Complex.zero_re, Complex.zero_im,
+      mul_zero, sub_zero, zero_mul, add_zero]
     ring
 
 theorem integral_Ioi_cexp_neg_mul_eq_inv {a : ℂ} (ha : 0 < a.re) :
@@ -183,12 +185,12 @@ theorem strikeTransform_eq {S x u α : ℝ} (hS : 0 ≤ S) (hα : 0 < α) :
   have hα1 : 0 < α + 1 := by linarith
   have h_re1 : 0 < ((↑α + ↑u * Complex.I : ℂ)).re := by
     simp only [Complex.add_re, Complex.ofReal_re, Complex.mul_re, Complex.ofReal_im,
-      Complex.I_re, Complex.I_im, mul_zero, sub_zero]
-    exact hα
+      Complex.I_re, Complex.I_im, mul_zero, zero_mul, sub_zero, add_zero]
+    linarith
   have h_re2 : 0 < ((↑(α + 1) + ↑u * Complex.I : ℂ)).re := by
     simp only [Complex.add_re, Complex.ofReal_re, Complex.mul_re, Complex.ofReal_im,
-      Complex.I_re, Complex.I_im, mul_zero, sub_zero]
-    exact hα1
+      Complex.I_re, Complex.I_im, mul_zero, zero_mul, sub_zero, add_zero]
+    linarith
   have hI1 : ∫ y in Set.Ioi (0 : ℝ), Complex.exp (-((↑α + ↑u * Complex.I) * ↑y)) =
       (↑α + ↑u * Complex.I)⁻¹ := integral_Ioi_cexp_neg_mul_eq_inv h_re1
   have hI2 : ∫ y in Set.Ioi (0 : ℝ), Complex.exp (-((↑(α + 1) + ↑u * Complex.I) * ↑y)) =
@@ -223,11 +225,15 @@ theorem integrable_strikeTransform {S α x u : ℝ} (hS : 0 ≤ S) (hα : 0 < α
         apply max_le
         · linarith [mul_nonneg hS (Real.exp_pos k).le]
         · exact mul_nonneg hS (Real.exp_pos _).le
+      have h_norm_eq : ‖Complex.exp (Complex.I * ↑(u * k)) * ↑(Real.exp (α * k)) *
+            ↑(max (S * Real.exp x - S * Real.exp k) 0)‖ =
+          ‖Complex.exp (Complex.I * ↑(u * k))‖ * ‖↑(Real.exp (α * k))‖ *
+            ‖(↑(max (S * Real.exp x - S * Real.exp k) 0) : ℂ)‖ := by
+        rw [norm_mul, norm_mul, mul_assoc]
       calc ‖Complex.exp (Complex.I * ↑(u * k)) * ↑(Real.exp (α * k)) *
             ↑(max (S * Real.exp x - S * Real.exp k) 0)‖
           = ‖Complex.exp (Complex.I * ↑(u * k))‖ * ‖↑(Real.exp (α * k))‖ *
-            ‖(↑(max (S * Real.exp x - S * Real.exp k) 0) : ℂ)‖ := by
-              rw [norm_mul, norm_mul]
+            ‖(↑(max (S * Real.exp x - S * Real.exp k) 0) : ℂ)‖ := h_norm_eq
         _ = 1 * Real.exp (α * k) * ‖(↑(max (S * Real.exp x - S * Real.exp k) 0) : ℂ)‖ := by
               rw [h_norm_I, h_norm_exp]
         _ ≤ 1 * Real.exp (α * k) * (S * Real.exp x) := by
@@ -270,17 +276,35 @@ theorem continuous_dampedModelFreeCall {μ : Measure ℝ} [IsProbabilityMeasure 
   unfold dampedModelFreeCall
   have h_cont_exp : Continuous fun k : ℝ => Real.exp (α * k) := by continuity
   have h_cont_int : Continuous fun k : ℝ => ∫ x, max (S * Real.exp x - S * Real.exp k) 0 ∂μ := by
-    -- dominated by S e^x + 1, integrable from hMom
-    have h_bound : ∀ k : ℝ, ∀ x : ℝ, ‖max (S * Real.exp x - S * Real.exp k) 0‖ ≤ S * Real.exp x + 1 := by
-      intro k x
+    apply continuous_of_dominated
+    · intro k
+      exact (Continuous.aestronglyMeasurable (by continuity : Continuous fun x : ℝ => max (S * Real.exp x - S * Real.exp k) 0))
+    · intro k
+      filter_upwards with x
       rw [Real.norm_of_nonneg (le_max_right _ _)]
-      have h1 : max (S * Real.exp x - S * Real.exp k) 0 ≤ S * Real.exp x + S * Real.exp k := by
-        calc max (S * Real.exp x - S * Real.exp k) 0 ≤ S * Real.exp x + S * Real.exp k := by
-          apply max_le
-          · linarith [mul_nonneg hS.le (Real.exp_pos k).le]
-          · positivity
-      linarith [mul_nonneg hS.le (Real.exp_pos k).le]
-    rfl
+      have h_le : max (S * Real.exp x - S * Real.exp k) 0 ≤ S * Real.exp x := by
+        apply max_le
+        · linarith [mul_nonneg hS.le (Real.exp_pos k).le]
+        · exact mul_nonneg hS.le (Real.exp_pos _).le
+      calc ‖max (S * Real.exp x - S * Real.exp k) 0‖ = max (S * Real.exp x - S * Real.exp k) 0 := Real.norm_of_nonneg (le_max_right _ _)
+        _ ≤ S * Real.exp x := h_le
+        _ ≤ S * Real.exp ((α + 1) * x) + S := by
+          by_cases hx : 0 ≤ x
+          · have h1 : Real.exp x ≤ Real.exp ((α + 1) * x) := by
+              apply Real.exp_le_exp.mpr
+              nlinarith
+            linarith [mul_le_mul_of_nonneg_left h1 hS.le]
+          · push_neg at hx
+            have h1 : Real.exp x ≤ 1 := Real.exp_le_one_iff.mpr hx.le
+            linarith [mul_le_mul_of_nonneg_left h1 hS.le]
+    · have h_int : Integrable (fun x => S * Real.exp ((α + 1) * x) + S) μ := by
+        have h1 : Integrable (fun x => S * Real.exp ((α + 1) * x)) μ := hMom.const_mul S
+        have h2 : Integrable (fun _ : ℝ => S) μ := integrable_const S
+        exact h1.add h2
+      exact h_int
+    · filter_upwards with x
+      apply Continuous.continuousAt
+      continuity
   continuity
 
 theorem integrable_dampedModelFreeCall_of_exp_moment {μ : Measure ℝ} [IsProbabilityMeasure μ]
