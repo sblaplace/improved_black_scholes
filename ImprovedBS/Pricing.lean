@@ -38,6 +38,7 @@ def cmPriceKernel (φ : ℂ → ℂ) (α u : ℝ) : ℂ :=
 theorem cmPriceKernel_eq_shift (φ : ℂ → ℂ) (α u : ℝ) :
     cmPriceKernel φ α u = carrMadanKernel (fun v => φ (v - ↑(2 * α + 1) * Complex.I)) α u := by
   unfold cmPriceKernel carrMadanKernel
+  dsimp
   have h : (↑u + ↑α * Complex.I - ↑(2 * α + 1) * Complex.I : ℂ) = ↑u - ↑(α + 1) * Complex.I := by
     push_cast
     ring
@@ -133,13 +134,13 @@ theorem gbm_cmPriceKernel_integrable (m s : ℝ) (hs : 0 < s) {α : ℝ} (hα : 
 theorem cmDenom_factor (α u : ℝ) :
     cmDenom α u = ((α : ℂ) + ↑u * Complex.I) * ((α + 1 : ℂ) + ↑u * Complex.I) := by
   unfold cmDenom
-  have h1 : (α ^ 2 + α - u ^ 2 : ℝ) = α * (α + 1) - u ^ 2 := by ring
-  rw [h1]
-  push_cast
-  have hI : Complex.I * Complex.I = -1 := Complex.I_mul_I
-  ring_nf
-  rw [hI]
-  ring
+  apply Complex.ext
+  · simp only [Complex.add_re, Complex.mul_re, Complex.ofReal_re, Complex.ofReal_im,
+      Complex.I_re, Complex.I_im, mul_zero, sub_zero, zero_mul, add_zero]
+    ring
+  · simp only [Complex.add_im, Complex.mul_im, Complex.ofReal_re, Complex.ofReal_im,
+      Complex.I_re, Complex.I_im, mul_zero, sub_zero, zero_mul, add_zero]
+    ring
 
 theorem integral_Ioi_cexp_neg_mul_eq_inv {a : ℂ} (ha : 0 < a.re) :
     ∫ y in Set.Ioi (0 : ℝ), Complex.exp (-(a * ↑y)) = a⁻¹ := by
@@ -219,10 +220,9 @@ theorem integrable_strikeTransform {S α x u : ℝ} (hS : 0 ≤ S) (hα : 0 < α
       have h_norm_exp : ‖(↑(Real.exp (α * k)) : ℂ)‖ = Real.exp (α * k) := by
         rw [Complex.norm_real, Real.norm_eq_abs, abs_of_nonneg (Real.exp_pos _).le]
       have h_max_le : max (S * Real.exp x - S * Real.exp k) 0 ≤ S * Real.exp x := by
-        calc max (S * Real.exp x - S * Real.exp k) 0 ≤ S * Real.exp x := by
-          have h1 : S * Real.exp x - S * Real.exp k ≤ S * Real.exp x := by
-            linarith [mul_nonneg hS (Real.exp_pos k).le]
-          exact max_le h1 (mul_nonneg hS (Real.exp_pos _).le)
+        apply max_le
+        · linarith [mul_nonneg hS (Real.exp_pos k).le]
+        · exact mul_nonneg hS (Real.exp_pos _).le
       calc ‖Complex.exp (Complex.I * ↑(u * k)) * ↑(Real.exp (α * k)) *
             ↑(max (S * Real.exp x - S * Real.exp k) 0)‖
           = ‖Complex.exp (Complex.I * ↑(u * k))‖ * ‖↑(Real.exp (α * k))‖ *
@@ -308,15 +308,20 @@ theorem fourierCM_eq_fourier (f : ℝ → ℂ) (u : ℝ) :
       Complex.exp (↑(-2 * Real.pi * k * (-u / (2 * Real.pi))) * Complex.I) := by
     intro k
     congr 1
-    field_simp
+    have h : -2 * Real.pi * k * (-u / (2 * Real.pi)) = u * k := by field_simp
+    rw [h]
+    push_cast
     ring
   have h_int : (∫ k : ℝ, Complex.exp (Complex.I * ↑(u * k)) * f k) =
       (∫ k : ℝ, Complex.exp (↑(-2 * Real.pi * k * (-u / (2 * Real.pi))) * Complex.I) * f k) := by
     apply integral_congr_ae
     filter_upwards with k
     rw [h_eq k]
-  rw [h_int]
-  rfl
+  rw [h_int, Real.fourier_real_eq_integral_exp_smul]
+  apply integral_congr_ae
+  filter_upwards with k
+  rw [smul_eq_mul]
+  ring_nf
 
 theorem fourierCM_inversion {f : ℝ → ℂ} (hcont : Continuous f) (hint : Integrable f)
     (hFint : Integrable (𝓕 f)) (k : ℝ) :
@@ -362,7 +367,7 @@ theorem cmPriceIntegrand_reflect {μ : Measure ℝ} [IsProbabilityMeasure μ]
     ring
   have h_exp : Complex.exp (-(Complex.I * ↑((-u) * k))) = conj (Complex.exp (-(Complex.I * ↑(u * k)))) := by
     have h1 : -(Complex.I * ↑((-u) * k)) = conj (Complex.I * ↑(u * k)) := by
-      simp only [Complex.conj_ofReal, Complex.conj_I, Complex.conj_mul, Complex.conj_neg]
+      simp only [map_neg, map_mul, Complex.conj_ofReal, Complex.conj_I]
       push_cast
       ring
     rw [h1, ← Complex.exp_conj]
