@@ -842,3 +842,85 @@ check in `scripts/lean_lint.py` with a cheat seeded in `tests/test_lint.py`, and
 oracle mutant **M15** (contour swap in `bs_call_by_fourier_inversion`), killed by
 the existing `test_fourier_inversion` alone — measured relative error `7.44e-01`
 against that test's `2e-11` tolerance.
+
+### C13 — the thesis conflated two skeletons; the widening needs a selection principle
+
+**Date:** 2026-09-21. **Trigger:** external review of the README/thesis
+against the landed tree. The reviewer's praise and its three findings are
+recorded here in the repo's own terms; what follows is what was wrong, what
+was already handled, and the repair queue.
+
+1. **Two skeletons, and the repo's claims were about the wrong one.** The
+   "arbitrage-free skeleton that makes a closed form exist" unpacks into a
+   *static* layer (parity, no-arbitrage bounds, price as discounted
+   expectation under a pricing measure — model-free) and a *dynamic* layer
+   (a self-financing replicating portfolio, a *unique* martingale measure,
+   the PDE as its consequence). Every preservation result in the tree is
+   static: `ImprovedBS/Skeleton.lean` (BRIEF_009) proves parity and bounds
+   for any law with the drift condition — real work, correctly done, but
+   about the layer that was never in danger. Two sentences were the
+   unearned dynamic-layer claims: docs/03's "hedging stays a
+   single-martingale principle" and the BSM-2 kit's "the drift is fixed by
+   the martingale condition". With jumps, the martingale condition is one
+   equation and does not select a measure — Esscher, minimal-entropy,
+   mean-correcting and calibrated choices are all arbitrage-free and price
+   the same call differently. Both sentences are corrected in docs/03; the
+   README's thesis now states the split. The BSM-2 kit gains item 7 (the
+   selection principle's necessity is a theorem), and item 3 is amended to
+   "fixed *at a named pricing measure*". One refinement the reviewer's own
+   construction needed: within a single exponential-Lévy model the Esscher
+   martingale equation is strictly monotone in the parameter (the cumulant
+   is strictly convex), so non-uniqueness lives *across* selection
+   principles, not within the Esscher family — the witness must be
+   cross-family, or finite (a one-period trinomial suffices).
+2. **The non-uniqueness theorem is queued, as the review demanded — and it
+   consumes the model-free layer.** BRIEF_012: two distinct probability
+   measures, both with the drift condition (hence both satisfying the
+   skeleton layer's three facts, so parity and bounds hold for both), giving
+   different call prices. That is the machine-checked statement that
+   static-skeleton preservation is necessary-but-not-sufficient — a RED
+   verdict on the thesis's dynamic half, which by this ledger's rules is a
+   result, not an incident.
+3. **The flagship negative theorem's hypothesis is unwitnessed in-system.**
+   `ImprovedBS/Levy.lean`'s tail bound enters as a hypothesis (mathlib has
+   no α-stable law), and C7 already recorded that the hypothesis is
+   unsatisfiable for `α ≤ 0` — satisfiability was known to matter and left
+   at prose. BRIEF_013 constructs a witness: a Pareto law
+   (`Measure.withDensity` against Lebesgue on `[1, ∞)`, density
+   `α·x^(−(α+1))`), proves it a probability measure with the tail lower
+   bound, and instantiates the obstruction theorem at it — no hypothesis.
+   The same review's general point stands: pins catch weakening, not
+   vacuous hypotheses; the witness is the cheap defense for the node the
+   thesis leans on hardest.
+4. **The oracle and the Lean twin share an author.** Agreement between them
+   is weaker evidence than the crosscheck section claims by omission.
+   BRIEF_014 pins published benchmark values (Haug's standard test cases)
+   as literal constants in `tests/` — one genuinely external anchor — and
+   adds the review's term-structure falsifier to the oracle: pure
+   exponential-Lévy smiles are too steep at short tenors and decay like
+   `τ^(−1/2)` at long ones, while the market's smile persists; the model's
+   measured ATM-skew decay exponent is compared against the *cited* market
+   power law, and the outcome lands in docs/02 as a RED against the
+   T6-direction taken alone (the dynamic half of why the literature went
+   to stochastic time changes — cf. the Dupire point: static smile-matching
+   was solved in 1994, so the widening must be judged on dynamics, not on
+   surface fit).
+5. **Already handled before the review arrived:** the damping parameter's
+   own moment strip. C12 (PR #12) records the pricing contour
+   `v = u − i(α+1)`, its containment condition `α + 1 < min(G, M)` (the
+   review's `α < M − 1` is the same inequality on the right wing) and the
+   numéraire condition `1 < M`; `Fourier.lean`'s decay requirement was
+   already a named hypothesis (`hdecay`), never an unbacked premise. The
+   machine-checked discharge of that hypothesis at the concrete CGMY
+   exponent is BRIEF_011's stated deliverable.
+6. **Novelty calibration.** The README called T6 "a genuinely new approach,
+   not a reimplementation". Its content is Carr–Madan (1999) and CGMY
+   (2002) restated; exponential-Lévy pricing by Fourier inversion has been
+   in production at dealers for two decades. The README's contribution
+   claim is now the defensible one, hoisted from the license section: the
+   machine-checked restatement and the grading apparatus around it.
+
+The review's two closing questions are the program's: the current tree is a
+*price* program (the hedging horizon in docs/03's "Beyond BSM-2" is where
+hedging enters, as error bounds rather than replication), and the
+measure-selection question is now the BSM-2 kit's item 7.

@@ -91,11 +91,32 @@ That is exactly what falsifier (a) below is for.
 
 The European risk-neutral value becomes a Fourier integral over a contour
 inside the moment strip — real analysis, still a transport kernel, and still a
-convolution of the payoff with a transition density. The skeleton of docs/01 §3
-is untouched. That is the whole point: **the tail moves into the increment
-rather than into an elastic volatility**, so hedging stays a single-martingale
-principle, and maturity-mispecification and moneyness-mispecification become
-one instability instead of two hidden ones.
+convolution of the payoff with a transition density. (An explicit
+one-dimensional integral requiring quadrature: a weaker object than BSM's
+elementary function, and the difference is worth keeping in view wherever the
+word "closed" appears.) What survives the widening, and what does not, is
+worth stating exactly (ledger C13):
+
+- **Survives — the static skeleton.** Put-call parity, the no-arbitrage
+  bounds, and the price-as-discounted-expectation form: these hold for *any*
+  terminal law with the drift condition, machine-checked in
+  `ImprovedBS/Skeleton.lean`. This is the part the Fourier integral needs.
+- **Does not survive — the dynamic skeleton.** A self-financing *replicating*
+  portfolio, the *uniqueness* of the martingale measure, and the PDE as its
+  consequence. With jumps the martingale condition is one equation and does
+  not select a measure: Esscher, minimal-entropy, mean-correcting and
+  calibrated choices are all arbitrage-free and price the same call
+  differently. So the drift being "fixed by the martingale condition" is only
+  ever fixed *relative to a named selection principle*, and the hedging
+  content of the price is quadratic-error minimization, not delta
+  replication.
+
+That is the whole point, restated honestly: **the tail moves into the
+increment rather than into an elastic volatility**, so *pricing* stays a
+single-martingale-measure computation — one measure, chosen and named, not
+unique — and maturity-mispecification and moneyness-mispecification become one
+instability instead of two hidden ones. The uniqueness loss is not a defect to
+hide; it is a theorem to prove (item 7 below).
 
 ### BSM 2 — what "widened" has to mean, precisely
 
@@ -110,7 +131,7 @@ lognormal instance; the moment obstruction for the naive widening is
 machine-checked (`Levy.lean`).
 
 **BSM 2** is a *second* concrete increment law — the tempered-stable / CGMY
-one above — **in the same tree, under the same skeleton**, with all six of:
+one above — **in the same tree, under the same skeleton**, with all seven of:
 
 1. **The law exists in the tree.** The concrete CGMY characteristic exponent
    (the `cpow`/branch work BRIEF_005 deferred and named), shown to arise from
@@ -124,9 +145,12 @@ one above — **in the same tree, under the same skeleton**, with all six of:
    principal branch of the exponent's `(M−iv)^Y` term adds `α + 1 < M`, so the
    working condition is `α + 1 < min(G, M)`. The numéraire point is `u = 1`,
    needing `1 < M`. Ledger C12 and BRIEF_010.)
-3. **The drift is fixed by the martingale condition** and
-   `E[S_T] = S·e^{(r−q)τ}` is proved at the new law (the CGMY twin of
-   `integral_spot_mul_phi_eq_forward`).
+3. **The drift is fixed *at a named pricing measure*,** and
+   `E[S_T] = S·e^{(r−q)τ}` is proved at the new law under that measure (the
+   CGMY twin of `integral_spot_mul_phi_eq_forward`). The martingale condition
+   alone does not select the measure — see item 7; the choice (Esscher,
+   minimal-entropy, calibrated, …) is part of the model, and the price is a
+   claim *at the chosen measure*.
 4. **T6's triangle holds at the new exponent.** The Carr–Madan integral
    converges absolutely on the contour, inverts to `e^{−rτ}·E[(S_T − K)⁺]`,
    and is real-valued — the full pricing claim where no closed form exists.
@@ -152,9 +176,22 @@ one above — **in the same tree, under the same skeleton**, with all six of:
 6. **GBM comes back at the corner.** `ψ_CGMY → ψ_GBM` as `Y → 2` (or
    `G, M → σ²/2`), at least pointwise in the exponent. Convergence of prices
    is a recorded deferral, not a hostage.
+7. **The selection principle's necessity is a theorem.** The tree contains a
+   machine-checked non-uniqueness witness: two distinct probability measures,
+   both satisfying the drift condition, giving *different* call prices —
+   while *both* satisfy the skeleton layer's parity and bounds (item 5's
+   three facts). That is the formal statement that static-skeleton
+   preservation is necessary-but-not-sufficient, and it is what obliges
+   item 3's "named". A one-period trinomial witness suffices (finite sums, no
+   Lévy machinery); the compound-Poisson version ties it to the Lévy line.
+   Queued as BRIEF_012 (ledger C13).
 
 Items 1–3 are the new analysis. Items 4–6 are the widening being *proved*
-rather than fitted. Until all six land, "improving BS" is this document's
+rather than fitted. Item 7 is the honest shape of the whole enterprise: it
+converts "BSM 2 = wider increment law" into "BSM 2 = wider increment law
+**plus a selection principle**", which is the shape the incompleteness
+literature says the problem actually has. Until all seven land, "improving
+BS" is this document's
 hypothesis, not the repository's theorem — and even after they land, the
 falsifiers below (fitted α concentrating in `(1.3, 1.9)` and materially less
 moneyness-dependent than the σ it replaces; out-of-sample hedging variance per
@@ -317,3 +354,74 @@ For a direction → candidate → result:
 
 A model whose "improvement" appears only by adding a constant per option is
 disqualified at step 1.
+
+---
+
+## Beyond BSM-2 — aims past the current program
+
+BSM-2 (§D1) is scoped to one widening: one replacement law, proved to preserve
+the skeleton. Three aims sit past it, in decreasing order of ambition, plus
+one explicit non-aim. None of them displaces the current queue: BSM-2 finishes
+first, the empirical falsifiers run, and the CGMY result becomes the first
+entry in the library described below — which is what retroactively validates
+the framing.
+
+### The library aim: the program as an instrument
+
+BRIEF_009 produced something more general than the brief that commissioned it:
+parity and the no-arbitrage bounds hold at the expectation level for *any*
+terminal-spot law with the drift condition, so a candidate law enters the tree
+by supplying three facts (`Integrable X`, the drift condition, `0 ≤ X`), not
+by re-proof. The BSM-2 kit (§D1, items 1–7) is the rest of the pattern: moment
+strip, drift fix, Fourier triangle, skeleton instantiation, corner recovery,
+a named selection principle, empirical falsifiers. The aim past BSM-2 is to
+run that kit as a standing
+pipeline — a library of increment/state laws, each entering through the same
+graded briefs and each exiting with a *proved domain of validity*: where the
+price exists, what the drift condition is, which selection principle fixes
+the pricing measure, which corner recoveries hold.
+Tempered-stable is the first entry; tempered-stable-with-stochastic-volatility
+(the D1+D2 combination — where the literature lands, per §D2) is the second;
+a regime-switching law is a third candidate once D3's falsification question
+is settled.
+
+The deliverable shifts from "the improved Black-Scholes" to the machine that
+adjudicates any proposed improvement, on both lanes: formal (the seven-item
+kit) and empirical (the falsifiers of §D1). This is also the version a model-risk
+function can consume: risk committees do not adopt models, they adopt
+validated envelopes, and a machine-checked envelope is the one artifact a
+fitted model cannot produce. `ImprovedBS/Levy.lean`'s obstruction theorem is
+already that kind of object — a checked statement of where a martingale price
+cannot exist. The envelope, not the fit, is the capital-facing deliverable.
+
+### The hedging horizon: from pricing to hedging and path-dependence
+
+Everything in the tree prices European claims from a terminal marginal. The
+places model uncertainty strands capital are path-dependent and illiquid —
+American and barrier structures, long-dated tails — and "improvement" there is
+not a price but a hedge. And the base case matters: outside GBM there is no
+replicating hedge at all — hedging under a jump law is quadratic-error
+minimization (the variance-optimal hedge), so "the hedge works" is an error
+*bound*, never an identity. The formal content of this aim: self-financing
+strategies, discrete hedging-error bounds under the widened law, and the Snell
+envelope for American payoffs. The caveat, stated now so nobody budgets it as
+an ordinary brief: this is at mathlib's frontier. Its stochastic-calculus
+coverage at the pinned tag is thin (no Itô formula, no stochastic integral),
+so this aim partly means contributing upstream to mathlib first.
+
+### The cheap one: the D3 falsifier as a theorem
+
+"Under a geometric random walk, the autocorrelation of |log-returns| is zero"
+is a small theorem — no new machinery, no finance — and it converts D3's
+gatekeeping argument (a model that prices from the spot marginal alone is
+ruled out by vol clustering) from a citation into a checked result. It is the
+cheapest item on this page and it guards the framing of everything else; it
+can slot as a small brief at any time.
+
+### The non-aim: the general theory
+
+Not adopted: arbitrary semimartingales, the fundamental theorem of asset
+pricing in full generality. That is a mathlib-lifetime project and it trades
+the program's actual edge — concrete laws, concrete proofs, fast graded
+briefs — for generality nobody is blocked on. The library aim generalizes the
+*kit*, not the mathematics.
