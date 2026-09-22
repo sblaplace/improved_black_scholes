@@ -519,7 +519,6 @@ theorem cgmyExponent_contour_re_le (C G M Y α : ℝ) (hC : 0 < C) (hG : 0 < G) 
       ((((G + (α + 1) : ℝ) : ℂ) + ((|u| : ℝ) : ℂ) * Complex.I) ^ (Y : ℂ)).re := by
     unfold cgmyBaseRight
     exact cgmy_cpow_re_abs hR
-  have hsum : (M - (α + 1)) + (G + (α + 1)) = M + G := by ring
   rw [cgmyExponent_contour_re C G M Y α u hG hM, hLeq, hReq, hrate]
   rcases lt_or_gt_of_ne hY₁ with hlt | hgt
   · -- `Y < 1`: `Γ(−Y) < 0`, both bases dominate `|u|^Y cos (πY/2)` (sharp)
@@ -571,7 +570,6 @@ theorem cgmyExponent_contour_re_le (C G M Y α : ℝ) (hC : 0 < C) (hG : 0 < G) 
         cgmyTemperedCorrection C G M Y * |u| ^ (Y - 1) := by
       unfold cgmyTemperedCorrection
       rw [abs_of_pos (mul_pos hC hΓ)]
-      rw [hsum]
       ring
     -- `Γ(−Y) > 0` on this branch: the `− M^Y − G^Y` of the base sum and the
     -- `+ K₀` of the bound now sit on OPPOSITE sides, so the two powers have to
@@ -594,7 +592,7 @@ theorem cgmyExponent_contour_re_le_half (C G M Y α : ℝ) (hC : 0 < C) (hG : 0 
   have h4c : 4 * cgmyTemperedCorrection C G M Y / cgmyTemperedRate C Y ≤ |u| :=
     le_trans (le_trans (le_max_left _ _) (le_max_right _ _)) hu
   have h4K : (4 * cgmyTemperedConstant C G M Y / cgmyTemperedRate C Y) ^ (1 / Y) ≤ |u| :=
-    le_trans (le_trans (le_max_right _ _) (le_max_right _ _)) hu
+    le_trans (le_trans (le_trans (le_max_right _ _) (le_max_right _ _)) (le_max_right _ _)) hu
   have h1 := cgmyExponent_contour_re_le C G M Y α hC hG hM hY hY₂ hY₁ hα hMG u hMGle
   -- the correction term is absorbed
   have hc' : cgmyTemperedCorrection C G M Y * |u| ^ (Y - 1) ≤ (cgmyTemperedRate C Y / 4) * |u| ^ Y := by
@@ -779,7 +777,7 @@ theorem cgmy_levy_sq_integrable (C M Y : ℝ) (hC : 0 < C) (hM : 0 < M) (hY : 0 
   have hmaj : IntegrableOn (fun x : ℝ => C * x ^ (1 - Y)) (Ioo 0 1) :=
     (((intervalIntegral.integrableOn_Ioo_rpow_iff (show (0 : ℝ) < 1 by norm_num)).2
       (by linarith)).const_mul C)
-  refine hmaj.mono' ?_ ?_
+  refine Integrable.mono' hmaj ?_ ?_
   · refine (ContinuousOn.mul ((continuous_id.pow 2).continuousOn) ?_).aestronglyMeasurable
       measurableSet_Ioo
     refine ContinuousOn.mul continuousOn_const ?_
@@ -818,7 +816,7 @@ theorem cgmy_levy_far_moment (C M Y u : ℝ) (hC : 0 < C) (hY : 0 < Y) (hu : u <
   have hexp : IntegrableOn (fun x : ℝ => Real.exp (-(M - u) * x)) (Ioi 1) :=
     exp_neg_integrableOn_Ioi 1 hb
   have hmain : IntegrableOn (fun x : ℝ => Real.exp (-(M - u) * x) * x ^ (-1 - Y)) (Ioi 1) := by
-    refine hexp.mono' ?_ ?_
+    refine Integrable.mono' hexp ?_ ?_
     · exact (ContinuousOn.mul
         (Real.continuous_exp.comp (continuous_const.mul continuous_id)).continuousOn
         (continuousOn_id.rpow_const fun x hx =>

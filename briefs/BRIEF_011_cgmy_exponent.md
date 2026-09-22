@@ -1,7 +1,9 @@
 # BRIEF_011 — the CGMY exponent, its Levy measure, and the moment strip (BSM-2 kit items 1–2)
 
-- **Status:** **ISSUED** — implemented in `ImprovedBS/CGMY.lean`; verdict is the
-  CI run on this branch (see `benchmarks/LEDGER.md` row 11). This is **items 1–2**
+- **Status:** **ISSUED** — implemented in `ImprovedBS/CGMY.lean`, pushed as
+  PR [#17](https://github.com/sblaplace/improved_black_scholes/pull/17); the
+  verdict is the CI run on that PR (see `benchmarks/LEDGER.md` row 11 and the
+  CI-history section below it). This is **items 1–2**
   of the BSM-2 kit in `docs/03` §D1: *the concrete CGMY characteristic exponent*
   (the `cpow`/branch work BRIEF_005 explicitly deferred) as the next brief's
   work, and *the moment strip* — the tempered region on which
