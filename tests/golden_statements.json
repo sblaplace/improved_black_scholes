@@ -799,7 +799,7 @@
     "BSM.cgmy_contour_continuous": {
       "file": "ImprovedBS/CGMY.lean",
       "kind": "theorem",
-      "pin": "theorem cgmy_contour_continuous (C G M Y α : ℝ) (hY : 0 < Y) (hMG : α + 1 < M) : Continuous fun u : ℝ => cgmyExponent C G M Y (cgmyContour α u)"
+      "pin": "theorem cgmy_contour_continuous (C G M Y α : ℝ) (hG : 0 < G) (hα : 0 < α) (hY : 0 < Y) (hMG : α + 1 < M) : Continuous fun u : ℝ => cgmyExponent C G M Y (cgmyContour α u)"
     },
     "BSM.cgmy_contour_decay": {
       "file": "ImprovedBS/CGMY.lean",

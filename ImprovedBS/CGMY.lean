@@ -197,8 +197,10 @@ NEGATIVE once `α ≥ G`. This is the base — and the line — the `min(G,M)` p
 really about. -/
 theorem cgmyOldContour_base_right_re (G α u : ℝ) :
     (G + Complex.I * cgmyOldContour α u).re = G - α := by
-  unfold cgmyOldContour
-  simp [Complex.add_re, Complex.mul_re]
+  have h : (G + Complex.I * cgmyOldContour α u).re = G + -α := by
+    unfold cgmyOldContour
+    simp [Complex.add_re, Complex.mul_re]
+  rw [h, sub_eq_add_neg]
 
 /-! ## §3 signs: `Γ(−Y) cos(πY/2) < 0` on `(0,2) \ {1}` -/
 
@@ -383,8 +385,8 @@ theorem cgmy_cpow_re_le_of_one_le {a y Y : ℝ} (ha : 0 ≤ a) (hy : 0 < y) (hay
         ((Y : ℂ) * (((t : ℂ) + (y : ℂ) * Complex.I) ^ ((Y : ℂ) - 1)) * 1) (t : ℂ) :=
       hbase.cpow_const (c := (Y : ℂ)) (hmem t)
     have hreal := hpow.comp_ofReal
-    have hexp : (Y : ℂ) - 1 = (((Y - 1 : ℝ)) : ℂ) := by push_cast; ring
-    simpa [hexp] using hreal
+    rw [show (Y : ℂ) - 1 = (((Y - 1 : ℝ)) : ℂ) by push_cast; ring] at hreal
+    simpa using hreal
   -- its norm is bounded by `Y (2y)^{Y-1}` on `[0, a]`
   have hbound : ∀ t ∈ Set.Ico (0 : ℝ) a,
       ‖(Y : ℂ) * (((t : ℂ) + (y : ℂ) * Complex.I) ^ (((Y - 1 : ℝ)) : ℂ))‖ ≤
@@ -629,9 +631,11 @@ theorem cgmyExponent_contour_re_le_half (C G M Y α : ℝ) (hC : 0 < C) (hG : 0 
           mul_le_mul_of_nonneg_right hle (Real.rpow_nonneg hy.le _)
       _ = (cgmyTemperedRate C Y / 4) * (|u| * |u| ^ (Y - 1)) := by ring
       _ = (cgmyTemperedRate C Y / 4) * |u| ^ Y := by
-          rw [← Real.rpow_one |u|, ← Real.rpow_add hy]
-          congr 1
-          ring
+          have h : |u| * |u| ^ (Y - 1) = |u| ^ Y := by
+            calc |u| * |u| ^ (Y - 1) = |u| ^ (1 : ℝ) * |u| ^ (Y - 1) := by rw [Real.rpow_one]
+              _ = |u| ^ ((1 : ℝ) + (Y - 1)) := (Real.rpow_add hy (1 : ℝ) (Y - 1)).symm
+              _ = |u| ^ Y := by congr 1; ring
+          rw [h]
   -- the constant is absorbed
   have hK : cgmyTemperedConstant C G M Y ≤ (cgmyTemperedRate C Y / 4) * |u| ^ Y := by
     have hK0 := cgmyTemperedConstant_nonneg (Y := Y) hC hG.le hM.le
@@ -677,7 +681,13 @@ theorem cgmy_contour_decay (C G M Y τ α : ℝ) (hC : 0 < C) (hG : 0 < G) (hM :
 
 /-! ## §6 continuity on the contour, and the kernel instantiation -/
 
-theorem cgmy_contour_continuous (C G M Y α : ℝ) (hY : 0 < Y) (hMG : α + 1 < M) :
+/-- The exponent is continuous along the pricing line. Both bases stay in the slit
+plane: `Re(M − iv) = M − (α+1) > 0` needs `α + 1 < M`, and `Re(G + iv) = G + α + 1 > 0`
+needs `G > 0` and `α > 0` — the right base's IMAGINARY part is `u`, which vanishes
+at `u = 0`, so its real part has to carry the branch condition (C14 again: no
+`min (G, M)`, but `G`'s positivity genuinely enters here, as `G > 0 > −(α+1)`). -/
+theorem cgmy_contour_continuous (C G M Y α : ℝ) (hG : 0 < G) (hα : 0 < α) (hY : 0 < Y)
+    (hMG : α + 1 < M) :
     Continuous fun u : ℝ => cgmyExponent C G M Y (cgmyContour α u) := by
   have hLeft : Continuous fun u : ℝ => ((M - (α + 1) : ℝ) : ℂ) - (u : ℂ) * Complex.I :=
     continuous_const.sub (Complex.continuous_ofReal.mul continuous_const)
@@ -707,9 +717,10 @@ theorem cgmy_contour_continuous (C G M Y α : ℝ) (hY : 0 < Y) (hMG : α + 1 < 
   exact Continuous.mul continuous_const
     (((hLeftPow.sub continuous_const).add hRightPow).sub continuous_const)
 
-theorem cgmy_charFactor_contour_continuous (C G M Y τ α : ℝ) (hY : 0 < Y) (hMG : α + 1 < M) :
+theorem cgmy_charFactor_contour_continuous (C G M Y τ α : ℝ) (hG : 0 < G) (hα : 0 < α)
+    (hY : 0 < Y) (hMG : α + 1 < M) :
     Continuous fun u : ℝ => cgmyCharFactor C G M Y τ (cgmyContour α u) := by
-  have h := cgmy_contour_continuous C G M Y α hY hMG
+  have h := cgmy_contour_continuous C G M Y α hG hα hY hMG
   simp only [cgmyCharFactor]
   exact Complex.continuous_exp.comp (continuous_const.mul h)
 
@@ -720,7 +731,8 @@ theorem cgmy_cmPriceKernel_integrable (C G M Y τ α : ℝ) (hC : 0 < C) (hG : 0
     (hM : 0 < M) (hY : 0 < Y) (hY₂ : Y < 2) (hY₁ : Y ≠ 1) (hα : 0 < α) (hMG : α + 1 < M)
     (hτ : 0 < τ) :
     Integrable (cmPriceKernel (cgmyCharFactor C G M Y τ) α) := by
-  refine cmPriceKernel_integrable hα (cgmy_charFactor_contour_continuous C G M Y τ α hY hMG)
+  refine cmPriceKernel_integrable hα
+    (cgmy_charFactor_contour_continuous C G M Y τ α hG hα hY hMG)
     (c := τ * cgmyTemperedRate C Y / 2) (D := 1) (Y := Y)
     (by exact div_pos (mul_pos hτ (cgmyTemperedRate_pos hC hY hY₂ hY₁)) two_pos)
     (by norm_num) hY (u₀ := cgmyDecayThreshold C G M Y) ?_
