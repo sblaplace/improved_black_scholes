@@ -84,7 +84,7 @@ noncomputable section
 
 namespace BSM
 
-open MeasureTheory Filter
+open MeasureTheory Filter Set
 
 /-! ## §1 the exponent, the contour, and its constants -/
 
@@ -151,11 +151,10 @@ theorem cgmyCharFactor_add (C G M Y τ₁ τ₂ : ℝ) (v : ℂ) :
     cgmyCharFactor C G M Y (τ₁ + τ₂) v =
       cgmyCharFactor C G M Y τ₁ v * cgmyCharFactor C G M Y τ₂ v := by
   unfold cgmyCharFactor
-  rw [add_mul, Complex.exp_add]
+  rw [Complex.ofReal_add, add_mul, Complex.exp_add]
 
 theorem cgmyCharFactor_zero (C G M Y : ℝ) (v : ℂ) : cgmyCharFactor C G M Y 0 v = 1 := by
-  unfold cgmyCharFactor
-  rw [zero_mul, Complex.exp_zero]
+  simp [cgmyCharFactor]
 
 theorem cgmyContour_base_left (M α u : ℝ) :
     (M : ℂ) - Complex.I * cgmyContour α u = cgmyBaseLeft M α u := by
@@ -199,12 +198,6 @@ really about. -/
 theorem cgmyOldContour_base_right_re (G α u : ℝ) :
     (G + Complex.I * cgmyOldContour α u).re = G - α := by
   unfold cgmyOldContour
-  have h : G + Complex.I * ((u : ℂ) + (α : ℝ) * Complex.I) =
-      ((G - α : ℝ) : ℂ) + (u : ℂ) * Complex.I := by
-    rw [mul_add, mul_assoc, mul_comm Complex.I ((α : ℝ) : ℂ), mul_assoc, Complex.I_mul_I]
-    push_cast
-    ring
-  rw [h]
   simp [Complex.add_re, Complex.mul_re]
 
 /-! ## §3 signs: `Γ(−Y) cos(πY/2) < 0` on `(0,2) \ {1}` -/
@@ -241,7 +234,11 @@ theorem cgmyGamma_neg_neg_of_lt_one {Y : ℝ} (hY : 0 < Y) (hY₁ : Y < 1) :
 theorem cgmyGamma_neg_pos_of_one_lt {Y : ℝ} (hY₁ : 1 < Y) (hY₂ : Y < 2) :
     0 < Real.Gamma (-Y) := by
   have hsin : Real.sin (Real.pi * Y) < 0 := by
-    refine Real.sin_neg_of_neg_of_neg_pi_lt ?_ ?_ <;> nlinarith [Real.pi_pos]
+    have hsplit : Real.pi * Y = Real.pi * (Y - 1) + Real.pi := by ring
+    rw [hsplit, Real.sin_add_pi]
+    have h1 : 0 < Real.pi * (Y - 1) := mul_pos Real.pi_pos (by linarith)
+    have h2 : Real.pi * (Y - 1) < Real.pi := by nlinarith [Real.pi_pos]
+    linarith [Real.sin_pos_of_pos_of_lt_pi h1 h2]
   have hden : Real.sin (Real.pi * Y) * Real.Gamma (1 + Y) < 0 :=
     mul_neg_of_neg_of_pos hsin (Real.Gamma_pos_of_pos (by linarith))
   rw [cgmyGamma_neg_eq Y (by linarith) hsin.ne]
@@ -279,16 +276,17 @@ theorem cgmy_tempered_rate_neg_eq {C Y : ℝ} (hY : 0 < Y) (hY₂ : Y < 2) (hY�
   rw [abs_of_neg (cgmy_tempered_prod_neg hY hY₂ hY₁)]
   ring
 
-theorem cgmyTemperedConstant_nonneg {C : ℝ} (hC : 0 < C) (G M Y : ℝ) :
+theorem cgmyTemperedConstant_nonneg {C G M Y : ℝ} (hC : 0 < C) (hG : 0 ≤ G) (hM : 0 ≤ M) :
     0 ≤ cgmyTemperedConstant C G M Y := by
   unfold cgmyTemperedConstant
-  exact mul_nonneg (mul_nonneg hC.le (abs_nonneg _)) (by positivity)
+  exact mul_nonneg (mul_nonneg hC.le (abs_nonneg _))
+    (add_nonneg (Real.rpow_nonneg hM Y) (Real.rpow_nonneg hG Y))
 
-theorem cgmyTemperedCorrection_nonneg {C : ℝ} (hC : 0 < C) (G M Y : ℝ) :
-    0 ≤ cgmyTemperedCorrection C G M Y := by
+theorem cgmyTemperedCorrection_nonneg {C G M Y : ℝ} (hC : 0 < C) (hG : 0 ≤ G) (hM : 0 ≤ M)
+    (hY : 0 ≤ Y) : 0 ≤ cgmyTemperedCorrection C G M Y := by
   unfold cgmyTemperedCorrection
-  exact mul_nonneg (mul_nonneg (mul_nonneg (by positivity) (by positivity))
-    (by positivity)) (abs_nonneg _)
+  exact mul_nonneg (mul_nonneg (mul_nonneg (Real.rpow_nonneg (by norm_num) _) hY)
+    (add_nonneg hM hG)) (abs_nonneg _)
 
 /-! ## §4 the cpow estimates on the two bases -/
 
@@ -378,19 +376,21 @@ theorem cgmy_cpow_re_le_of_one_le {a y Y : ℝ} (ha : 0 ≤ a) (hy : 0 < y) (hay
   have hderiv : ∀ t : ℝ, HasDerivAt (fun s : ℝ => ((s : ℂ) + (y : ℂ) * Complex.I) ^ (Y : ℂ))
       ((Y : ℂ) * (((t : ℂ) + (y : ℂ) * Complex.I) ^ (((Y - 1 : ℝ)) : ℂ))) t := by
     intro t
-    have h1 : HasDerivAt (fun s : ℝ => (s : ℂ)) 1 t := by
-      simpa using (hasDerivAt_id t).ofReal_comp
-    have h2 : HasDerivAt (fun s : ℝ => (s : ℂ) + (y : ℂ) * Complex.I) 1 t := by
-      simpa using h1.add_const ((y : ℂ) * Complex.I)
-    have h3 := h2.cpow_const (c := (Y : ℂ)) (hmem t)
+    -- the ℂ → ℂ derivative at the complex point `↑t`, then its restriction to `ℝ`
+    have hbase : HasDerivAt (fun z : ℂ => z + (y : ℂ) * Complex.I) 1 (t : ℂ) := by
+      simpa using (hasDerivAt_id (t : ℂ)).add_const ((y : ℂ) * Complex.I)
+    have hpow : HasDerivAt (fun z : ℂ => (z + (y : ℂ) * Complex.I) ^ (Y : ℂ))
+        ((Y : ℂ) * (((t : ℂ) + (y : ℂ) * Complex.I) ^ ((Y : ℂ) - 1)) * 1) (t : ℂ) :=
+      hbase.cpow_const (c := (Y : ℂ)) (hmem t)
+    have hreal := hpow.comp_ofReal
     have hexp : (Y : ℂ) - 1 = (((Y - 1 : ℝ)) : ℂ) := by push_cast; ring
-    simpa [hexp] using h3
+    simpa [hexp] using hreal
   -- its norm is bounded by `Y (2y)^{Y-1}` on `[0, a]`
   have hbound : ∀ t ∈ Set.Ico (0 : ℝ) a,
       ‖(Y : ℂ) * (((t : ℂ) + (y : ℂ) * Complex.I) ^ (((Y - 1 : ℝ)) : ℂ))‖ ≤
         Y * (2 * y) ^ (Y - 1) := by
     intro t ht
-    have ht_le : t ≤ y := le_trans ht.2 hay
+    have ht_le : t ≤ y := le_trans ht.2.le hay
     have hnorm_sq : ‖(t : ℂ) + (y : ℂ) * Complex.I‖ ^ 2 = t ^ 2 + y ^ 2 := by
       rw [Complex.sq_norm, Complex.normSq_add_mul_I]
     have hnorm_le : ‖(t : ℂ) + (y : ℂ) * Complex.I‖ ≤ 2 * y := by
@@ -453,7 +453,7 @@ theorem cgmy_cpow_re_conj {a y Y : ℝ} (ha : 0 ≤ a) (hy : 0 < y) :
     rw [hπ] at h
     linarith [Real.pi_pos]
   have hconj : (a : ℂ) - (y : ℂ) * Complex.I = starRingEnd ℂ ((a : ℂ) + (y : ℂ) * Complex.I) := by
-    rw [map_add, map_mul, Complex.conj_ofReal, Complex.conj_I]
+    simp only [map_add, map_mul, Complex.conj_ofReal, Complex.conj_I]
     ring
   rw [hconj, Complex.conj_cpow _ _ harg, Complex.conj_ofReal, Complex.conj_re]
 
@@ -468,7 +468,7 @@ theorem cgmy_cpow_re_abs {a u Y : ℝ} (ha : 0 ≤ a) :
       push_cast
       ring
     rw [h, abs_of_neg hu]
-  · simp [abs_zero]
+  · simp [abs_zero, Complex.ofReal_zero]
   · have h : ((|u| : ℝ) : ℂ) = (u : ℂ) := by rw [abs_of_pos hu]
     rw [h]
     exact cgmy_cpow_re_conj ha hu
@@ -510,7 +510,6 @@ theorem cgmyExponent_contour_re_le (C G M Y α : ℝ) (hC : 0 < C) (hG : 0 < G) 
   have hR : 0 ≤ G + (α + 1) := by linarith
   have hayL : M - (α + 1) ≤ |u| := by linarith
   have hayR : G + (α + 1) ≤ |u| := by linarith
-  have hrate := cgmy_tempered_rate_neg_eq (C := C) hY hY₂ hY₁
   have hLeq : (cgmyBaseLeft M α u ^ (Y : ℂ)).re =
       ((((M - (α + 1) : ℝ) : ℂ) + ((|u| : ℝ) : ℂ) * Complex.I) ^ (Y : ℂ)).re := by
     unfold cgmyBaseLeft
@@ -518,10 +517,20 @@ theorem cgmyExponent_contour_re_le (C G M Y α : ℝ) (hC : 0 < C) (hG : 0 < G) 
   have hReq : (cgmyBaseRight G α u ^ (Y : ℂ)).re =
       ((((G + (α + 1) : ℝ) : ℂ) + ((|u| : ℝ) : ℂ) * Complex.I) ^ (Y : ℂ)).re := by
     unfold cgmyBaseRight
-    exact cgmy_cpow_re_abs hR
-  rw [cgmyExponent_contour_re C G M Y α u hG hM, hLeq, hReq, hrate]
+    simpa using cgmy_cpow_re_abs (a := G + (α + 1)) (u := -u) (Y := Y) hR
+  -- `ψ(u − i(α+1))` with `y = |u|`: both bases read as `a + iy`, so the whole
+  -- statement is about `B1 + B2 − M^Y − G^Y` and its sign is decided by Γ(−Y)
+  have hpsi : (cgmyExponent C G M Y (cgmyContour α u)).re =
+      C * Real.Gamma (-Y) *
+        (((((M - (α + 1) : ℝ) : ℂ) + ((|u| : ℝ) : ℂ) * Complex.I) ^ (Y : ℂ)).re +
+          ((((G + (α + 1) : ℝ) : ℂ) + ((|u| : ℝ) : ℂ) * Complex.I) ^ (Y : ℂ)).re -
+            M ^ Y - G ^ Y) := by
+    rw [cgmyExponent_contour_re C G M Y α u hG hM, hLeq, hReq]
+  have hrpow : 0 ≤ |u| ^ (Y - 1) := Real.rpow_nonneg (abs_nonneg u) _
   rcases lt_or_gt_of_ne hY₁ with hlt | hgt
-  · -- `Y < 1`: `Γ(−Y) < 0`, both bases dominate `|u|^Y cos (πY/2)` (sharp)
+  · -- `Y < 1`: `Γ(−Y) < 0`, both bases dominate `|u|^Y cos(πY/2)`, so multiplying
+    -- by the prefactor turns the domination into an UPPER bound. The `c'` term is
+    -- NOT used here: it only has to be nonnegative.
     have hΓ : Real.Gamma (-Y) < 0 := cgmyGamma_neg_neg_of_lt_one hY hlt
     have hCΓ : C * Real.Gamma (-Y) < 0 := mul_neg_of_pos_of_neg hC hΓ
     have hb1 := cgmy_cpow_re_ge_of_lt_one (a := M - (α + 1)) (y := |u|) hL hy hY hY₂ hlt
@@ -534,18 +543,24 @@ theorem cgmyExponent_contour_re_le (C G M Y α : ℝ) (hC : 0 < C) (hG : 0 < G) 
         ((((G + (α + 1) : ℝ) : ℂ) + ((|u| : ℝ) : ℂ) * Complex.I) ^ (Y : ℂ)).re ≤
         C * Real.Gamma (-Y) * (|u| ^ Y * Real.cos (Real.pi * Y / 2)) :=
       mul_le_mul_of_nonpos_left hb2 hCΓ.le
-    have h3 : cgmyTemperedConstant C G M Y = -(C * Real.Gamma (-Y) * (M ^ Y + G ^ Y)) := by
+    -- `|Γ(−Y)| = −Γ(−Y)` and `|C Γ(−Y)| = −C Γ(−Y)` on this branch: the constants'
+    -- ABS unfolds against the sign, which is what makes `K₀` come out with a `+`
+    have hconst : cgmyTemperedConstant C G M Y = -(C * Real.Gamma (-Y) * (M ^ Y + G ^ Y)) := by
       unfold cgmyTemperedConstant
       rw [abs_of_neg hΓ]
       ring
-    have h4 : -(C * Real.Gamma (-Y) * (M ^ Y + G ^ Y)) ≤
-        C * Real.Gamma (-Y) * (M ^ Y + G ^ Y) := by
-      nlinarith [hCΓ, Real.rpow_nonneg hM.le Y, Real.rpow_nonneg hG.le Y]
-    have h5 : 0 ≤ cgmyTemperedCorrection C G M Y * |u| ^ (Y - 1) :=
-      mul_nonneg (cgmyTemperedCorrection_nonneg hC G M Y) (Real.rpow_nonneg hy.le _)
-    nlinarith [h1, h2, h3, h4, h5]
-  · -- `1 < Y`: `Γ(−Y) > 0`, both bases are dominated by `|u|^Y cos (πY/2)`
-    -- plus the mean-value correction `2^{Y−1} Y a |u|^{Y−1}`
+    have hcorr : cgmyTemperedCorrection C G M Y =
+        2 ^ (Y - 1) * Y * (M + G) * -(C * Real.Gamma (-Y)) := by
+      unfold cgmyTemperedCorrection
+      rw [abs_of_neg hCΓ]
+    have hc'0 : 0 ≤ cgmyTemperedCorrection C G M Y * |u| ^ (Y - 1) :=
+      mul_nonneg (cgmyTemperedCorrection_nonneg hC hG.le hM.le hY.le) hrpow
+    have hrate := cgmy_tempered_rate_neg_eq (C := C) hY hY₂ hY₁
+    rw [hpsi, hrate, hconst, hcorr]
+    nlinarith [h1, h2, hc'0]
+  · -- `1 < Y`: `Γ(−Y) > 0`, both bases are dominated by `|u|^Y cos(πY/2)` plus the
+    -- mean-value correction `2^{Y−1} Y a |u|^{Y−1}`, and the prefactor preserves the
+    -- direction — the `c'` term is genuinely used here.
     have hΓ : 0 < Real.Gamma (-Y) := cgmyGamma_neg_pos_of_one_lt hgt hY₂
     have hCΓ : 0 < C * Real.Gamma (-Y) := mul_pos hC hΓ
     have hb1 := cgmy_cpow_re_le_of_one_le (a := M - (α + 1)) (y := |u|) hL hy hayL hgt.le hY₂
@@ -562,21 +577,23 @@ theorem cgmyExponent_contour_re_le (C G M Y α : ℝ) (hC : 0 < C) (hG : 0 < G) 
           (|u| ^ Y * Real.cos (Real.pi * Y / 2) +
             2 ^ (Y - 1) * Y * (G + (α + 1)) * |u| ^ (Y - 1)) :=
       mul_le_mul_of_nonneg_left hb2 hCΓ.le
-    have h3 : cgmyTemperedConstant C G M Y = C * Real.Gamma (-Y) * (M ^ Y + G ^ Y) := by
+    have hconst : cgmyTemperedConstant C G M Y = C * Real.Gamma (-Y) * (M ^ Y + G ^ Y) := by
       unfold cgmyTemperedConstant
       rw [abs_of_pos hΓ]
-    have h4 : C * Real.Gamma (-Y) * (2 ^ (Y - 1) * Y * (M - (α + 1)) * |u| ^ (Y - 1)) +
-        C * Real.Gamma (-Y) * (2 ^ (Y - 1) * Y * (G + (α + 1)) * |u| ^ (Y - 1)) =
-        cgmyTemperedCorrection C G M Y * |u| ^ (Y - 1) := by
+    have hcorr : cgmyTemperedCorrection C G M Y =
+        2 ^ (Y - 1) * Y * (M + G) * (C * Real.Gamma (-Y)) := by
       unfold cgmyTemperedCorrection
-      rw [abs_of_pos (mul_pos hC hΓ)]
-      ring
-    -- `Γ(−Y) > 0` on this branch: the `− M^Y − G^Y` of the base sum and the
-    -- `+ K₀` of the bound now sit on OPPOSITE sides, so the two powers have to
-    -- be known nonnegative for the last step.
-    have hXM : 0 ≤ C * Real.Gamma (-Y) * (M ^ Y + G ^ Y) :=
+      rw [abs_of_pos hCΓ]
+    have hrpowY : 0 ≤ |u| ^ Y := Real.rpow_nonneg (abs_nonneg u) _
+    -- `(M − (α+1)) + (G + α + 1) = M + G`: the two bases' offsets sum to exactly the
+    -- `(M + G)` that `c'` carries. A ring identity, no hypothesis needed.
+    have hsum : M - (α + 1) + (G + (α + 1)) = M + G := by ring
+    have hK : 0 ≤ C * Real.Gamma (-Y) * (M ^ Y + G ^ Y) :=
       mul_nonneg hCΓ.le (add_nonneg (Real.rpow_nonneg hM.le Y) (Real.rpow_nonneg hG.le Y))
-    nlinarith [h1, h2, h3, h4, hXM]
+    have hrate := cgmy_tempered_rate_neg_eq (C := C) hY hY₂ hY₁
+    rw [hpsi, hrate, hconst, hcorr]
+    nlinarith [h1, h2, hsum, hK, hrpow, hrpowY]
+
 
 /-- Past `cgmyDecayThreshold` the correction and the constant each cost at most a
 quarter of the leading term, leaving `r/2` as the effective rate. -/
@@ -586,20 +603,26 @@ theorem cgmyExponent_contour_re_le_half (C G M Y α : ℝ) (hC : 0 < C) (hG : 0 
       (cgmyExponent C G M Y (cgmyContour α u)).re ≤
         -(cgmyTemperedRate C Y / 2) * |u| ^ Y := by
   intro u hu
+  -- unfold `cgmyDecayThreshold` once: `le_max_left`/`le_max_right` need a `max` at
+  -- the head of the goal's type, and a named def is opaque to them
+  have hu' : max (M + G)
+      (max (4 * cgmyTemperedCorrection C G M Y / cgmyTemperedRate C Y)
+        (max 1 ((4 * cgmyTemperedConstant C G M Y / cgmyTemperedRate C Y) ^ (1 / Y)))) ≤ |u| :=
+    hu
   have hr : 0 < cgmyTemperedRate C Y := cgmyTemperedRate_pos (C := C) hC hY hY₂ hY₁
-  have hMGle : M + G ≤ |u| := le_trans (le_max_left _ _) hu
+  have hMGle : M + G ≤ |u| := le_trans (le_max_left _ _) hu'
   have hy : 0 < |u| := lt_of_lt_of_le (by linarith : (0 : ℝ) < M + G) hMGle
   have h4c : 4 * cgmyTemperedCorrection C G M Y / cgmyTemperedRate C Y ≤ |u| :=
-    le_trans (le_trans (le_max_left _ _) (le_max_right _ _)) hu
+    le_trans (le_trans (le_max_left _ _) (le_max_right _ _)) hu'
   have h4K : (4 * cgmyTemperedConstant C G M Y / cgmyTemperedRate C Y) ^ (1 / Y) ≤ |u| :=
-    le_trans (le_trans (le_trans (le_max_right _ _) (le_max_right _ _)) (le_max_right _ _)) hu
+    le_trans (le_trans (le_trans (le_max_right _ _) (le_max_right _ _)) (le_max_right _ _)) hu'
   have h1 := cgmyExponent_contour_re_le C G M Y α hC hG hM hY hY₂ hY₁ hα hMG u hMGle
   -- the correction term is absorbed
   have hc' : cgmyTemperedCorrection C G M Y * |u| ^ (Y - 1) ≤ (cgmyTemperedRate C Y / 4) * |u| ^ Y := by
     have hle : cgmyTemperedCorrection C G M Y ≤ (cgmyTemperedRate C Y / 4) * |u| := by
       have h := mul_le_mul_of_nonneg_right h4c hr.le
       rw [div_mul_cancel₀ _ hr.ne'] at h
-      have hc0 := cgmyTemperedCorrection_nonneg hC G M Y
+      have hc0 := cgmyTemperedCorrection_nonneg (Y := Y) hC hG.le hM.le hY.le
       nlinarith [h, hy]
     calc cgmyTemperedCorrection C G M Y * |u| ^ (Y - 1)
         ≤ ((cgmyTemperedRate C Y / 4) * |u|) * |u| ^ (Y - 1) :=
@@ -611,7 +634,7 @@ theorem cgmyExponent_contour_re_le_half (C G M Y α : ℝ) (hC : 0 < C) (hG : 0 
           ring
   -- the constant is absorbed
   have hK : cgmyTemperedConstant C G M Y ≤ (cgmyTemperedRate C Y / 4) * |u| ^ Y := by
-    have hK0 := cgmyTemperedConstant_nonneg hC G M Y
+    have hK0 := cgmyTemperedConstant_nonneg (Y := Y) hC hG.le hM.le
     have hpos : 0 ≤ 4 * cgmyTemperedConstant C G M Y / cgmyTemperedRate C Y :=
       div_nonneg (by linarith) hr.le
     have hpow : 4 * cgmyTemperedConstant C G M Y / cgmyTemperedRate C Y ≤ |u| ^ Y := by
@@ -660,22 +683,20 @@ theorem cgmy_contour_continuous (C G M Y α : ℝ) (hY : 0 < Y) (hMG : α + 1 < 
     continuous_const.sub (Complex.continuous_ofReal.mul continuous_const)
   have hRight : Continuous fun u : ℝ => ((G + (α + 1) : ℝ) : ℂ) + (u : ℂ) * Complex.I :=
     continuous_const.add (Complex.continuous_ofReal.mul continuous_const)
+  have hleft_re : ∀ u : ℝ, (((M - (α + 1) : ℝ) : ℂ) - (u : ℂ) * Complex.I).re = M - (α + 1) :=
+    fun u => by simp [Complex.sub_re, Complex.mul_re]
+  have hright_re : ∀ u : ℝ, (((G + (α + 1) : ℝ) : ℂ) + (u : ℂ) * Complex.I).re = G + (α + 1) :=
+    fun u => by simp [Complex.add_re, Complex.mul_re]
   have hLeftPow : Continuous fun u : ℝ =>
       (((M - (α + 1) : ℝ) : ℂ) - (u : ℂ) * Complex.I) ^ (Y : ℂ) :=
     hLeft.cpow continuous_const fun u => by
-      rw [Complex.mem_slitPlane_iff]
-      exact Or.inl (by
-        simp only [Complex.sub_re, Complex.ofReal_re, Complex.mul_re, Complex.ofReal_im,
-          Complex.I_re, Complex.I_im, mul_zero, mul_one, sub_zero]
-        linarith)
+      rw [Complex.mem_slitPlane_iff, hleft_re u]
+      exact Or.inl (by linarith)
   have hRightPow : Continuous fun u : ℝ =>
       (((G + (α + 1) : ℝ) : ℂ) + (u : ℂ) * Complex.I) ^ (Y : ℂ) :=
     hRight.cpow continuous_const fun u => by
-      rw [Complex.mem_slitPlane_iff]
-      exact Or.inl (by
-        simp only [Complex.add_re, Complex.ofReal_re, Complex.mul_re, Complex.ofReal_im,
-          Complex.I_re, Complex.I_im, mul_zero, mul_one, add_zero]
-        linarith)
+      rw [Complex.mem_slitPlane_iff, hright_re u]
+      exact Or.inl (by linarith)
   have hfun : (fun u : ℝ => cgmyExponent C G M Y (cgmyContour α u)) =
       fun u : ℝ => (C * (Real.Gamma (-Y) : ℂ)) *
         ((((M - (α + 1) : ℝ) : ℂ) - (u : ℂ) * Complex.I) ^ (Y : ℂ) - (M : ℂ) ^ (Y : ℂ) +
