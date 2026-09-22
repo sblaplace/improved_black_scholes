@@ -126,6 +126,110 @@
       "axioms": "'BSM.carrMadan_re_eq_modelFreeCall' depends on axioms: [propext, Classical.choice, Quot.sound]",
       "type": "BSM.carrMadan_re_eq_modelFreeCall : ∀ {μ : MeasureTheory.Measure ℝ} [MeasureTheory.IsProbabilityMeasure μ] {S K r tau α : ℝ}, 0 < S → 0 < K → 0 < α → ∀ {c D Y u₀ δ : ℝ}, 0 < c → 0 ≤ D → 0 < Y → 0 < δ → (Continuous fun u => BSM.contourCharFun μ (↑u - ↑(α + 1) * Complex.I)) → (∀ (u : ℝ), u₀ ≤ |u| → ‖BSM.contourCharFun μ (↑u - ↑(α + 1) * Complex.I)‖ ≤ D * Real.exp (-c * |u| ^ Y)) → MeasureTheory.Integrable (fun x => Real.exp ((α + 1 + δ) * x)) μ → MeasureTheory.Integrable (fun x => S * Real.exp x) μ → (↑(Real.exp (-α * Real.log (K / S))) * BSM.cmPriceIntegral (BSM.contourCharFun μ) α r tau S (Real.log (K / S))).re = BSM.modelFreeCall μ (fun x => S * Real.exp x) K r tau"
     },
+    "BSM.cgmyCharFactor": {
+      "axioms": "'BSM.cgmyCharFactor' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.cgmyCharFactor : ℝ → ℝ → ℝ → ℝ → ℝ → ℂ → ℂ"
+    },
+    "BSM.cgmyCharFactor_add": {
+      "axioms": "'BSM.cgmyCharFactor_add' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.cgmyCharFactor_add : ∀ (C G M Y τ₁ τ₂ : ℝ) (v : ℂ), BSM.cgmyCharFactor C G M Y (τ₁ + τ₂) v = BSM.cgmyCharFactor C G M Y τ₁ v * BSM.cgmyCharFactor C G M Y τ₂ v"
+    },
+    "BSM.cgmyContour": {
+      "axioms": "'BSM.cgmyContour' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.cgmyContour : ℝ → ℝ → ℂ"
+    },
+    "BSM.cgmyDecayThreshold": {
+      "axioms": "'BSM.cgmyDecayThreshold' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.cgmyDecayThreshold : ℝ → ℝ → ℝ → ℝ → ℝ"
+    },
+    "BSM.cgmyExponent": {
+      "axioms": "'BSM.cgmyExponent' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.cgmyExponent : ℝ → ℝ → ℝ → ℝ → ℂ → ℂ"
+    },
+    "BSM.cgmyExponent_contour": {
+      "axioms": "'BSM.cgmyExponent_contour' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.cgmyExponent_contour : ∀ (C G M Y α u : ℝ), BSM.cgmyExponent C G M Y (BSM.cgmyContour α u) = ↑C * ↑(Real.Gamma (-Y)) * (BSM.cgmyBaseLeft M α u ^ ↑Y - ↑M ^ ↑Y + BSM.cgmyBaseRight G α u ^ ↑Y - ↑G ^ ↑Y)"
+    },
+    "BSM.cgmyExponent_contour_re": {
+      "axioms": "'BSM.cgmyExponent_contour_re' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.cgmyExponent_contour_re : ∀ (C G M Y α u : ℝ), 0 < G → 0 < M → (BSM.cgmyExponent C G M Y (BSM.cgmyContour α u)).re = C * Real.Gamma (-Y) * ((BSM.cgmyBaseLeft M α u ^ ↑Y).re + (BSM.cgmyBaseRight G α u ^ ↑Y).re - M ^ Y - G ^ Y)"
+    },
+    "BSM.cgmyExponent_contour_re_le": {
+      "axioms": "'BSM.cgmyExponent_contour_re_le' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.cgmyExponent_contour_re_le : ∀ (C G M Y α : ℝ), 0 < C → 0 < G → 0 < M → 0 < Y → Y < 2 → Y ≠ 1 → 0 < α → α + 1 < M → ∀ (u : ℝ), M + G ≤ |u| → (BSM.cgmyExponent C G M Y (BSM.cgmyContour α u)).re ≤ -BSM.cgmyTemperedRate C Y * |u| ^ Y + BSM.cgmyTemperedCorrection C G M Y * |u| ^ (Y - 1) + BSM.cgmyTemperedConstant C G M Y"
+    },
+    "BSM.cgmyExponent_contour_re_le_half": {
+      "axioms": "'BSM.cgmyExponent_contour_re_le_half' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.cgmyExponent_contour_re_le_half : ∀ (C G M Y α : ℝ), 0 < C → 0 < G → 0 < M → 0 < Y → Y < 2 → Y ≠ 1 → 0 < α → α + 1 < M → ∀ (u : ℝ), BSM.cgmyDecayThreshold C G M Y ≤ |u| → (BSM.cgmyExponent C G M Y (BSM.cgmyContour α u)).re ≤ -(BSM.cgmyTemperedRate C Y / 2) * |u| ^ Y"
+    },
+    "BSM.cgmyExponent_strip": {
+      "axioms": "'BSM.cgmyExponent_strip' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.cgmyExponent_strip : ∀ (C G M Y u : ℝ), 0 < G → 0 < M → -G < u → u < M → BSM.cgmyExponent C G M Y (-(Complex.I * ↑u)) = ↑(C * Real.Gamma (-Y) * ((M - u) ^ Y - M ^ Y + (G + u) ^ Y - G ^ Y))"
+    },
+    "BSM.cgmyLevyDensity": {
+      "axioms": "'BSM.cgmyLevyDensity' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.cgmyLevyDensity : ℝ → ℝ → ℝ → ℝ → ℝ → ℝ"
+    },
+    "BSM.cgmyOldContour_base_right_re": {
+      "axioms": "'BSM.cgmyOldContour_base_right_re' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.cgmyOldContour_base_right_re : ∀ (G α u : ℝ), (↑G + Complex.I * BSM.cgmyOldContour α u).re = G - α"
+    },
+    "BSM.cgmyTemperedConstant": {
+      "axioms": "'BSM.cgmyTemperedConstant' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.cgmyTemperedConstant : ℝ → ℝ → ℝ → ℝ → ℝ"
+    },
+    "BSM.cgmyTemperedCorrection": {
+      "axioms": "'BSM.cgmyTemperedCorrection' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.cgmyTemperedCorrection : ℝ → ℝ → ℝ → ℝ → ℝ"
+    },
+    "BSM.cgmyTemperedRate": {
+      "axioms": "'BSM.cgmyTemperedRate' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.cgmyTemperedRate : ℝ → ℝ → ℝ"
+    },
+    "BSM.cgmy_cmPriceKernel_integrable": {
+      "axioms": "'BSM.cgmy_cmPriceKernel_integrable' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.cgmy_cmPriceKernel_integrable : ∀ (C G M Y τ α : ℝ), 0 < C → 0 < G → 0 < M → 0 < Y → Y < 2 → Y ≠ 1 → 0 < α → α + 1 < M → 0 < τ → MeasureTheory.Integrable (BSM.cmPriceKernel (BSM.cgmyCharFactor C G M Y τ) α) MeasureTheory.volume"
+    },
+    "BSM.cgmy_contour_continuous": {
+      "axioms": "'BSM.cgmy_contour_continuous' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.cgmy_contour_continuous : ∀ (C G M Y α : ℝ), 0 < G → 0 < α → 0 < Y → α + 1 < M → Continuous fun u => BSM.cgmyExponent C G M Y (BSM.cgmyContour α u)"
+    },
+    "BSM.cgmy_contour_decay": {
+      "axioms": "'BSM.cgmy_contour_decay' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.cgmy_contour_decay : ∀ (C G M Y τ α : ℝ), 0 < C → 0 < G → 0 < M → 0 < Y → Y < 2 → Y ≠ 1 → 0 < α → α + 1 < M → 0 ≤ τ → ∀ (u : ℝ), BSM.cgmyDecayThreshold C G M Y ≤ |u| → ‖BSM.cgmyCharFactor C G M Y τ (BSM.cgmyContour α u)‖ ≤ Real.exp (-(τ * BSM.cgmyTemperedRate C Y / 2) * |u| ^ Y)"
+    },
+    "BSM.cgmy_contour_mem_strip": {
+      "axioms": "'BSM.cgmy_contour_mem_strip' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.cgmy_contour_mem_strip : ∀ (G M α : ℝ), 0 < G → 0 < α → α + 1 < M → -G < α + 1 ∧ α + 1 < M"
+    },
+    "BSM.cgmy_cpow_re_ge_of_lt_one": {
+      "axioms": "'BSM.cgmy_cpow_re_ge_of_lt_one' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.cgmy_cpow_re_ge_of_lt_one : ∀ {a y Y : ℝ}, 0 ≤ a → 0 < y → 0 < Y → Y < 2 → Y < 1 → y ^ Y * Real.cos (Real.pi * Y / 2) ≤ ((↑a + ↑y * Complex.I) ^ ↑Y).re"
+    },
+    "BSM.cgmy_cpow_re_le_of_one_le": {
+      "axioms": "'BSM.cgmy_cpow_re_le_of_one_le' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.cgmy_cpow_re_le_of_one_le : ∀ {a y Y : ℝ}, 0 ≤ a → 0 < y → a ≤ y → 1 ≤ Y → Y < 2 → ((↑a + ↑y * Complex.I) ^ ↑Y).re ≤ y ^ Y * Real.cos (Real.pi * Y / 2) + 2 ^ (Y - 1) * Y * a * y ^ (Y - 1)"
+    },
+    "BSM.cgmy_levy_far_moment": {
+      "axioms": "'BSM.cgmy_levy_far_moment' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.cgmy_levy_far_moment : ∀ (C M Y u : ℝ), 0 < C → 0 < Y → u < M → MeasureTheory.IntegrableOn (fun x => C * (Real.exp (-(M - u) * x) * x ^ (-1 - Y))) (Set.Ioi 1) MeasureTheory.volume"
+    },
+    "BSM.cgmy_levy_sq_integrable": {
+      "axioms": "'BSM.cgmy_levy_sq_integrable' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.cgmy_levy_sq_integrable : ∀ (C M Y : ℝ), 0 < C → 0 < M → 0 < Y → Y < 2 → MeasureTheory.IntegrableOn (fun x => x ^ 2 * (C * (Real.exp (-M * x) * x ^ (-1 - Y)))) (Set.Ioo 0 1) MeasureTheory.volume"
+    },
+    "BSM.cgmy_numeraire_strip": {
+      "axioms": "'BSM.cgmy_numeraire_strip' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.cgmy_numeraire_strip : ∀ (G M : ℝ), 0 < G → 1 < M → -G < 1 ∧ 1 < M"
+    },
+    "BSM.cgmy_tempered_prod_neg": {
+      "axioms": "'BSM.cgmy_tempered_prod_neg' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.cgmy_tempered_prod_neg : ∀ {Y : ℝ}, 0 < Y → Y < 2 → Y ≠ 1 → Real.Gamma (-Y) * Real.cos (Real.pi * Y / 2) < 0"
+    },
+    "BSM.cgmy_tempered_rate_neg_eq": {
+      "axioms": "'BSM.cgmy_tempered_rate_neg_eq' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.cgmy_tempered_rate_neg_eq : ∀ {C Y : ℝ}, 0 < Y → Y < 2 → Y ≠ 1 → -BSM.cgmyTemperedRate C Y = 2 * C * Real.Gamma (-Y) * Real.cos (Real.pi * Y / 2)"
+    },
     "BSM.cmDenom": {
       "axioms": "'BSM.cmDenom' depends on axioms: [propext, Classical.choice, Quot.sound]",
       "type": "BSM.cmDenom : ℝ → ℝ → ℂ"
