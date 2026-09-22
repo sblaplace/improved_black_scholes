@@ -344,21 +344,29 @@ not yet exist. BRIEF_001–010 have landed, in this order.
 | ~~BRIEF_009~~ | **LANDED GREEN** — the model-free skeleton: parity and the no-arbitrage bounds lifted off the closed form onto `e^{−rτ}·E[(S_T−K)⁺]` for any terminal-spot law with the drift condition (`ImprovedBS/Skeleton.lean`, 14 declarations: `modelFreeCall`/`modelFreePut`, `model_free_parity_gap`/`model_free_put_call_parity`, `model_free_call_bounds`/`model_free_put_bounds`, the GBM instance, and the T2′/T4 re-derivations `*_via_skeleton` that guard the abstraction against vacuity), statement pins 94 → 108, `[SKELETON]` route checks, oracle model-free route + mutants M13/M14, PR #11, CI run 35589005865. Item 5 of the BSM-2 kit (`docs/03` §D1): landed *before* the law is widened, so "the widening preserves the skeleton" is instantiation, not re-proof | 007 | no — CI only |
 
 | ~~BRIEF_010~~ | **LANDED GREEN** — T6's triangle at *any* strip law: the Carr–Madan kernel on the pricing contour (`cmPriceKernel`, implementing the C12 correction), the strike transform, the Fubini exchange that identifies `𝓕(damped price)` with the kernel, inversion in the tree's own normalization, and the pricing identity landing on BRIEF_009's `modelFreeCall`; the GBM instance closes the triangle (`gbm_carrMadan_eq_bsCall`), and the CGMY exponent's decay enters as the one recorded hypothesis (item 4, re-scoped). Landed: 31 declarations in `ImprovedBS/Pricing.lean` (6 defs + 25 audited theorems, all in `REQUIRED` + `PROTECTED`), statement pins 108 → 139 in both layers with the 108 pre-existing entries byte-identical, `[CONTOUR]` route check with its cheat killed by name, oracle `carr_madan_by_law` + `test_carr_madan_free_law` + mutants M15 (kernel on the wrong contour) / M16 (strike transform) killed by that test alone, PR #16, CI run 35646623031 — green on the 9th lean run after eight red (all elaboration/API shape at the tag, incl. the by-design elab-pin bootstrap and one batch-edit race; `benchmarks/LEDGER.md` row 10 and its CI history) | 005, 007, 008, 009 | no — CI only |
+| ~~BRIEF_011~~ | **LANDED GREEN** — BSM-2 kit items 1–2: the concrete CGMY characteristic exponent (the `cpow`/branch work BRIEF_005 deferred), its Lévy measure (`∫ (1 ∧ x²) ν < ∞`), and its tempered moment strip, together with the discharge of BRIEF_010 §5's (H-decay) at that exponent so item 4 lands without re-proof. Landed: 52 declarations in `ImprovedBS/CGMY.lean` (11 defs + 41 audited theorems, all in `REQUIRED` + `PROTECTED`), statement pins 139 → 165 in both layers with the 139 pre-existing entries byte-identical, audit list 107 → 148, `[CGMY]` route check with its mutant (29 lint mutants, 5 controls), oracle compensated one-sided Lévy integral + `test_cgmy_contour`, PR #17, CI run 35779316727 — green on the 5th lean run after two elaboration rounds and the by-design elab-pin bootstrap (`benchmarks/LEDGER.md` row 11 and its CI history). Corrections C14 (the pricing line needs `α + 1 < M` alone; no `min (G, M)`) and C15 (its continuity needs `G > 0`, `α > 0`) are this row's. Labelled as prose in the module header, and route-checked numerically: the Lévy–Khintchine representation itself | 005, 010 | no — CI only |
 
-BRIEF_011+ are **not yet issued**: what remains of the BSM-2 kit in `docs/03`
-§D1 ("What extends") is the concrete CGMY exponent and its moment strip
-(items 1–2 — the named successor, `BRIEF_011`), the drift fix at the new law
-(item 3), and the corner recovery of GBM (item 6). The order constraint for
-whoever issues them holds: items 1–3 are the new analysis and can be split
-further (the exponent's `cpow`/branch work is a brief on its own); item 4's
+BRIEF_012+ are **not yet issued**: what remains of the BSM-2 kit in `docs/03`
+§D1 ("What extends") is the drift fixed at a *named* pricing measure (item 3),
+the corner recovery of GBM at `Y → 2` (item 6), and the machine-checked
+non-uniqueness witness (item 7 — the named successor `BRIEF_012`, ledger C13:
+one period is enough, and the witness is a trinomial). Items 1–2 landed as
+BRIEF_011 (row above). The order constraint for
+whoever issues them holds: items 3, 6 and 7 are the new analysis and can be split
+further (items 1–2 were exactly that — the exponent's `cpow`/branch work was
+BRIEF_011); item 4's
 exponent↔law connection was the known risky step and it took BRIEF_004's
 re-scope option — BRIEF_010 landed it with the law abstracted behind a
 hypothesis the way the decay bound is already abstracted, and the hypothesis
 recorded rather than assumed (`docs/03` §D1 item 4 now reads that way).
-BRIEF_011's acceptance bar is already shaped: it must supply the CGMY factor's
-continuity and decay on the contour `u ↦ u − i(α+1)` for `0 < α`,
-`α + 1 < min(G, M)`, which instantiates BRIEF_010 §5's hypothesis and so lands
-item 4 at the concrete exponent without re-proving it.
+BRIEF_011's acceptance bar was shaped as: supply the CGMY factor's continuity and
+decay on the contour `u ↦ u − i(α+1)` for `0 < α`, `α + 1 < min(G, M)`,
+instantiating BRIEF_010 §5's hypothesis so that item 4 lands at the concrete
+exponent without re-proving it. It landed, with two corrections the brief found
+rather than inherited: the contour condition is `α + 1 < M` alone (C14 — `G`
+binds only the old line `u + iα`), and the *continuity* half additionally needs
+`G > 0` and `α > 0` (C15 — the right base's imaginary part is `u`, which vanishes
+at `u = 0`, so its real part carries the branch condition there).
 
 BRIEF_004 is deliberately listed as depending on nothing: it is pure analysis
 (a divergent improper integral), needs none of the BS machinery, and it is the

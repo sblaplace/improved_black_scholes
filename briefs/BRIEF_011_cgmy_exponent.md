@@ -1,31 +1,39 @@
 # BRIEF_011 — the CGMY exponent, its Levy measure, and the moment strip (BSM-2 kit items 1–2)
 
-- **Status:** **ISSUED** — implemented in `ImprovedBS/CGMY.lean`, pushed as
-  PR [#17](https://github.com/sblaplace/improved_black_scholes/pull/17); the
-  verdict is the CI run on that PR (see `benchmarks/LEDGER.md` row 11 and the
-  CI-history section below it). This is **items 1–2**
-  of the BSM-2 kit in `docs/03` §D1: *the concrete CGMY characteristic exponent*
-  (the `cpow`/branch work BRIEF_005 explicitly deferred) as the next brief's
-  work, and *the moment strip* — the tempered region on which
-  `E[e^{uX_τ}] < ∞`, containing both the pricing contour and the numéraire
-  point. Landing it also corrects the strip condition that `docs/03` §D1 and
-  `docs/04`'s queue state as `α + 1 < min(G, M)` (§"Correction C14" below;
-  recorded as correction C14 in `benchmarks/LEDGER.md`).
+- **Status:** **LANDED GREEN** @ `03be381` — lean run 35779316727 (oracle lane
+  run 35779316766), PR [#17](https://github.com/sblaplace/improved_black_scholes/pull/17):
+  `lake build` + the `#print axioms` audit on all 148 entries + **statement pins
+  (elab, all 165)** + the oracle↔Lean cross-verifier + `lint` (incl. `[CGMY]`)
+  all green; `benchmarks/LEDGER.md` row 11 has the verdict and its CI history.
+  This is **items 1–2** of the BSM-2 kit in `docs/03` §D1: *the concrete CGMY
+  characteristic exponent* (the `cpow`/branch work BRIEF_005 explicitly deferred)
+  and *the moment strip* — the tempered region on which `E[e^{uX_τ}] < ∞`,
+  containing both the pricing contour and the numéraire point. Landing it also
+  corrected the strip condition that `docs/03` §D1 and `docs/04`'s queue stated
+  as `α + 1 < min(G, M)` (§"Correction C14" below; the docs now state `α + 1 < M`)
+  and the hypothesis list its *continuity* half needs (§"Correction C15" below).
 - **Prerequisite PRs:** BRIEF_005 (`ImprovedBS/Fourier.lean`, the abstract
   (H-decay) hypothesis this brief discharges), BRIEF_010
   (`ImprovedBS/Pricing.lean`, the `cmPriceKernel_integrable` interface this
   brief instantiates) merged. **No edit to any existing declaration** anywhere in
-  the tree: the whole brief is one new module plus grading wiring, so no pinned
-  statement outside the new module moves.
+  the tree: the whole brief is one new module plus grading wiring. Exactly one
+  landed statement moved — inside the new module, `cgmy_contour_continuous`,
+  which gained `(hG : 0 < G)` and `(hα : 0 < α)` during CI (§"Correction C15");
+  the 164 other pins are byte-identical and no pre-existing module was touched.
 - **Skills:** Lean 4 + mathlib at the pinned tag v4.34.0: complex `cpow` and its
   branch (`slitPlane`, `Complex.log`/`Complex.arg`), Euler reflection for
   `Γ(−Y)`, the mean value inequality on `[0, a]` for a `ℂ`-valued map, and
   `IntegrableOn` domination by `x ^ s * exp (−b x ^ p)`. No new mathematics:
   every ingredient is calculus and the Euler reflection formula.
-- **Budget:** CI-only verification (no local Lean toolchain). Expect the two-run
-  `elab` pin bootstrap as in BRIEF_007–010 (first run red by design and printing
-  the block, second run merging it verbatim) plus elaboration fixes on the
-  mean-value step. Every mathlib name this brief relies on was verified against
+- **Budget:** CI-only verification (no local Lean toolchain) — five runs, as it
+  turned out: two red on elaboration (20 errors, then 4 — every one a name or
+  arity shape at the tag, not an estimate), then the by-design `elab` bootstrap
+  (red with `lake build` and the audit green, printing the paste-ready block) and
+  the merge (`added 26, changed 0, elab now 165`). The anticipated mean-value
+  step was indeed the deep one: `HasDerivAt.cpow_const` at this tag is a ℂ → ℂ
+  lemma, so the derivative is taken on ℂ at `↑t` and restricted with
+  `HasDerivAt.comp_ofReal`, and the reflection identity must be rewritten into the
+  hypothesis rather than handed to `simp`, which loops on it. Every mathlib name this brief relies on was verified against
   the pinned tag before it was committed (ledger C3); the numeric route was
   checked in the oracle **before** the Lean was written (ledger C4) and is
   recorded in §"The numeric route-check".
@@ -90,6 +98,31 @@ The landed statements therefore use `α + 1 < M` and require only `G > 0`:
 kernel and `α < G` is its correct condition), and the numéraire condition
 `1 < M` is untouched — it is the same `M`, which is why the docs' right wing
 `α < M − 1` was already correct.
+
+## Correction C15 — the contour's *continuity* needs `G > 0` and `α > 0` (found by CI run 35777615606)
+
+The acceptance item `docs/04` states — "the CGMY factor's continuity and decay on
+the contour `u ↦ u − i(α+1)`" — turned out to need one more hypothesis than the
+decay half, and the first `lake build` said so (`linarith failed to find a
+contradiction` on the goal `0 < Re(G + α + 1 + iu)`):
+
+* the left base `M − (α+1) − iu` has imaginary part `−u`, which vanishes at
+  `u = 0`, so at the origin the `slitPlane` is entered through its real part
+  `M − (α+1) > 0` — exactly `α + 1 < M`, i.e. C14 carrying the branch;
+* the right base `G + α + 1 + iu` has imaginary part `u`, which vanishes at
+  `u = 0` *too*, so at the origin its real part `G + α + 1` has to be positive:
+  `G > 0` **and** `α > 0`. Neither `α + 1 < M` nor `G`'s positivity alone gives
+  it, and the theorem as first written carried neither — the model's parameter
+  range (`G, M > 0`, `0 < α`) had been prose.
+
+The landed fix is the one statement of this brief that moved:
+`cgmy_contour_continuous` now takes `(hG : 0 < G) (hα : 0 < α)`, and
+`cgmy_charFactor_contour_continuous` (unpinned) takes the same two, passed on by
+`cgmy_cmPriceKernel_integrable` from its own hypotheses. One of the 165 pins
+moved; the diff is one line in `tests/golden_statements.json`. Nothing about the
+*pricing* condition changed — `α + 1 < M` alone, no `min` — so this is C14's
+mirror image: on the pricing line the branch at the origin is protected by `M`,
+and `G` enters only through the parameter range.
 
 ## The mathematics, as landed
 
@@ -205,11 +238,14 @@ constant term dominates the threshold, which is why the def carries
   witness table and the strip's real-valuedness.
 * `tests/golden_statements.json`: pins `139 → 165`, the 139 pre-existing entries
   **byte-identical** (append-only). The `elab` layer for the 26 new names
-  bootstraps red on the first CI run by design, then the printed block is merged
-  verbatim.
+  bootstraps red on the first CI run by design and the printed `elab_delta` is
+  merged verbatim — `added 26, changed 0, elab now 165`: no pre-existing
+  elaborated type or axiom list moved, so the commit is a pure insertion.
 * `ImprovedBS.lean`: one import line + blurb; nothing else outside the module.
-* `benchmarks/LEDGER.md`: correction **C14** (both above and in the corrections
-  section) and row 11 for the verdict.
+* `benchmarks/LEDGER.md`: corrections **C14** and **C15** (both above and in the
+  corrections section), row 11 for the verdict (GREEN @ `03be381`, run
+  35779316727) and its CI history; `docs/03` §D1 item 2 and `docs/04`'s queue
+  state the corrected condition and carry the landed row.
 
 ## Done looks like (acceptance — machine-graded)
 
@@ -220,7 +256,10 @@ constant term dominates the threshold, which is why the def carries
 3. `lint` green including `[CGMY]`, with mutant C2 red under mutation.
 4. `oracle` lane green including `test_cgmy_contour`.
 5. No pinned statement outside `ImprovedBS/CGMY.lean` moved; `deferred: {}`
-   untouched; T1–T6 and BRIEF_004–010 statements unchanged.
+   untouched; T1–T6 and BRIEF_004–010 statements unchanged. (Inside the new
+   module one statement moved during CI — `cgmy_contour_continuous` gained
+   `G > 0` and `α > 0`, correction C15 — and it is the only pin whose text
+   differs from what the first CI run saw.)
 
 ## Explicitly out of scope
 
