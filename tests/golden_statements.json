@@ -716,6 +716,136 @@
       "kind": "theorem",
       "pin": "theorem carrMadan_re_eq_modelFreeCall {μ : Measure ℝ} [IsProbabilityMeasure μ] {S K r tau α : ℝ} (hS : 0 < S) (hK : 0 < K) (hα : 0 < α) {c D Y u₀ δ : ℝ} (hc : 0 < c) (hD : 0 ≤ D) (hY : 0 < Y) (hδ : 0 < δ) (hcont : Continuous fun u : ℝ => contourCharFun μ (↑u - ↑(α + 1) * Complex.I)) (hdecay : ∀ u : ℝ, u₀ ≤ |u| → ‖contourCharFun μ (↑u - ↑(α + 1) * Complex.I)‖ ≤ D * Real.exp (-c * |u| ^ Y)) (hTail : Integrable (fun x : ℝ => Real.exp ((α + 1 + δ) * x)) μ) (hX : Integrable (fun x : ℝ => S * Real.exp x) μ) : (((↑(Real.exp (-α * Real.log (K / S))) : ℂ) * cmPriceIntegral (contourCharFun μ) α r tau S (Real.log (K / S))).re) = modelFreeCall μ (fun x => S * Real.exp x) K r tau"
     },
+    "BSM.cgmyCharFactor": {
+      "file": "ImprovedBS/CGMY.lean",
+      "kind": "def",
+      "pin": "def cgmyCharFactor (C G M Y τ : ℝ) (v : ℂ) : ℂ := Complex.exp (τ * cgmyExponent C G M Y v)"
+    },
+    "BSM.cgmyCharFactor_add": {
+      "file": "ImprovedBS/CGMY.lean",
+      "kind": "theorem",
+      "pin": "theorem cgmyCharFactor_add (C G M Y τ₁ τ₂ : ℝ) (v : ℂ) : cgmyCharFactor C G M Y (τ₁ + τ₂) v = cgmyCharFactor C G M Y τ₁ v * cgmyCharFactor C G M Y τ₂ v"
+    },
+    "BSM.cgmyContour": {
+      "file": "ImprovedBS/CGMY.lean",
+      "kind": "def",
+      "pin": "def cgmyContour (α u : ℝ) : ℂ := (u : ℂ) - ((α + 1 : ℝ) : ℂ) * Complex.I"
+    },
+    "BSM.cgmyDecayThreshold": {
+      "file": "ImprovedBS/CGMY.lean",
+      "kind": "def",
+      "pin": "def cgmyDecayThreshold (C G M Y : ℝ) : ℝ := max (M + G) (max (4 * cgmyTemperedCorrection C G M Y / cgmyTemperedRate C Y) (max 1 ((4 * cgmyTemperedConstant C G M Y / cgmyTemperedRate C Y) ^ (1 / Y))))"
+    },
+    "BSM.cgmyExponent": {
+      "file": "ImprovedBS/CGMY.lean",
+      "kind": "def",
+      "pin": "def cgmyExponent (C G M Y : ℝ) (v : ℂ) : ℂ := (C * (Real.Gamma (-Y) : ℂ)) * ((M - Complex.I * v) ^ (Y : ℂ) - (M : ℂ) ^ (Y : ℂ) + (G + Complex.I * v) ^ (Y : ℂ) - (G : ℂ) ^ (Y : ℂ))"
+    },
+    "BSM.cgmyExponent_contour": {
+      "file": "ImprovedBS/CGMY.lean",
+      "kind": "theorem",
+      "pin": "theorem cgmyExponent_contour (C G M Y α u : ℝ) : cgmyExponent C G M Y (cgmyContour α u) = (C * (Real.Gamma (-Y) : ℂ)) * (cgmyBaseLeft M α u ^ (Y : ℂ) - (M : ℂ) ^ (Y : ℂ) + cgmyBaseRight G α u ^ (Y : ℂ) - (G : ℂ) ^ (Y : ℂ))"
+    },
+    "BSM.cgmyExponent_contour_re": {
+      "file": "ImprovedBS/CGMY.lean",
+      "kind": "theorem",
+      "pin": "theorem cgmyExponent_contour_re (C G M Y α u : ℝ) (hG : 0 < G) (hM : 0 < M) : (cgmyExponent C G M Y (cgmyContour α u)).re = C * Real.Gamma (-Y) * ((cgmyBaseLeft M α u ^ (Y : ℂ)).re + (cgmyBaseRight G α u ^ (Y : ℂ)).re - M ^ Y - G ^ Y)"
+    },
+    "BSM.cgmyExponent_contour_re_le": {
+      "file": "ImprovedBS/CGMY.lean",
+      "kind": "theorem",
+      "pin": "theorem cgmyExponent_contour_re_le (C G M Y α : ℝ) (hC : 0 < C) (hG : 0 < G) (hM : 0 < M) (hY : 0 < Y) (hY₂ : Y < 2) (hY₁ : Y ≠ 1) (hα : 0 < α) (hMG : α + 1 < M) : ∀ u : ℝ, M + G ≤ |u| → (cgmyExponent C G M Y (cgmyContour α u)).re ≤ -(cgmyTemperedRate C Y) * |u| ^ Y + cgmyTemperedCorrection C G M Y * |u| ^ (Y - 1) + cgmyTemperedConstant C G M Y"
+    },
+    "BSM.cgmyExponent_contour_re_le_half": {
+      "file": "ImprovedBS/CGMY.lean",
+      "kind": "theorem",
+      "pin": "theorem cgmyExponent_contour_re_le_half (C G M Y α : ℝ) (hC : 0 < C) (hG : 0 < G) (hM : 0 < M) (hY : 0 < Y) (hY₂ : Y < 2) (hY₁ : Y ≠ 1) (hα : 0 < α) (hMG : α + 1 < M) : ∀ u : ℝ, cgmyDecayThreshold C G M Y ≤ |u| → (cgmyExponent C G M Y (cgmyContour α u)).re ≤ -(cgmyTemperedRate C Y / 2) * |u| ^ Y"
+    },
+    "BSM.cgmyExponent_strip": {
+      "file": "ImprovedBS/CGMY.lean",
+      "kind": "theorem",
+      "pin": "theorem cgmyExponent_strip (C G M Y u : ℝ) (hG : 0 < G) (hM : 0 < M) (h₁ : -G < u) (h₂ : u < M) : cgmyExponent C G M Y (-(Complex.I * (u : ℂ))) = ((C * Real.Gamma (-Y) * ((M - u) ^ Y - M ^ Y + (G + u) ^ Y - G ^ Y) : ℝ) : ℂ)"
+    },
+    "BSM.cgmyLevyDensity": {
+      "file": "ImprovedBS/CGMY.lean",
+      "kind": "def",
+      "pin": "def cgmyLevyDensity (C G M Y : ℝ) (x : ℝ) : ℝ := C * Real.exp (-(if 0 < x then M else G) * |x|) * |x| ^ (-1 - Y)"
+    },
+    "BSM.cgmyOldContour_base_right_re": {
+      "file": "ImprovedBS/CGMY.lean",
+      "kind": "theorem",
+      "pin": "theorem cgmyOldContour_base_right_re (G α u : ℝ) : (G + Complex.I * cgmyOldContour α u).re = G - α"
+    },
+    "BSM.cgmyTemperedConstant": {
+      "file": "ImprovedBS/CGMY.lean",
+      "kind": "def",
+      "pin": "def cgmyTemperedConstant (C G M Y : ℝ) : ℝ := C * |Real.Gamma (-Y)| * (M ^ Y + G ^ Y)"
+    },
+    "BSM.cgmyTemperedCorrection": {
+      "file": "ImprovedBS/CGMY.lean",
+      "kind": "def",
+      "pin": "def cgmyTemperedCorrection (C G M Y : ℝ) : ℝ := 2 ^ (Y - 1) * Y * (M + G) * |C * Real.Gamma (-Y)|"
+    },
+    "BSM.cgmyTemperedRate": {
+      "file": "ImprovedBS/CGMY.lean",
+      "kind": "def",
+      "pin": "def cgmyTemperedRate (C Y : ℝ) : ℝ := 2 * C * |Real.Gamma (-Y) * Real.cos (Real.pi * Y / 2)|"
+    },
+    "BSM.cgmy_cmPriceKernel_integrable": {
+      "file": "ImprovedBS/CGMY.lean",
+      "kind": "theorem",
+      "pin": "theorem cgmy_cmPriceKernel_integrable (C G M Y τ α : ℝ) (hC : 0 < C) (hG : 0 < G) (hM : 0 < M) (hY : 0 < Y) (hY₂ : Y < 2) (hY₁ : Y ≠ 1) (hα : 0 < α) (hMG : α + 1 < M) (hτ : 0 < τ) : Integrable (cmPriceKernel (cgmyCharFactor C G M Y τ) α)"
+    },
+    "BSM.cgmy_contour_continuous": {
+      "file": "ImprovedBS/CGMY.lean",
+      "kind": "theorem",
+      "pin": "theorem cgmy_contour_continuous (C G M Y α : ℝ) (hY : 0 < Y) (hMG : α + 1 < M) : Continuous fun u : ℝ => cgmyExponent C G M Y (cgmyContour α u)"
+    },
+    "BSM.cgmy_contour_decay": {
+      "file": "ImprovedBS/CGMY.lean",
+      "kind": "theorem",
+      "pin": "theorem cgmy_contour_decay (C G M Y τ α : ℝ) (hC : 0 < C) (hG : 0 < G) (hM : 0 < M) (hY : 0 < Y) (hY₂ : Y < 2) (hY₁ : Y ≠ 1) (hα : 0 < α) (hMG : α + 1 < M) (hτ : 0 ≤ τ) : ∀ u : ℝ, cgmyDecayThreshold C G M Y ≤ |u| → ‖cgmyCharFactor C G M Y τ (cgmyContour α u)‖ ≤ Real.exp (-(τ * cgmyTemperedRate C Y / 2) * |u| ^ Y)"
+    },
+    "BSM.cgmy_contour_mem_strip": {
+      "file": "ImprovedBS/CGMY.lean",
+      "kind": "theorem",
+      "pin": "theorem cgmy_contour_mem_strip (G M α : ℝ) (hG : 0 < G) (hα : 0 < α) (hMG : α + 1 < M) : -G < α + 1 ∧ α + 1 < M"
+    },
+    "BSM.cgmy_cpow_re_ge_of_lt_one": {
+      "file": "ImprovedBS/CGMY.lean",
+      "kind": "theorem",
+      "pin": "theorem cgmy_cpow_re_ge_of_lt_one {a y Y : ℝ} (ha : 0 ≤ a) (hy : 0 < y) (hY : 0 < Y) (hY₂ : Y < 2) (hY₁ : Y < 1) : y ^ Y * Real.cos (Real.pi * Y / 2) ≤ (((a : ℂ) + (y : ℂ) * Complex.I) ^ (Y : ℂ)).re"
+    },
+    "BSM.cgmy_cpow_re_le_of_one_le": {
+      "file": "ImprovedBS/CGMY.lean",
+      "kind": "theorem",
+      "pin": "theorem cgmy_cpow_re_le_of_one_le {a y Y : ℝ} (ha : 0 ≤ a) (hy : 0 < y) (hay : a ≤ y) (hY : 1 ≤ Y) (hY₂ : Y < 2) : (((a : ℂ) + (y : ℂ) * Complex.I) ^ (Y : ℂ)).re ≤ y ^ Y * Real.cos (Real.pi * Y / 2) + 2 ^ (Y - 1) * Y * a * y ^ (Y - 1)"
+    },
+    "BSM.cgmy_levy_far_moment": {
+      "file": "ImprovedBS/CGMY.lean",
+      "kind": "theorem",
+      "pin": "theorem cgmy_levy_far_moment (C M Y u : ℝ) (hC : 0 < C) (hY : 0 < Y) (hu : u < M) : IntegrableOn (fun x : ℝ => C * (Real.exp (-(M - u) * x) * x ^ (-1 - Y))) (Ioi 1)"
+    },
+    "BSM.cgmy_levy_sq_integrable": {
+      "file": "ImprovedBS/CGMY.lean",
+      "kind": "theorem",
+      "pin": "theorem cgmy_levy_sq_integrable (C M Y : ℝ) (hC : 0 < C) (hM : 0 < M) (hY : 0 < Y) (hY₂ : Y < 2) : IntegrableOn (fun x : ℝ => x ^ 2 * (C * (Real.exp (-M * x) * x ^ (-1 - Y)))) (Ioo 0 1)"
+    },
+    "BSM.cgmy_numeraire_strip": {
+      "file": "ImprovedBS/CGMY.lean",
+      "kind": "theorem",
+      "pin": "theorem cgmy_numeraire_strip (G M : ℝ) (hG : 0 < G) (hM : 1 < M) : -G < 1 ∧ (1 : ℝ) < M"
+    },
+    "BSM.cgmy_tempered_prod_neg": {
+      "file": "ImprovedBS/CGMY.lean",
+      "kind": "theorem",
+      "pin": "theorem cgmy_tempered_prod_neg {Y : ℝ} (hY : 0 < Y) (hY₂ : Y < 2) (hY₁ : Y ≠ 1) : Real.Gamma (-Y) * Real.cos (Real.pi * Y / 2) < 0"
+    },
+    "BSM.cgmy_tempered_rate_neg_eq": {
+      "file": "ImprovedBS/CGMY.lean",
+      "kind": "theorem",
+      "pin": "theorem cgmy_tempered_rate_neg_eq {C Y : ℝ} (hY : 0 < Y) (hY₂ : Y < 2) (hY₁ : Y ≠ 1) : -(cgmyTemperedRate C Y) = 2 * C * Real.Gamma (-Y) * Real.cos (Real.pi * Y / 2)"
+    },
     "BSM.cmDenom": {
       "file": "ImprovedBS/Fourier.lean",
       "kind": "def",

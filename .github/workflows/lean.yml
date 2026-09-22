@@ -276,6 +276,53 @@ jobs:
           #print axioms BSM.carrMadan_eq_re
           #print axioms BSM.carrMadan_re_eq_modelFreeCall
           #print axioms BSM.gbm_carrMadan_eq_bsCall
+          -- BRIEF_011: the CGMY exponent, its Levy measure and the moment strip
+          -- (BSM-2 kit items 1-2), ImprovedBS/CGMY.lean. Expositional lemmas,
+          -- the headline contour bound and its decay corollary, the
+          -- instantiation of BRIEF_010's (H-decay), the strip and the Levy measure.
+          -- Correction C14 is the base-reals block: the pricing line needs
+          -- `α + 1 < M` alone; `G` binds only the old line `u + iα`.
+          #print axioms BSM.cgmyCharFactor_add
+          #print axioms BSM.cgmyCharFactor_zero
+          #print axioms BSM.cgmyContour_base_left
+          #print axioms BSM.cgmyContour_base_right
+          #print axioms BSM.cgmyExponent_contour
+          #print axioms BSM.cgmyContour_base_left_re
+          #print axioms BSM.cgmyContour_base_right_re
+          #print axioms BSM.cgmyOldContour_base_right_re
+          #print axioms BSM.cgmyGamma_neg_eq
+          #print axioms BSM.cgmyGamma_neg_neg_of_lt_one
+          #print axioms BSM.cgmyGamma_neg_pos_of_one_lt
+          #print axioms BSM.cgmy_cos_half_pos_of_lt_one
+          #print axioms BSM.cgmy_cos_half_neg_of_one_lt
+          #print axioms BSM.cgmy_tempered_prod_neg
+          #print axioms BSM.cgmyTemperedRate_pos
+          #print axioms BSM.cgmy_tempered_rate_neg_eq
+          #print axioms BSM.cgmyTemperedConstant_nonneg
+          #print axioms BSM.cgmyTemperedCorrection_nonneg
+          #print axioms BSM.cgmy_cpow_re_eq
+          #print axioms BSM.cgmy_norm_ge_im
+          #print axioms BSM.cgmy_arg_mem
+          #print axioms BSM.cgmy_cos_arg_le
+          #print axioms BSM.cgmy_cpow_re_ge_of_lt_one
+          #print axioms BSM.cgmy_cpow_re_le_of_one_le
+          #print axioms BSM.cgmy_cpow_re_conj
+          #print axioms BSM.cgmy_cpow_re_abs
+          #print axioms BSM.cgmyExponent_contour_re
+          #print axioms BSM.cgmyExponent_contour_re_le
+          #print axioms BSM.cgmyExponent_contour_re_le_half
+          #print axioms BSM.cgmy_contour_decay
+          #print axioms BSM.cgmy_contour_continuous
+          #print axioms BSM.cgmy_charFactor_contour_continuous
+          #print axioms BSM.cgmy_cmPriceKernel_integrable
+          #print axioms BSM.cgmy_contour_mem_strip
+          #print axioms BSM.cgmy_numeraire_strip
+          #print axioms BSM.cgmyExponent_strip
+          #print axioms BSM.cgmyLevyDensity_nonneg
+          #print axioms BSM.cgmyLevyDensity_pos_of_pos
+          #print axioms BSM.cgmyLevyDensity_neg_of_neg
+          #print axioms BSM.cgmy_levy_sq_integrable
+          #print axioms BSM.cgmy_levy_far_moment
           LEAN
           lake env lean /tmp/Audit.lean 2>&1 | tee lean-audit.log
           if grep -q sorryAx lean-audit.log; then

@@ -46,6 +46,19 @@ from experiments.black_scholes import (
     bs_put_by_expectation,
     bs_put_by_parity,
     carr_madan_by_law,
+    cgmy_base_reals,
+    cgmy_char_factor,
+    cgmy_contour_re,
+    cgmy_decay_threshold,
+    cgmy_exponent,
+    cgmy_exponent_by_pieces,
+    cgmy_exponent_one_sided_compensated,
+    cgmy_gamma_neg,
+    cgmy_levy_integral_one_sided,
+    cgmy_pricing_contour_v,
+    cgmy_tempered_constant,
+    cgmy_tempered_correction,
+    cgmy_tempered_rate,
     forward_by_expectation,
     model_free_forward,
     model_free_prices,
@@ -417,6 +430,118 @@ def test_carr_madan_free_law():
             raise AssertionError(f"expected ValueError for alpha={bad}")
         except ValueError:
             pass
+
+
+# ---------------------------------------------------------------------------
+# BRIEF_011: the CGMY exponent, its contour decay, and the moment strip.
+# ---------------------------------------------------------------------------
+
+
+def test_cgmy_contour():
+    """BRIEF_011 (numerical shadow of `ImprovedBS/CGMY.lean`).
+
+    Every assertion names the Lean declaration it shadows. The CGMY exponent
+    is `psi(v) = C Gamma(-Y) [(M - iv)^Y - M^Y + (G + iv)^Y - G^Y]`; the
+    pricing contour is `v = u - i(alpha+1)` (correction C12/C14), on which
+    `M - iv = (M - (alpha+1)) - iu` and `G + iv = (G + alpha+1) + iu`, so the
+    branch condition is `alpha + 1 < M` and NOTHING about `G` -- `G` only
+    constrains the old line `v = u + i(alpha)`.
+
+    The decay constants checked here are the ones the Lean defs use, term for
+    term: `r = 2C|Gamma(-Y) cos(pi Y/2)|` (`cgmyTemperedRate`),
+    `c' = 2^{Y-1} Y (M+G) |C Gamma(-Y)|` (`cgmyTemperedCorrection`),
+    `K0 = C|Gamma(-Y)|(M^Y + G^Y)` (`cgmyTemperedConstant`) and
+    `cgmyDecayThreshold = max(M+G, max(4c'/r, max(1, (4K0/r)^{1/Y})))`.
+    """
+    # --- the closed form itself: `cgmyExponent` vs its pieces (exact identity)
+    for C, G, M, Y in ((1.0, 5.0, 10.0, 0.7), (0.5, 0.5, 2.0, 1.3), (2.0, 1.0, 4.0, 1.9)):
+        for v in (2.0 + 0j, 1j, -3.0 + 0.5j, 0.0 + 0j):
+            a = cgmy_exponent(C, G, M, Y, v)
+            b = cgmy_exponent_by_pieces(C, G, M, Y, v)
+            assert abs(a - b) < 1e-12 * max(1.0, abs(a)), (C, G, M, Y, v, a, b)
+
+    # --- `cgmyCharFactor_add` / `cgmyCharFactor_zero`: affine in tau
+    C, G, M, Y, alpha = 1.0, 5.0, 10.0, 0.7, 1.2
+    t1, t2, v = 0.4, 0.9, cgmy_pricing_contour_v(alpha, 2.5)
+    f1 = cgmy_char_factor(C, G, M, Y, t1, v)
+    f2 = cgmy_char_factor(C, G, M, Y, t2, v)
+    f12 = cgmy_char_factor(C, G, M, Y, t1 + t2, v)
+    assert abs(f12 - f1 * f2) < 1e-14 * max(1.0, abs(f12))
+    assert abs(cgmy_char_factor(C, G, M, Y, 0.0, v) - 1.0) < 1e-15
+
+    # --- the Levy-integral route check (the identity that is NOT machine-checked)
+    # `cgmy_exponent_one_sided_compensated` is the closed form of the compensated
+    # one-sided integral; `cgmy_levy_integral_one_sided(..., compensated=True)`
+    # is the quadrature. Compensated = the `int (1 ^ x^2) nu < inf` measure.
+    for a, Y in ((5.0, 0.4), (5.0, 0.9), (5.0, 1.25)):
+        for w in (0.5 + 0j, 2.0 + 1.0j):
+            quad = cgmy_levy_integral_one_sided(a, Y, -w, x_max=80.0, panels=35,
+                                                n_panel=200, compensated=True)
+            closed = cgmy_exponent_one_sided_compensated(1.0, a, Y, -w)
+            assert abs(quad - closed) < 1e-3 * max(1.0, abs(closed)), (a, Y, w, quad, closed)
+
+    # --- `cgmy_tempered_prod_neg`: the sign on (0,2) \ {1}
+    for Y in (0.1, 0.4, 0.75, 0.99, 1.01, 1.3, 1.7, 1.99):
+        assert cgmy_gamma_neg(Y) * math.cos(math.pi * Y / 2.0) < 0.0, Y
+
+    # --- `cgmy_cpow_re_ge_of_lt_one` / `cgmy_cpow_re_le_of_one_le`
+    worst = 0.0
+    for Y in (1.0, 1.2, 1.5, 1.8, 1.95):
+        for y in (0.05, 0.5, 1.0, 3.0, 17.0, 250.0):
+            for i in range(0, 41):
+                xx = y * i / 40.0
+                lhs = ((xx + 1j * y) ** Y).real
+                rhs = (y ** Y * math.cos(math.pi * Y / 2.0)
+                       + 2.0 ** (Y - 1.0) * Y * xx * y ** (Y - 1.0))
+                worst = max(worst, lhs - rhs)
+    assert worst <= 0.0, worst
+    worst = 0.0
+    for Y in (0.2, 0.5, 0.9, 0.99):
+        for y in (0.05, 0.5, 3.0, 40.0):
+            for xx in (0.0, 1e-6, 0.01, 0.5, 3.0, 9.0, 100.0):
+                worst = max(worst, y ** Y * math.cos(math.pi * Y / 2.0)
+                            - ((xx + 1j * y) ** Y).real)
+    assert worst <= 0.0, worst
+
+    # --- `cgmyExponent_contour_re_le` and `cgmyExponent_contour_re_le_half`
+    grid = ((1.0, 5.0, 10.0, 0.7, 1.2), (0.5, 0.5, 3.0, 1.3, 0.5),
+            (1.0, 0.05, 2.0, 1.7, 0.9), (2.0, 1.0, 10.0, 0.4, 2.0))
+    for C, G, M, Y, alpha in grid:
+        r = cgmy_tempered_rate(C, Y)
+        corr = cgmy_tempered_correction(C, G, M, Y)
+        k0 = cgmy_tempered_constant(C, G, M, Y)
+        thr = cgmy_decay_threshold(C, G, M, Y)
+        assert r > 0.0 and corr >= 0.0 and k0 >= 0.0
+        for u in (M + G, 1.5 * (M + G), 40.0, 500.0, 5000.0):
+            re = cgmy_exponent(C, G, M, Y, cgmy_pricing_contour_v(alpha, u)).real
+            assert re <= -r * u ** Y + corr * u ** (Y - 1.0) + k0 + 1e-9, (C, G, M, Y, alpha, u)
+        for u in (thr, 1.7 * thr, 12.0 * thr):
+            re = cgmy_exponent(C, G, M, Y, cgmy_pricing_contour_v(alpha, u)).real
+            assert re <= -(r / 2.0) * u ** Y + 1e-9, (C, G, M, Y, alpha, u)
+        # sharpness: the true rate is r, approached from below
+        re = cgmy_exponent(C, G, M, Y, cgmy_pricing_contour_v(alpha, 5000.0)).real
+        ratio = -re / (r * 5000.0 ** Y)
+        assert 0.8 < ratio < 1.02, (C, G, M, Y, alpha, ratio)
+
+    # --- C14: the two lines. Pricing-line base reals are >= 0 under alpha+1 < M;
+    # the old line's `G + iv` base is `G - alpha`, negative once alpha >= G.
+    for G, M, alpha in ((0.5, 10.0, 1.5), (2.0, 3.0, 1.5), (0.05, 1.6, 0.5)):
+        assert alpha + 1.0 < M
+        lft, rgt = cgmy_base_reals(G, M, alpha, 2.0, "pricing")
+        assert abs(lft - (M - (alpha + 1.0))) < 1e-15
+        assert abs(rgt - (G + alpha + 1.0)) < 1e-15
+        assert lft >= 0.0 and rgt >= 0.0
+        old_rgt = cgmy_base_reals(G, M, alpha, 2.0, "old")[1]
+        assert abs(old_rgt - (G - alpha)) < 1e-15
+    # the C14 witness: G binds only the old line
+    assert cgmy_base_reals(0.5, 10.0, 1.5, 2.0, "old")[1] < 0.0
+    assert cgmy_base_reals(0.5, 10.0, 1.5, 2.0, "pricing")[1] > 0.0
+
+    # --- the numeraire condition (`cgmy_numeraire_strip`): `u = 1` needs `1 < M`
+    # `cgmyExponent_strip` at `v = -i u` is real and equals the closed form.
+    for u in (0.5, 1.0):
+        z = cgmy_exponent(1.0, 5.0, 10.0, 0.7, -1j * u)
+        assert abs(z.imag) < 1e-14 * max(1.0, abs(z.real)), u
 
 
 if __name__ == "__main__":

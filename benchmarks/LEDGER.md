@@ -949,3 +949,55 @@ The review's two closing questions are the program's: the current tree is a
 *price* program (the hedging horizon in docs/03's "Beyond BSM-2" is where
 hedging enters, as error bounds rather than replication), and the
 measure-selection question is now the BSM-2 kit's item 7.
+
+### C14 — the pricing-line condition is `α + 1 < M`, not `min (G, M)` (found while scoping BRIEF_011)
+
+`docs/03` §D1 and `docs/04`'s queue state the CGMY strip condition as
+`α + 1 < min(G, M)`. On the pricing contour `v = u − i(α+1)` (C12) that
+spelling is **not** the condition the mathematics uses, and one half of it
+is vacuous there:
+
+    M − iv = (M − (α+1)) − iu        Re = M − (α+1)     ← needs α + 1 < M
+    G + iv = (G + α+1) + iu          Re = G + α + 1     ← positive for FREE
+
+so the cpow branch on the pricing line is constrained by `M` alone; `G`
+constrains nothing. `G` binds only the OLD line `v = u + iα` that
+`Fourier.lean`'s `carrMadanKernel` sits on, where `G + iv = G + i(u + iα)` has
+real part `G − α` (`cgmyOldContour_base_right_re`) — negative once `α ≥ G`.
+In other words the docs' `min` is the *intersection* of the two lines'
+conditions, and the prose that justified it (`the strip is α + 1 < G`) swapped
+which tempering rate controls which half of the law: `M` tempers the positive
+half `C e^{−Mx} x^{−1−Y}` and `G` the negative half `C e^{−G|x|} |x|^{−1−Y}`.
+
+The landed statements use `α + 1 < M` — the strictly weaker (and actually
+used) hypothesis, with `G > 0` the only requirement on `G`:
+
+* `cgmyExponent_contour_re_le`, `cgmyExponent_contour_re_le_half` and
+  `cgmy_contour_decay` all carry `(hMG : α + 1 < M)`;
+* `cgmyOldContour_base_right_re` keeps the witness `Re(G + iv) = G − α` in the
+  tree, so the correction is a theorem rather than a remark;
+* the `[CGMY]` lint check fails if any of those statements grows a `min` over
+  `G`/`M` or loses its `α + 1 < M`, and mutant C2 in `tests/test_lint.py` seeds
+  exactly that regression (`α + 1 < min G M`) so the guard is falsified rather
+  than assumed;
+* `tests/test_bs.py::test_cgmy_contour` asserts the two lines' base reals
+  numerically (`(M − (α+1), G + α + 1)` on the pricing line, `G − α` on the
+  old one) at three parameter points, including the M-side witness
+  `G = 0.5, M = 10, α = 1.5` where `G < α < M − 1 = 9`.
+
+Numeric route check (C4), re-run against the exact constants and threshold the
+Lean defs now use: 5040 pricing-line points plus the threshold triple for each
+of 48 parameter sets in `C ∈ {0.5, 1}`, `G ∈ {0.05, 0.5, 5}`,
+`M ∈ {1, 3, 10}`, `Y ∈ {0.3, 0.7, 0.99, 1.3, 1.7, 1.9}`, `α ∈ {0.5, 1, 2}`
+restricted to `α + 1 < M` — **0 violations**, and the pointwise estimates on
+both regimes (the sharp `y^Y cos(πY/2) ≤ Re((a+iy)^Y)` for `Y < 1`, and the
+mean-value `Re((a+iy)^Y) ≤ y^Y cos(πY/2) + 2^{Y−1} Y a y^{Y−1}` for
+`1 ≤ Y < 2`, `a ≤ y`) never violated on their grids either. `Re ψ` is exactly
+even in `u` (two-base split vs raw: `3.8e-15`).
+
+What this correction does **not** change: `Fourier.lean`'s `carrMadanKernel`
+stays on `u + iα` (it is the `α`-damped kernel, and on that line `α < G` is
+the right condition), `cmPriceKernel` stays on `u − i(α+1)`, and the numéraire
+condition `1 < M` (`cgmy_numeraire_strip`) is untouched — it is the same `M`
+that the pricing line needs, which is why the docs' right-hand wing
+`α < M − 1` was already correct.

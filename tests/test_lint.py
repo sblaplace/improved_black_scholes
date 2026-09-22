@@ -357,6 +357,24 @@ MUTANTS = [
                "see which line a def names, only that it exists. Only [CONTOUR] "
                "can see it, which is exactly why the check exists.",
     },
+    {
+        "name": "C2 CGMY decay hypothesis strengthened to the `min (G, M)` spelling (C14)",
+        "file": "ImprovedBS/CGMY.lean",
+        "from": "(hMG : α + 1 < M) (hτ : 0 ≤ τ) :",
+        "to": "(hMG : α + 1 < min G M) (hτ : 0 ≤ τ) :",
+        "tag": "[CGMY]",
+        "why": "BRIEF_011's correction C14: on the pricing contour `v = u − i(α+1)` "
+               "the branch condition is `α + 1 < M` because `M − iv = (M − (α+1)) − iu`, "
+               "while `G + iv = (G + α+1) + iu` is in the right half plane for free. "
+               "`G` binds only the OLD line `v = u + iα`, where `Re(G + iv) = G − α` "
+               "(`cgmyOldContour_base_right_re`). The `min (G, M)` spelling that docs/03 "
+               "§D1 and docs/04's queue used is therefore a strictly stronger hypothesis "
+               "the mathematics does not need — a green build would still certify the "
+               "decay, but the claim would be about a smaller model class than CGMY. "
+               "Statement-level drift like this is invisible to `lake build`, to "
+               "`#print axioms` (the theorem is still true, under a stronger hypothesis) "
+               "and to the oracle; only [CGMY] can see it.",
+    },
 ]
 
 # Attacks the toolchain-free lanes provably CANNOT see, kept as

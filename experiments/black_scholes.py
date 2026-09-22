@@ -340,6 +340,381 @@ def carr_madan_by_law(probs, spots, S, r, tau, alpha, k, u_max, n) -> complex:
     return math.exp(-r * tau) * S * math.exp(-alpha * k) / (2.0 * math.pi) * integral
 
 
+# ---------------------------------------------------------------- CGMY
+
+# The numerical shadow of ImprovedBS/CGMY.lean (BRIEF_011). The exponent is
+#
+#     psi(v) = C Gamma(-Y) [ (M - iv)^Y - M^Y + (G + iv)^Y - G^Y ],
+#
+# with `M` tempering the positive side of the Levy measure
+# `nu(dx) = C e^{-Mx} x^{-1-Y} dx` (x > 0) and `G` the negative side
+# (`C e^{-G|x|} |x|^{-1-Y} dx`, x < 0). Two conventions are pinned in this file
+# because they are exactly the two places a silent sign/model error can hide:
+#
+#   * WHICH BASE OWNS WHICH TEMPERING RATE. `M` pairs with `M - iv`, `G` with
+#     `G + iv` (`cgmy_exponent_one_sided` is the one-sided provenance of each
+#     pairing, and `cgmy_exponent` must agree with their sum).
+#   * WHICH LINE THE PRICING CONTOUR IS. `v = u - i(alpha+1)` (C12), defined in
+#     ONE place, `cgmy_pricing_contour_v`, so tests/test_mutants.py M18 has a
+#     single anchor. The old line `v = u + i alpha` (Fourier.lean's
+#     `carrMadanKernel`) is exposed separately as `cgmy_old_contour_v`.
+
+
+def cgmy_gamma_neg(Y: float) -> float:
+    """`Gamma(-Y)`, the tempering weight of the CGMY exponent.
+
+    Evaluated from Euler's reflection formula
+    `Gamma(-Y) = -pi / (sin(pi Y) Gamma(1+Y))` rather than `math.gamma(-Y)`,
+    so the oracle owns the sign itself. That sign is what Lean's
+    `cgmy_tempered_sign` extracts: `Gamma(-Y) cos(pi Y/2) < 0` on `(0,2) \\ {1}`
+    (both factors flip together at `Y = 1`), which is what makes the tempered
+    rate positive. `Y = 1` is rejected -- the `Y = 1` limit form (`Gamma(-1)`
+    is a pole) is a separate convention and is not in the machine-checked range.
+    """
+    if not (0.0 < Y < 2.0) or Y == 1.0:
+        raise ValueError(
+            "CGMY Y must satisfy 0 < Y < 2 with Y != 1 "
+            "(the Y = 1 limit form is a separate convention)"
+        )
+    return -math.pi / (math.sin(math.pi * Y) * math.gamma(1.0 + Y))
+
+
+def cgmy_pricing_contour_v(alpha: float, u: float) -> complex:
+    """The pricing contour `v = u - i(alpha+1)` of BRIEF_010 / correction C12.
+
+    The one place this file defines it: `cgmy_contour_re` (raw route),
+    `cgmy_contour_re_split` (two-base route) and the decay test all go through
+    here, so a shift-off-by-one is a single mutation anchor (M18) rather than a
+    change that could be made consistently in one route and not the other.
+    """
+    return complex(u, -(alpha + 1.0))
+
+
+def cgmy_old_contour_v(alpha: float, u: float) -> complex:
+    """The line `v = u + i alpha` that `carrMadanKernel` sits on (Fourier.lean).
+
+    Kept so the C14 correction is checkable numerically: on THIS line it is the
+    base `G + iv` whose real part is `G - alpha` that can leave the right half
+    plane (that line needs `alpha < G`), while on the pricing contour `G` never
+    binds -- there `Re(G + iv) = G + alpha + 1 > 0` for free.
+    """
+    return complex(u, alpha)
+
+
+def cgmy_exponent_one_sided(C: float, a: float, Y: float, v: complex) -> complex:
+    """`C Gamma(-Y) [(a - iv)^Y - a^Y]`: the one-sided tempered integral
+
+        int_0^inf (e^{ivx} - 1) e^{-a x} x^{-1-Y} dx,
+
+    which converges (absolutely, for `0 < Y < 1`) exactly when the base stays
+    in the right half plane, `Re(a - iv) > 0`. Written separately from
+    `cgmy_exponent` on purpose: the two must agree, and their agreement is the
+    numerical content of the `M <-> M - iv`, `G <-> G + iv` pairing.
+    """
+    return C * cgmy_gamma_neg(Y) * ((a - 1j * v) ** Y - a ** Y)
+
+
+def cgmy_exponent(C: float, G: float, M: float, Y: float, v: complex) -> complex:
+    """`psi_CGMY(v)`, the closed formula of ImprovedBS/CGMY.lean's `cgmyExponent`.
+
+    `M` tempers the positive side and pairs with `M - iv`; `G` tempers the
+    negative side and pairs with `G + iv`. Guarded like the Lean hypotheses
+    (`0 < C`, `0 < G`, `0 < M`, `0 < Y < 2`, `Y != 1`).
+    """
+    if C <= 0.0 or G <= 0.0 or M <= 0.0:
+        raise ValueError("CGMY parameters C, G, M must all be positive")
+    return C * cgmy_gamma_neg(Y) * (
+        (M - 1j * v) ** Y - M ** Y + (G + 1j * v) ** Y - G ** Y
+    )
+
+
+def cgmy_exponent_by_pieces(C: float, G: float, M: float, Y: float, v: complex) -> complex:
+    """`psi` assembled from its two one-sided pieces (independent route).
+
+    The `M` piece owns `M - iv`, the `G` piece owns `G + iv`; both come from
+    `cgmy_exponent_one_sided`, i.e. from the integral identity rather than from
+    the definition. `cgmy_exponent` must equal this for every `v` -- which is
+    where a swapped pairing shows up as a number, not as a typo.
+    """
+    return cgmy_exponent_one_sided(C, M, Y, v) + cgmy_exponent_one_sided(C, G, Y, -v)
+
+
+def cgmy_char_factor(C: float, G: float, M: float, Y: float, tau: float, v: complex) -> complex:
+    """`exp(tau psi(v))` -- the model factor `cgmyCharFactor` of BRIEF_011.
+
+    Affine in `tau` by construction: `cgmy_char_factor(..., tau1+tau2, v)`
+    equals the product of the factors (Lean `cgmyCharFactor_add`).
+    """
+    return cmath.exp(tau * cgmy_exponent(C, G, M, Y, v))
+
+
+def cgmy_contour_re(C: float, G: float, M: float, Y: float, alpha: float, u: float) -> float:
+    """`Re psi(u - i(alpha+1))` -- the RAW route (through the closed formula)."""
+    return cgmy_exponent(C, G, M, Y, cgmy_pricing_contour_v(alpha, u)).real
+
+
+def cgmy_contour_re_split(C: float, G: float, M: float, Y: float, alpha: float, u: float) -> float:
+    """`Re psi(u - i(alpha+1))` in the two-base form the Lean assembly uses.
+
+    On the pricing contour the two bases are `M - iv = (M-(alpha+1)) - i u` and
+    `G + iv = (G+alpha+1) + i u` (Lean `cgmyContour_base_left/right`), and the
+    real part of a real power does not see the sign of the imaginary part
+    (`re_cpow_conj_ofReal_add_mul_I`), so with `y = |u|`
+
+        Re psi = C Gamma(-Y) [ Re((a1 + i y)^Y) + Re((a2 + i y)^Y) - M^Y - G^Y ],
+
+    `a1 = M - (alpha+1)`, `a2 = G + (alpha+1)`. This route never forms `M - iv`,
+    so agreement with `cgmy_contour_re` is a real numerical claim.
+    """
+    y = abs(u)
+    a1 = M - (alpha + 1.0)
+    a2 = G + (alpha + 1.0)
+    return C * cgmy_gamma_neg(Y) * (
+        ((a1 + 1j * y) ** Y).real + ((a2 + 1j * y) ** Y).real - M ** Y - G ** Y
+    )
+
+
+def cgmy_base_reals(G: float, M: float, alpha: float, u: float, line: str = "pricing"):
+    """`(Re(M - iv), Re(G + iv))` by complex arithmetic on the named line.
+
+    Used against the closed forms `(M-(alpha+1), G+alpha+1)` (pricing, C12) and
+    `(M+alpha, G-alpha)` (old line) so the C14 correction is a number, not a
+    reading of the prose. Note which base binds where: on the pricing contour it
+    is `M - iv` (condition `alpha+1 < M`, `G` free), on the old line it is
+    `G + iv` (condition `alpha < G`, `M` free) -- so the prose's
+    `alpha+1 < min(G,M)` is sufficient for both and necessary for neither.
+    """
+    v = cgmy_pricing_contour_v(alpha, u) if line == "pricing" else cgmy_old_contour_v(alpha, u)
+    return ((M - 1j * v).real, (G + 1j * v).real)
+
+
+def cgmy_tempered_rate(C: float, Y: float) -> float:
+    """`r = 2 C |Gamma(-Y) cos(pi Y/2)|` -- the asymptotic decay rate.
+
+    `-Re psi(u - i(alpha+1)) / |u|^Y -> r` as `|u| -> inf` (two bases, each
+    contributing `|u|^Y cos(pi Y/2)`, times `C Gamma(-Y)`), and `r > 0` on
+    `(0,2) \\ {1}` by `cgmy_tempered_sign`.
+    """
+    return 2.0 * C * abs(cgmy_gamma_neg(Y) * math.cos(math.pi * Y / 2.0))
+
+
+def cgmy_tempered_correction(C: float, G: float, M: float, Y: float) -> float:
+    """`2^{Y-1} Y (M + G) |C Gamma(-Y)|` -- the `O(|u|^{Y-1})` coefficient.
+
+    The `M + G` is `(M - (alpha+1)) + (G + (alpha+1))`: the two bases' real
+    parts sum, which is why the correction carries no `alpha`. The `2^{Y-1}`
+    (not `2^Y`) is what the mean-value estimate proves: the derivative of
+    `t -> (t + iy)^Y` is bounded by `Y (2y)^{Y-1}` on `[0, a]` for `a <= y`,
+    and `(2y)^{Y-1} = 2^{Y-1} y^{Y-1}`.
+    """
+    return 2.0 ** (Y - 1.0) * Y * (M + G) * abs(C * cgmy_gamma_neg(Y))
+
+
+def cgmy_tempered_constant(C: float, G: float, M: float, Y: float) -> float:
+    """`|C Gamma(-Y)| (M^Y + G^Y)` -- the two subtracted real powers."""
+    return abs(C * cgmy_gamma_neg(Y)) * (M ** Y + G ** Y)
+
+
+def cgmy_decay_threshold(C: float, G: float, M: float, Y: float) -> float:
+    """The explicit tail threshold of Lean's `cgmyDecayThreshold`.
+
+    Past it the correction and constant terms each cost at most a quarter of the
+    leading term, leaving `r/2` as the exponent in
+
+        ||exp(tau psi(u - i(alpha+1)))|| <= exp(-(tau/2) r |u|^Y).
+
+    The bound is deliberately loose by a factor 2 against the true asymptotics
+    (`-Re psi/|u|^Y -> r`, not `r/2`): the factor is the price of absorbing the
+    lower-order terms with an explicit threshold. The sharpness test asserts the
+    true rate, so a weakened `r` is caught even though a weaker bound is still
+    true.
+    """
+    r = cgmy_tempered_rate(C, Y)
+    return max(
+        M + G,
+        max(
+            4.0 * cgmy_tempered_correction(C, G, M, Y) / r,
+            max(1.0, (4.0 * cgmy_tempered_constant(C, G, M, Y) / r) ** (1.0 / Y)),
+        ),
+    )
+
+
+def cgmy_levy_near_zero_mass(Y: float, M: float, x_min: float = 1e-9, n: int = 20000) -> float:
+    """`int_{x_min}^1 x^{1-Y} e^{-M x} dx` -- the truncated `x^2` piece at 0.
+
+    `int (1 and x^2) nu(dx)` near 0 reduces to this. The lower end is truncated
+    at `x_min > 0` on purpose: for `Y > 1` the integrand has an *integrable*
+    `x^{1-Y}` singularity, and a uniform mesh cannot resolve the nearly
+    logarithmic mass it hides (at `Y = 1.99` the closed form is 100 while the
+    mesh below sees 17). The finiteness claim is therefore checked against
+    `cgmy_levy_mass_ceiling`, not against the quadrature; the quadrature is used
+    where it is trustworthy (`Y <= 1`).
+    """
+    return _simpson(lambda x: x ** (1.0 - Y) * math.exp(-M * x), x_min, 1.0, n)
+
+
+def cgmy_levy_mass_ceiling(Y: float) -> float:
+    """`1/(2-Y)`: the closed-form `x^2` mass at 0 of the UNTEMPERED density.
+
+    `int_0^1 x^{1-Y} dx = 1/(2-Y)` for `Y < 2`, and tempering only lowers it
+    (the `e^{-Mx} <= 1` factor). So this is the ceiling `int_0^1 x^{1-Y}
+    e^{-Mx} dx <= 1/(2-Y)` -- the near-zero half of `int (1 and x^2) nu < inf`.
+    """
+    if Y >= 2.0:
+        raise ValueError("the near-zero x^2 mass is finite only for Y < 2")
+    return 1.0 / (2.0 - Y)
+
+
+def cgmy_levy_truncated_mass(Y: float, x_min: float) -> float:
+    """`int_{x_min}^1 x^{1-Y} dx = (1 - x_min^{2-Y})/(2-Y)`, in closed form.
+
+    As `x_min -> 0` this stays bounded for `Y < 2` and diverges for `Y >= 2`
+    (`-log x_min` at `Y = 2`): the failure of `int (1 and x^2) nu < inf` at 0
+    happens exactly at `Y >= 2`, and it is decided by this closed form rather
+    than by quadrature.
+    """
+    if Y == 2.0:
+        return -math.log(x_min)
+    return (1.0 - x_min ** (2.0 - Y)) / (2.0 - Y)
+
+
+def cgmy_levy_far_mass(Y: float, M: float, r_max: float, n: int = 20000) -> float:
+    """`int_1^{r_max} x^{1-Y} e^{-M x} dx` -- the `x^2` piece at infinity.
+
+    With `M > 0` this converges as `r_max -> inf`; with `M = 0` it does not
+    (`int_1^R x^{1-Y} dx = (R^{2-Y}-1)/(2-Y) -> inf` for `Y < 2`). Tempering is
+    what makes the far field finite.
+    """
+    return _simpson(lambda x: x ** (1.0 - Y) * math.exp(-M * x), 1.0, r_max, n)
+
+
+def cgmy_levy_untempered_far_mass(Y: float, r_max: float) -> float:
+    """`int_1^{r_max} x^{1-Y} dx = (r_max^{2-Y} - 1)/(2-Y)`, in closed form.
+
+    The untempered far mass, so the failure of `int (1 and x^2) nu < inf` at
+    `M = 0` is checked against a closed form rather than against quadrature.
+    """
+    if Y == 2.0:
+        return math.log(r_max)
+    return (r_max ** (2.0 - Y) - 1.0) / (2.0 - Y)
+
+
+def _expm1_complex(z: complex) -> complex:
+    """`e^z - 1`, evaluated without the small-`z` cancellation.
+
+    `cmath` has no `expm1`. The Taylor branch is what makes the dyadic panels of
+    `cgmy_levy_integral_one_sided` meaningful: a plain `cmath.exp(1j*v*x) - 1`
+    cancels to ~`|v|x` ~ 1e-13 at the innermost panel and loses every digit.
+    """
+    if abs(z) < 1e-2:
+        total, term = z, z
+        for k in range(2, 14):
+            term = term * z / k
+            total += term
+        return total
+    return cmath.exp(z) - 1.0
+
+
+def _expm1_minus_z_complex(z: complex) -> complex:
+    """`e^z - 1 - z`, summed from `k = 2` so no subtraction is ever taken.
+
+    `_expm1_complex(z) - z` would cancel away `1/|z| ~ 1e12` digits at the
+    innermost dyadic panel; the series starts exactly where the difference
+    starts, and converges in one pass for `|z|` far beyond the cutoff.
+    """
+    total, term = 1.0 + 0.0j, 1.0 + 0.0j
+    term = z * z / 2.0  # the k = 2 term, where the difference starts
+    total = term
+    for k in range(3, 60):
+        term = term * z / k
+        total += term
+        if abs(term) < 1e-30 * max(1.0, abs(total)):
+            break
+    return total
+
+
+def cgmy_levy_integral_one_sided(
+    a: float,
+    Y: float,
+    v: complex,
+    x_max: float = 60.0,
+    panels: int = 30,
+    n_panel: int = 200,
+    compensated: bool = False,
+) -> complex:
+    """`int_0^inf (e^{ivx} - 1 [- ivx]) e^{-a x} x^{-1-Y} dx` by graded Simpson.
+
+    Dyadic panels `[2^{-k-1}, 2^{-k}]` resolve the `x^{-Y}` behaviour at 0 that
+    a uniform mesh cannot, plus one Simpson pass on `[1, x_max]`. Compare with
+    `cgmy_exponent_one_sided` (uncompensated) or
+    `cgmy_exponent_one_sided_compensated` -- the numerical content of the
+    tempered Levy-Khintchine identity that this oracle does NOT machine-check
+    (mathlib v4.34.0 has no Levy-Khintchine theorem).
+
+    WHICH INTEGRAND IS WHICH. The near-0 behaviour decides everything:
+
+      * `compensated=False`: the integrand is `~ (i v) x^{-Y}` at 0, so the
+        integral converges -- and then only -- for `0 < Y < 1`. For `Y >= 1`
+        BOTH parts diverge like `x^{1-Y}` (the real part too: `Im v` feeds it
+        through `i v x`), and shrinking `panels` makes the value grow without
+        bound. This is the form that matches a measure with `int (1 and |x|) nu
+        < inf`, i.e. the `Y < 1` corner only.
+      * `compensated=True`: the `- i v x` is the Levy-Khintchine compensator,
+        the integrand is `~ -(v x)^2/2 * x^{-1-Y} = O(x^{1-Y})` at 0, and the
+        integral converges for the WHOLE range `0 < Y < 2` (this is the form
+        that matches `int (1 and x^2) nu < inf`). It converges *slowly* as
+        `Y -> 2`: the tail below the innermost panel is `~ |v|^2 x^{2-Y}`, which
+        `x^{2-Y} -> const` stops from decaying, so the tail-loss estimate at
+        `panels = 40` is a few percent at `Y = 1.9` and below `1e-6` at
+        `Y <= 1.6`. Tests therefore assert *shrinking* residuals near `Y = 2`,
+        not a tight bound.
+
+    The exponential is damped as a separate factor (`exp(-a x)`, magnitude
+    honest) so no intermediate exceeds `exp(|Im v| x_max)`; keep
+    `|Im v| * x_max` well below 700.
+    """
+    total = 0j
+
+    def f(x: float) -> complex:
+        z = 1j * v * x
+        if abs(z) < 1.0:
+            # Small `x`: the graded panels live here, and `expm1` keeps every
+            # digit of the `~ z` behaviour a plain difference would cancel away.
+            step = _expm1_minus_z_complex(z) if compensated else _expm1_complex(z)
+            return step * cmath.exp(-a * x) * x ** (-1.0 - Y)
+        # Large `x`: take the two damped exponentials directly. This is the
+        # SAME expression, not an approximation, and it cannot overflow because
+        # `Re(a - iv) > 0` makes `|e^{(iv-a)x}| = e^{(Im(-v)-a)x}` decay.
+        damp = cmath.exp(-a * x)
+        step = cmath.exp(z - a * x) - damp
+        if compensated:
+            step -= z * damp  # the compensator carries the same damping
+        return step * x ** (-1.0 - Y)
+
+    inner = max(1.0 / 2.0 ** panels, 1e-12)
+    edges = [inner * 2.0 ** k for k in range(panels + 1)]  # ascending: inner .. 1
+    for lo, hi in zip(edges, edges[1:]):
+        total += _simpson(f, lo, hi, n_panel)
+    total += _simpson(f, 1.0, x_max, 4000)
+    return total
+
+
+def cgmy_exponent_one_sided_compensated(C: float, a: float, Y: float, v: complex) -> complex:
+    """`C Gamma(-Y) [(a - iv)^Y - a^Y + iv Y a^{Y-1}]`: the COMPENSATED integral
+
+        int_0^inf (e^{ivx} - 1 - ivx) e^{-a x} x^{-1-Y} dx   (0 < Y < 2, Y != 1)
+
+    valid (as an ordinary, absolutely convergent integral) whenever the base
+    stays in the right half plane, `Re(a - iv) > 0` -- the same condition as
+    the uncompensated form, but no longer restricted to `Y < 1`. The extra
+    `iv Y a^{Y-1}` is `-iv Gamma(1-Y) a^{Y-1} = iv Y Gamma(-Y) a^{Y-1}` after
+    `Gamma(1-Y) = -Y Gamma(-Y)`; it is what item 3 of the BSM-2 kit (fixing the
+    drift at a named measure) will pin down, and it drops out of `Re psi` only
+    after that convention is chosen.
+    """
+    return C * cgmy_gamma_neg(Y) * ((a - 1j * v) ** Y - a ** Y + 1j * v * Y * a ** (Y - 1.0))
+
+
 def bs_price(S, K, T, t, r, s, q=0.0, option="call"):
     """BSM European price. Raises ValueError on illegal (tau,s).
 
