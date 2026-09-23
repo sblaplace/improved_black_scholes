@@ -141,10 +141,16 @@ one above — **in the same tree, under the same skeleton**, with all seven of:
    the pricing contour and the numéraire point — the positive twin of
    `Levy.lean`'s obstruction theorem, and the point at which the tempered
    repair stops being asserted. (The pricing contour is the line
-   `v = u − i(α+1)`; its containment in the strip is `α + 1 < G`, and the
-   principal branch of the exponent's `(M−iv)^Y` term adds `α + 1 < M`, so the
-   working condition is `α + 1 < min(G, M)`. The numéraire point is `u = 1`,
-   needing `1 < M`. Ledger C12 and BRIEF_010.)
+   `v = u − i(α+1)`, i.e. the imaginary level `−(α+1)`. In the *tilt* variable
+   `u` the strip is `(−G, M)`; in the transform's own variable it is
+   `−M < Im v < G` — the `G` limit is the upper one — so containment of
+   `Im v = −(α+1)` is `α + 1 < M`, and the principal branch of the exponent's
+   `(M − iv)^Y` term asks for the same thing, `Re(M − iv) = M − (α+1) > 0`. The
+   working condition is therefore `α + 1 < M` alone; `G` constrains the *old*
+   line `v = u + iα` that `Fourier.lean`'s kernel sits on
+   (`Re(G + iv) = G − α`), which is what made the earlier `min(G, M)` spelling
+   look plausible. The numéraire point is `u = 1`, needing `1 < M`. Ledger C12,
+   C14, C15 and BRIEF_011.)
 3. **The drift is fixed *at a named pricing measure*,** and
    `E[S_T] = S·e^{(r−q)τ}` is proved at the new law under that measure (the
    CGMY twin of `integral_spot_mul_phi_eq_forward`). The martingale condition

@@ -27,6 +27,7 @@ Verdict discipline:
 | 9 | BRIEF_009 (the model-free skeleton: parity + bounds at the expectation level) | arena-ai-coding-agent | [#11](https://github.com/sblaplace/improved_black_scholes/pull/11) | **GREEN** @ `8f6c656`, lean run 35589005865 (oracle lane run 35589005799) — `lake build` + `#print axioms` audit + **Statement pins (elab, all 108)** + the oracle↔Lean pointwise cross-verifier + `lint` (incl. `[SKELETON]`) all pass; the build line is `✔ [8928/8931] Built ImprovedBS.Skeleton`, and all 94 audited constants (82 previous + the 12 theorems below; `modelFreeCall`/`modelFreePut` are pins but not audit entries) sit on `[propext, Classical.choice, Quot.sound]`, never `sorryAx`. Scope: new module `ImprovedBS/Skeleton.lean`, 14 declarations (`modelFreeCall`, `modelFreePut`, `integrable_call_payoff`, `integrable_put_payoff`, `model_free_parity_gap`, `model_free_put_call_parity`, `model_free_call_nonneg`, `model_free_call_bounds`, `model_free_put_bounds`, `integrable_gaussianReal_iff`, `lognormal_parity_gap`, `lognormal_call_bounds`, `t2_spread_via_skeleton`, `t4_call_bounds_via_skeleton`), all in `REQUIRED` + `PROTECTED`, statement pins 94 → 108 in both layers with the 94 pre-existing entries byte-identical, audit list extended by 12, `deferred: {}` untouched, T1–T5 and BRIEF_004/005/007/008 statements unchanged. The layer holds at any terminal-spot law with the drift condition (parity unfixed at the expectation level; `lognormal_parity_gap` carries `htau : 0 ≤ tau` and nothing else; the T4′ put half rides parity and must cite it — mutant K1; `t2_spread_via_skeleton`/`t4_call_bounds_via_skeleton` re-derive T2/T4 through the layer and are graded to consume it and not the closed forms — mutant K2). `[SKELETON]` route checks with cheats K1/K2 (27 lint mutants, 5 controls). Oracle side: `model_free_prices`/`model_free_forward`, `test_model_free_skeleton` (gap identity + forward parity at 3 laws + degenerate, drift canary where the gap is not the forward spread, bounds at (a)/(b)/(d), degenerate edge tightness at K=100/110) and mutants M13 (put payoff `max (K−s) 0` flipped to `max (s−K) 0`) / M14 (spot's second moment in the gap), killed by that test alone. Seven-run lean arc, all elaboration and API shape at the tag (not mathematics): 35583242988 (9 errors) → 35584511555 (a same-file batch-edit race lost the block rewrite — see the follow-up commit) → 35584605087 (5: the un-instantiated payoff-integrability statements were *false* at infinite measures and now carry `[IsProbabilityMeasure μ]`; `AEStronglyMeasurable.sup`, not `.max`) → 35586213657 (2: `Integrable.mono` arg order) → 35586918124 (2: the density iff is `g x * (ρ x).toReal` and takes an a.e.-finiteness side goal) → 35588330009 **build GREEN**, elab pins red by design → 35589005865 green with the block merged (`added 14, changed 0, elab now 108`, golden diff pure insertion). Authored without a toolchain; see the CI history for row 9. |
 | — | *(brief issuance, no theorem)* BRIEF_010 issued: T6 at any strip law, and the contour correction C12 | arena-ai-coding-agent | [#12](https://github.com/sblaplace/improved_black_scholes/pull/12) | **GREEN** — no `.lean` file changed, no pin moved; graded on whether the docs lane stays green, and it did: `lint` green on every subsequent run through the implementation, most recently run 35646623031. The brief carried its own numeric route-check (ledger C4, incl. the 74.2% contour discrepancy that produced C12) and specified the two guards its implementation lands: oracle mutant M15 and the `[CONTOUR]` lint check — both landed with row 10. Its predecessor's row (row 9) is the reason this one is separate: "a brief whose proof is asserted but not checker-backed is RED", so the verdict here is about the documentation; the theorem's verdict is row 10. |
 | 10 | BRIEF_010 (T6 at any strip law + contour correction C12 implemented) | arena-ai-coding-agent | [#16](https://github.com/sblaplace/improved_black_scholes/pull/16) | **GREEN** @ `2cb2833`, lean run 35646623031 (oracle lane run 35646622979) — `lake build` + `#print axioms` audit + **Statement pins (elab, all 139)** + the oracle↔Lean pointwise cross-verifier + `lint` (incl. `[CONTOUR]`) all pass; the build line is `✔ [8930/8932] Built ImprovedBS.Pricing`, and all 107 audited constants sit on `[propext, Classical.choice, Quot.sound]`, never `sorryAx` (the BRIEF_010 section adds 25 theorems; the section's six plain defs — `cmPriceKernel`, `contourCharFun`, `cmPriceIntegral`, `strikeTransform`, `dampedModelFreeCall`, `fourierCM` — are pins but not audit entries). Scope: new module `ImprovedBS/Pricing.lean`, 31 declarations (`cmPriceKernel`, `contourCharFun`, `cmPriceIntegral`, `strikeTransform`, `dampedModelFreeCall`, `fourierCM`, `cmPriceKernel_eq_shift`, `gbm_contourCharFun_eq`, `gbmCharFactor_pricing_continuous`, `gbmCharFactor_pricing_norm`, `cmPriceKernel_integrable`, `gbm_cmPriceKernel_integrable`, `cmDenom_factor`, `integral_Ioi_cexp_neg_mul_eq_inv`, `ofReal_exp_eq_cexp`, `norm_cexp_I_mul_ofReal`, `strikeTransform_eq`, `integrable_strikeTransform`, `dampedModelFreeCall_eq_dampedCallPrice`, `continuous_dampedModelFreeCall`, `integrable_dampedModelFreeCall_of_exp_moment`, `fourierDampedModelFreeCall_eq`, `fourierCM_eq_fourier`, `fourierCM_inversion`, `cmPriceIntegral_eq_damped_modelFreeCall`, `carrMadan_eq_modelFreeCall`, `cmPriceIntegrand_reflect`, `carrMadan_im_eq_zero`, `carrMadan_eq_re`, `carrMadan_re_eq_modelFreeCall`, `gbm_carrMadan_eq_bsCall`), all in `REQUIRED` + `PROTECTED`, statement pins 108 → 139 in both layers with the 108 pre-existing entries byte-identical, audit list extended by 25, `deferred: {}` untouched, T1–T5 and BRIEF_004–009 statements unchanged. The law is abstract: every analytic input (H-moment, H-tail, H-decay, contour continuity) is a premise — the CGMY exponent is nowhere assumed, and `gbm_carrMadan_eq_bsCall` discharges the premises at the lognormal law via `gaussianReal_exp_moment`/`exp_moments_of_exp_tail` (unpinned bridge helpers). `[CONTOUR]` lint check: `cmPriceKernel` must sit on `u − i(α+1)` and not `+ ↑α * I`, cheat killed by name (28 lint mutants, 5 controls). Oracle side: `carr_madan_by_law` (Carr–Madan evaluated at any law through its characteristic function), `test_carr_madan_free_law` (identity at 3 laws + contour-flip rejection) and mutants M15 (kernel moved to the wrong contour) / M16 (strike-transform exponent), killed by that test alone. Nine-run lean arc (seven red on elaboration/API shape at the tag, one red by design, one green) — the CI history below has the table; the distinctive shapes this round: kabstract rewrites the *first-found* instance on **both** sides of an `Eq` (a shared `↑(u*k)` factor inside `Complex.exp` consumed a `Complex.ofReal_mul` rewrite meant for the other side — spend a third rewrite deliberately), `integral_ofReal`'s RCLike-generic `↑` does not syntactically match a `Complex.ofReal` goal even when `ppDisplay` shows it matching (route through a concrete `have` typed in the goal's own coercion context), `neg_div` is `(-b)/a = -(b/a)` so the goal's `-(b/a)` needs `neg_mul`, and `Real.rpow_natCast` bridges the `|u| ^ 2` vs `|u| ^ (2:ℝ)` exponent spellings at the decay hypothesis. One batch-edit race (run 35644344321) of the same class row 9 hit. Authored without a toolchain. |
+| 11 | BRIEF_011 (the CGMY exponent, its Levy measure, and the moment strip — BSM-2 kit items 1–2) | arena-ai-coding-agent | [#17](https://github.com/sblaplace/improved_black_scholes/pull/17) | **GREEN** @ `03be381`, lean run 35779316727 (oracle lane run 35779316766) — `lake build` + `#print axioms` audit (148 entries: the 107 previous plus the 41 new CGMY theorems, every one on `[propext, Classical.choice, Quot.sound]`, no `sorryAx`) + **Statement pins (elab, all 165)** + the oracle↔Lean pointwise cross-verifier + `lint` (incl. `[CGMY]`) all pass; the build line is `⚠ [8931/8933] Built ImprovedBS.CGMY`, i.e. the module elaborates with warnings only. Reached on the 5th run — the documentation commit that records it (`4971c45`, run 35780267323) re-grades green — and the arc is the informative part: two red on elaboration (20 errors, then 4 — all API shape at the tag, none of it mathematics), one red by design on the empty `elab` block, one green with the block merged (`added 26, changed 0, elab now 165`). Two of those repairs are worth naming: `HasDerivAt.cpow_const` at this tag is a ℂ → ℂ lemma, so the mean-value step differentiates on ℂ at `↑t` and restricts with `HasDerivAt.comp_ofReal`; and the right base's continuity genuinely needs `G > 0` **and** `α > 0` (correction C15), because its imaginary part is `u`, which vanishes at `u = 0` — the branch condition then has to be carried by the real part. That is the one landed statement that moved during the brief (`cgmy_contour_continuous` gained two hypotheses; 164 pins byte-identical, the diff in `tests/golden_statements.json`), and it is C14 in a new place: `G`'s positivity enters the pricing line's continuity, but still no `min (G, M)`. Scope: new module `ImprovedBS/CGMY.lean`, 52 declarations (11 plain defs — `cgmyExponent`, `cgmyCharFactor`, `cgmyContour`, `cgmyOldContour`, `cgmyBaseLeft`, `cgmyBaseRight`, `cgmyTemperedRate`, `cgmyTemperedConstant`, `cgmyTemperedCorrection`, `cgmyDecayThreshold`, `cgmyLevyDensity` — plus 41 theorems), all in `REQUIRED` + `PROTECTED`, statement pins 139 → 165 (26 new: 8 defs + 18 theorems; the 139 pre-existing entries byte-identical, `deferred: {}` untouched, no T1–T5 or BRIEF_004–010 statement moved), audit list 107 → 148 (+41 `#print axioms` entries). `[CGMY]` lint check: `cgmyExponent` must carry `Γ(-Y)` and both tempered bases, `cgmy_cmPriceKernel_integrable` must CONSUME `cmPriceKernel_integrable` at the explicit `cgmyDecayThreshold` instead of re-deriving kernel integrability, all four headline statements must carry the corrected condition `α + 1 < M` and must not contain a `min` over `G`/`M`, and the C14 witness `cgmyOldContour_base_right_re` must state `G − α` (29 lint mutants, 5 controls). Oracle side: the compensated one-sided Levy integral (series-corrected `expm1` helpers — no mass cancellation, no `exp` overflow) and `cgmy_exponent_by_pieces`; locally `test_bs.py` 18/18 (incl. `test_cgmy_contour`), `test_lint.py` 7/7, `test_mutants.py` 4/4, `test_crosscheck.py` 6/6, `test_pins.py` 12/12, `lean_lint.py` OK (10 files, 214 declarations). Correction C14 is this row's: the pricing line `v = u − i(α+1)` needs `α + 1 < M` alone — `G` constrains only the old line `u + iα`, where `Re(G + iv) = G − α` goes negative once `α ≥ G`; the `min (G, M)` spelling in `docs/03` §D1 and `docs/04`'s queue swapped which rate tempers which half. The acceptance item `docs/04` states — continuity and decay on the contour, discharging BRIEF_010 §5's (H-decay) at the concrete exponent so item 4 lands without re-proof — is `cgmy_contour_continuous`/`cgmy_charFactor_contour_continuous` + `cgmy_contour_decay` + `cgmy_cmPriceKernel_integrable`. Labelled NOT machine-checked in the module header: the Levy–Khintchine representation itself (that the compensated integral of `ν` equals the closed-form `ψ`; mathlib v4.34.0 has no Levy–Khintchine theorem) and the Taylor step from `∫ (1 ∧ x²) ν < ∞` to the compensated integrand — both route-checked numerically. Authored without a toolchain. |
 
 ## Corrections and co-recorded changes to the ask
 
@@ -949,3 +950,112 @@ The review's two closing questions are the program's: the current tree is a
 *price* program (the hedging horizon in docs/03's "Beyond BSM-2" is where
 hedging enters, as error bounds rather than replication), and the
 measure-selection question is now the BSM-2 kit's item 7.
+
+### C14 — the pricing-line condition is `α + 1 < M`, not `min (G, M)` (found while scoping BRIEF_011)
+
+`docs/03` §D1 and `docs/04`'s queue state the CGMY strip condition as
+`α + 1 < min(G, M)`. On the pricing contour `v = u − i(α+1)` (C12) that
+spelling is **not** the condition the mathematics uses, and one half of it
+is vacuous there:
+
+    M − iv = (M − (α+1)) − iu        Re = M − (α+1)     ← needs α + 1 < M
+    G + iv = (G + α+1) + iu          Re = G + α + 1     ← positive for FREE
+
+so the cpow branch on the pricing line is constrained by `M` alone; `G`
+constrains nothing. `G` binds only the OLD line `v = u + iα` that
+`Fourier.lean`'s `carrMadanKernel` sits on, where `G + iv = G + i(u + iα)` has
+real part `G − α` (`cgmyOldContour_base_right_re`) — negative once `α ≥ G`.
+In other words the docs' `min` is the *intersection* of the two lines'
+conditions, and the prose that justified it (`the strip is α + 1 < G`) swapped
+which tempering rate controls which half of the law: `M` tempers the positive
+half `C e^{−Mx} x^{−1−Y}` and `G` the negative half `C e^{−G|x|} |x|^{−1−Y}`.
+
+The landed statements use `α + 1 < M` — the strictly weaker (and actually
+used) hypothesis, with `G > 0` the only requirement on `G`:
+
+* `cgmyExponent_contour_re_le`, `cgmyExponent_contour_re_le_half` and
+  `cgmy_contour_decay` all carry `(hMG : α + 1 < M)`;
+* `cgmyOldContour_base_right_re` keeps the witness `Re(G + iv) = G − α` in the
+  tree, so the correction is a theorem rather than a remark;
+* the `[CGMY]` lint check fails if any of those statements grows a `min` over
+  `G`/`M` or loses its `α + 1 < M`, and mutant C2 in `tests/test_lint.py` seeds
+  exactly that regression (`α + 1 < min G M`) so the guard is falsified rather
+  than assumed;
+* `tests/test_bs.py::test_cgmy_contour` asserts the two lines' base reals
+  numerically (`(M − (α+1), G + α + 1)` on the pricing line, `G − α` on the
+  old one) at three parameter points, including the M-side witness
+  `G = 0.5, M = 10, α = 1.5` where `G < α < M − 1 = 9`.
+
+Numeric route check (C4), re-run against the exact constants and threshold the
+Lean defs now use: 5040 pricing-line points plus the threshold triple for each
+of 48 parameter sets in `C ∈ {0.5, 1}`, `G ∈ {0.05, 0.5, 5}`,
+`M ∈ {1, 3, 10}`, `Y ∈ {0.3, 0.7, 0.99, 1.3, 1.7, 1.9}`, `α ∈ {0.5, 1, 2}`
+restricted to `α + 1 < M` — **0 violations**, and the pointwise estimates on
+both regimes (the sharp `y^Y cos(πY/2) ≤ Re((a+iy)^Y)` for `Y < 1`, and the
+mean-value `Re((a+iy)^Y) ≤ y^Y cos(πY/2) + 2^{Y−1} Y a y^{Y−1}` for
+`1 ≤ Y < 2`, `a ≤ y`) never violated on their grids either. `Re ψ` is exactly
+even in `u` (two-base split vs raw: `3.8e-15`).
+
+What this correction does **not** change: `Fourier.lean`'s `carrMadanKernel`
+stays on `u + iα` (it is the `α`-damped kernel, and on that line `α < G` is
+the right condition), `cmPriceKernel` stays on `u − i(α+1)`, and the numéraire
+condition `1 < M` (`cgmy_numeraire_strip`) is untouched — it is the same `M`
+that the pricing line needs, which is why the docs' right-hand wing
+`α < M − 1` was already correct.
+
+## CI history for row 11 (PR #17)
+
+Five runs. The module is 52 declarations written and read against the pinned tag
+in a sandbox with no toolchain, so this lane was the first thing that ever
+compiled it — which is why the first two runs are elaboration, not mathematics.
+
+| # | head | what the run decided | outcome |
+|---|------|----------------------|---------|
+| 1 | `76ca8dd` | first push: 20 errors, all API shape. `Ioo`/`Ioi` are `Set.Ioo`/`Set.Ioi` and `autoImplicit false` makes that a hard error; `cgmyCharFactor_add` needs the τ-coercion split before `add_mul`; the old-line witness's `mul_assoc` cannot see through `I * (↑α * I)`; `sin (πY) < 0` for `1 < Y < 2` was feeding `sin_neg_of_neg_of_neg_pi_lt` a POSITIVE argument; the two `positivity` steps for `M^Y + G^Y ≥ 0` and `2^{Y−1}·Y ≥ 0` were simply false as stated, so the two nonnegativity lemmas gained `0 ≤ G`, `0 ≤ M`, `0 ≤ Y`; `Complex.conj_add`/`conj_mul` do not exist (`conj_mul'` does) and a `rw` rewrites only the first occurrence. | build fail 20 errors |
+| 2 | `8d36a4c` | 4 errors left: `simp` leaves `G + -α = G - α`; `simpa [hexp] using hreal` loops because `Complex.ofReal_sub` unfolds `↑(Y−1)` straight back into `↑Y − 1`; `rw [← Real.rpow_one \|u\|]` fires on the base of the other `\|u\| ^ (Y−1)` as well as on the standalone factor (its pattern is a bare variable); and `cgmy_contour_continuous` **could not be proved as stated** — the right base `G + α + 1 + iu` has imaginary part `u`, which vanishes at `u = 0`, so its real part must carry the slit-plane condition, which needs `G > 0` and `α > 0`. Correction C15; the statement moved openly. | build fail 4 errors |
+| 3 | `ae9fcfe` | **build GREEN** (`⚠ [8931/8933] Built ImprovedBS.CGMY`) and the audit green on all 148 entries, red *by design* on the 26 new declarations having no `elab` entry. The workflow published the paste-ready `elab_delta` to the PR (26 entries). | fail (by design) |
+| 4 | `03be381` | the delta merged verbatim: `added 26, changed 0, elab now 165` — no pre-existing elaborated type or axiom list moved, so the commit is a pure insertion into the golden file. | **GREEN** |
+| 5 | `4971c45` | this row's documentation commit (row verdict, CI history, C15, the `docs/03` §D1 item-2 correction, the `docs/04` queue row and the brief's LANDED status) re-graded green — lean run 35780267323 (oracle lane 35780267417), `lint` and `oracle` on the docs-only diff. | GREEN |
+
+Two things the arc says about the brief itself, both already in its text: the
+numeric route-check (ledger C4) was run *before* the Lean, which is why every
+failure above is a name/shape failure and not a wrong estimate; and the
+acceptance bar `docs/04` stated — continuity and decay on the contour,
+discharging BRIEF_010 §5's (H-decay) — needed one refinement of its hypothesis
+list (C15), which is exactly the kind of thing a brief is supposed to find rather
+than inherit.
+
+### C15 — the contour's continuity needs `G > 0` and `α > 0`: on the right base the branch condition is carried by the real part (found by CI run 35777615606)
+
+**Date:** 2026-09-22. **Trigger:** the first `lake build` of
+`ImprovedBS/CGMY.lean` failed `cgmy_contour_continuous` with `linarith failed to
+find a contradiction` — the goal was `0 < Re(G + α + 1 + iu)`, and the theorem
+carried only `0 < Y` and `α + 1 < M`. The mathematics, not the tactic:
+
+* the left base of the pricing line is `M − iv = M − (α+1) − iu`, whose real part
+  is `M − (α+1) > 0` and whose imaginary part is `−u`, so at `u = 0` the
+  `slitPlane` contains it *through its real part* — and `α + 1 < M` is exactly
+  what supplies that. This is C14, again;
+* the right base is `G + iv = G + α + 1 + iu`, whose imaginary part is `u` — it
+  VANISHES at `u = 0`. So at the origin the `slitPlane` must be entered through
+  `Re = G + α + 1 > 0`, which needs `G > 0` and `α > 0`. Neither `α + 1 < M` nor
+  `G`'s positivity alone gives it, and the theorem as written had neither.
+
+**Resolution.** `cgmy_contour_continuous` now takes `(hG : 0 < G)` and
+`(hα : 0 < α)` — the first landed statement to move during BRIEF_011
+(`cgmy_charFactor_contour_continuous`, unpinned, takes the same two; the call in
+`cgmy_cmPriceKernel_integrable` passes them from its own hypotheses). One pin of
+the 165 moved; the other 164 are byte-identical, so the change shows up as a
+one-line diff in `tests/golden_statements.json` — which is the point of pinning.
+Nothing about the *pricing* hypothesis changed: `α + 1 < M` alone remains the
+condition on the contour, and no statement anywhere gained a `min` over `G`/`M`.
+
+**Why it is worth a correction rather than a silent edit.** The acceptance item in
+`docs/04` reads "the CGMY factor's continuity and decay on the contour `u ↦ u −
+i(α+1)` for `0 < α`, `α + 1 < min(G, M)`" — the parameter range of the model
+(`C, G, M > 0`, here also `0 < α`) was prose, and the theorem had to make it
+explicit. It also locates the branch condition precisely: on the pricing line the
+`M`-side base is what `α + 1 < M` protects at the *origin*, and the `G`-side base
+is protected there by the parameter range instead — while `G`'s own constraint on
+the line (`G + α + 1 > 0`) is the one that would fail first if `G` were allowed to
+go negative, which is why the landed hypothesis is `0 < G` and not `0 < M`.

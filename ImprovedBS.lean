@@ -5,6 +5,7 @@ import ImprovedBS.RiskNeutral
 import ImprovedBS.Inversion
 import ImprovedBS.Skeleton
 import ImprovedBS.Pricing
+import ImprovedBS.CGMY
 
 /-!
 # ImprovedBS
@@ -48,6 +49,19 @@ Root module of the `ImprovedBS` library. Modules imported here are built by
   normalization `fourierCM`, §5 the triangle at a general law landing on
   `modelFreeCall` and the GBM instance `gbm_carrMadan_eq_bsCall` closing the
   triangle through the kernel route.
+
+* `ImprovedBS.CGMY` — BRIEF_011: BSM-2 kit items 1–2, the concrete CGMY
+  characteristic exponent and its moment strip. §1 the exponent
+  `Γ(−Y)[(M − iv)^Y − M^Y + (G + iv)^Y − G^Y]`, the pricing/old contours and the
+  four decay constants, §2 affine-in-τ and the two bases on the corrected
+  contour, §3 the sign `Γ(−Y) cos(πY/2) < 0` on `(0,2) \ {1}`, §4 the pointwise
+  cpow estimates on both regimes (sharp cos for `Y < 1`, mean value for
+  `Y ≥ 1`), §5 the contour bound `Re ψ ≤ −r|u|^Y + c'|u|^{Y−1} + K₀` and the
+  threshold that turns it into BRIEF_010's (H-decay), §6 continuity and the
+  instantiation `cgmy_cmPriceKernel_integrable`, §7 the moment strip
+  (`cgmyExponent_strip`, the numéraire condition `1 < M`) and the Lévy measure
+  (`∫ (1 ∧ x²) ν < ∞`). Correction C14 lives here: the pricing line's condition
+  is `α + 1 < M` alone — `G` constrains only the old line `u + iα`.
 
 ## Why the module is not called `Lean.*`
 

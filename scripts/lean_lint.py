@@ -64,6 +64,13 @@ Checks
                   re-derive -- otherwise "the widening preserves the skeleton"
                   would be graded by the very theorems it underpins, and a green
                   build would certify nothing. Two mutants in tests/test_lint.py.
+13. CGMY          BRIEF_011's correction C14 and its two route commitments. The
+                  exponent must be the two-base `Gamma(-Y)` form; the decay must
+                  be DISCHARGED by consuming BRIEF_010's `cmPriceKernel_integrable`
+                  at an explicit threshold (not re-derived); and the landed
+                  statements must carry `alpha + 1 < M`, never the `min (G, M)`
+                  spelling of docs/03 §D1 -- `G` constrains only the old
+                  `u + i alpha` line. One mutant in tests/test_lint.py.
 12. CONTOUR       BRIEF_010's correction C12: the pricing kernel `cmPriceKernel`
                   must be on the pricing line `u − i(α+1)`, not the `u + iα`
                   line of `carrMadanKernel`, and `cmPriceIntegral` must be the
@@ -276,6 +283,42 @@ REQUIRED = {
     "carrMadan_eq_re": "ImprovedBS/Pricing.lean",
     "carrMadan_re_eq_modelFreeCall": "ImprovedBS/Pricing.lean",
     "gbm_carrMadan_eq_bsCall": "ImprovedBS/Pricing.lean",
+    # BRIEF_011 (BSM-2 kit items 1-2): the concrete CGMY exponent, its Levy
+    # measure and the tempered strip that discharges BRIEF_010's (H-decay).
+    # The four `def`s are listed because a definition is the specification:
+    # hollowing `cgmyExponent` (say, to `0`) would leave every theorem above it
+    # true and every claim about the model empty. `cgmyTemperedRate`,
+    # `cgmyTemperedCorrection`, `cgmyTemperedConstant` and
+    # `cgmyDecayThreshold` are exactly the constants the bound quotes, so a
+    # weakened rate is a diff here and not a silent strengthening of the
+    # hypotheses. Listed so that "prove the decay by deleting the theorem" is
+    # not an option.
+    "cgmyExponent": "ImprovedBS/CGMY.lean",
+    "cgmyCharFactor": "ImprovedBS/CGMY.lean",
+    "cgmyContour": "ImprovedBS/CGMY.lean",
+    "cgmyTemperedRate": "ImprovedBS/CGMY.lean",
+    "cgmyTemperedCorrection": "ImprovedBS/CGMY.lean",
+    "cgmyTemperedConstant": "ImprovedBS/CGMY.lean",
+    "cgmyDecayThreshold": "ImprovedBS/CGMY.lean",
+    "cgmyLevyDensity": "ImprovedBS/CGMY.lean",
+    "cgmyCharFactor_add": "ImprovedBS/CGMY.lean",
+    "cgmyExponent_contour": "ImprovedBS/CGMY.lean",
+    "cgmyOldContour_base_right_re": "ImprovedBS/CGMY.lean",
+    "cgmy_tempered_prod_neg": "ImprovedBS/CGMY.lean",
+    "cgmy_tempered_rate_neg_eq": "ImprovedBS/CGMY.lean",
+    "cgmy_cpow_re_ge_of_lt_one": "ImprovedBS/CGMY.lean",
+    "cgmy_cpow_re_le_of_one_le": "ImprovedBS/CGMY.lean",
+    "cgmyExponent_contour_re": "ImprovedBS/CGMY.lean",
+    "cgmyExponent_contour_re_le": "ImprovedBS/CGMY.lean",
+    "cgmyExponent_contour_re_le_half": "ImprovedBS/CGMY.lean",
+    "cgmy_contour_decay": "ImprovedBS/CGMY.lean",
+    "cgmy_contour_continuous": "ImprovedBS/CGMY.lean",
+    "cgmy_cmPriceKernel_integrable": "ImprovedBS/CGMY.lean",
+    "cgmy_contour_mem_strip": "ImprovedBS/CGMY.lean",
+    "cgmy_numeraire_strip": "ImprovedBS/CGMY.lean",
+    "cgmyExponent_strip": "ImprovedBS/CGMY.lean",
+    "cgmy_levy_sq_integrable": "ImprovedBS/CGMY.lean",
+    "cgmy_levy_far_moment": "ImprovedBS/CGMY.lean",
 }
 
 # Zero deferred-proof markers allowed. The T1/T2 node per BRIEF_001; the T3/T4
@@ -431,6 +474,33 @@ PROTECTED = {
     "carrMadan_eq_re",
     "carrMadan_re_eq_modelFreeCall",
     "gbm_carrMadan_eq_bsCall",
+    # BRIEF_011: the CGMY node is landed sorry-free from the start
+    "cgmyExponent",
+    "cgmyCharFactor",
+    "cgmyContour",
+    "cgmyTemperedRate",
+    "cgmyTemperedCorrection",
+    "cgmyTemperedConstant",
+    "cgmyDecayThreshold",
+    "cgmyLevyDensity",
+    "cgmyCharFactor_add",
+    "cgmyExponent_contour",
+    "cgmyOldContour_base_right_re",
+    "cgmy_tempered_prod_neg",
+    "cgmy_tempered_rate_neg_eq",
+    "cgmy_cpow_re_ge_of_lt_one",
+    "cgmy_cpow_re_le_of_one_le",
+    "cgmyExponent_contour_re",
+    "cgmyExponent_contour_re_le",
+    "cgmyExponent_contour_re_le_half",
+    "cgmy_contour_decay",
+    "cgmy_contour_continuous",
+    "cgmy_cmPriceKernel_integrable",
+    "cgmy_contour_mem_strip",
+    "cgmy_numeraire_strip",
+    "cgmyExponent_strip",
+    "cgmy_levy_sq_integrable",
+    "cgmy_levy_far_moment",
 }
 
 # The T5 node, in dependency order, and the two citations docs/04's spine
@@ -1030,6 +1100,96 @@ def main() -> int:
         failures.extend(contour_failures)
     else:
         notes.append("[CONTOUR] pricing kernel on `u − i(α+1)` and consumed by triangle")
+
+    # [CGMY] BRIEF_011: the concrete CGMY exponent must (1) be defined with the
+    # two tempered bases, (2) DISCHARGE BRIEF_010's (H-decay) by consuming
+    # `cmPriceKernel_integrable` rather than re-deriving integrability, and
+    # (3) carry the CORRECTED contour condition `alpha + 1 < M` -- never the
+    # `min (G, M)` spelling of docs/03 §D1 and docs/04's queue (correction C14:
+    # `G` does not constrain the pricing line at all; it binds only the old
+    # `u + i alpha` line, which `cgmyOldContour_base_right_re` records). A
+    # strengthened hypothesis the mathematics does not need is the exact drift
+    # this check exists to catch, and it cannot be caught by `lake build`.
+    cgmy_path = os.path.join(ROOT, "ImprovedBS", "CGMY.lean")
+    if not os.path.exists(cgmy_path):
+        failures.append("[CGMY] ImprovedBS/CGMY.lean not found")
+    else:
+        cgmy_decls = declarations(strip_comments(open(cgmy_path, encoding="utf-8").read()))
+        cgmy_bodies = {name: body for _, name, _, body in cgmy_decls}
+        cgmy_failures: list[str] = []
+
+        def cgmy_stmt(name: str) -> str:
+            body = cgmy_bodies.get(name, "")
+            if body == "":
+                cgmy_failures.append(f"[CGMY] `{name}` not found")
+                return ""
+            return body.split(":=")[0]
+
+        # (1) the exponent itself
+        exp_body = cgmy_bodies.get("cgmyExponent", "")
+        if exp_body == "":
+            cgmy_failures.append("[CGMY] `cgmyExponent` not found")
+        else:
+            for pat, why in (
+                (r"Real\.Gamma\s*\(\s*-Y\s*\)", "`Gamma(-Y)` prefactor"),
+                (r"Real\.Gamma", "the Gamma function"),
+                (r"-\s*Complex\.I\s*\*\s*v", "the `M - iv` base"),
+                (r"\+\s*Complex\.I\s*\*\s*v", "the `G + iv` base"),
+            ):
+                if not re.search(pat, exp_body):
+                    cgmy_failures.append(
+                        f"[CGMY] `cgmyExponent` must contain {why} (pattern {pat!r})."
+                    )
+
+        # (2) the decay instantiation consumes BRIEF_010's theorem
+        inst_body = cgmy_bodies.get("cgmy_cmPriceKernel_integrable", "")
+        if inst_body == "":
+            cgmy_failures.append("[CGMY] `cgmy_cmPriceKernel_integrable` not found")
+        else:
+            if "cmPriceKernel_integrable" not in inst_body:
+                cgmy_failures.append(
+                    "[CGMY] `cgmy_cmPriceKernel_integrable` must cite `cmPriceKernel_integrable`: "
+                    "BRIEF_011's job is to DISCHARGE BRIEF_010's (H-decay) at the concrete "
+                    "exponent, not to re-derive kernel integrability."
+                )
+            if "cgmyDecayThreshold" not in inst_body:
+                cgmy_failures.append(
+                    "[CGMY] `cgmy_cmPriceKernel_integrable` must supply the explicit "
+                    "`cgmyDecayThreshold` as the tail bound's `u₀`."
+                )
+
+        # (3) the corrected condition, and no `min (G, M)` regression
+        for name in ("cgmyExponent_contour_re_le", "cgmyExponent_contour_re_le_half",
+                     "cgmy_contour_decay", "cgmy_cmPriceKernel_integrable"):
+            stmt = cgmy_stmt(name)
+            if stmt == "":
+                continue
+            if re.search(r"min\s*\(?\s*(G|M)\b", stmt):
+                cgmy_failures.append(
+                    f"[CGMY] `{name}`'s statement mentions a `min` over `G`/`M`: the "
+                    "corrected contour condition is `alpha + 1 < M` alone (C14). `G` "
+                    "constrains the OLD line `u + i alpha`, not the pricing line."
+                )
+            if not re.search(r"α\s*\+\s*1\s*<\s*M", stmt):
+                cgmy_failures.append(
+                    f"[CGMY] `{name}` must carry the corrected contour condition "
+                    "`α + 1 < M`."
+                )
+        # the old-line witness must stay in the tree
+        old_stmt = cgmy_stmt("cgmyOldContour_base_right_re")
+        if old_stmt != "" and not re.search(r"G\s*-\s*α", old_stmt):
+            cgmy_failures.append(
+                "[CGMY] `cgmyOldContour_base_right_re` must state `Re(G + iv) = G - α` "
+                "on the old line: it is the C14 witness."
+            )
+
+        if cgmy_failures:
+            failures.extend(cgmy_failures)
+        else:
+            notes.append(
+                "[CGMY] exponent at `Γ(-Y)[(M-iv)^Y - M^Y + (G+iv)^Y - G^Y]`, "
+                "decay at `α + 1 < M` (C14), instantiated through `cmPriceKernel_integrable`"
+            )
 
     if "--write-baseline" in sys.argv:
         if failures:
