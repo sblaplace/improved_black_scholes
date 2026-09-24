@@ -160,15 +160,26 @@ one above — **in the same tree, under the same skeleton**, with all seven of:
    CGMY twin of `integral_spot_mul_phi_eq_forward`). The martingale condition
    alone does not select the measure — see item 7; the choice (Esscher,
    minimal-entropy, calibrated, …) is part of the model, and the price is a
-   claim *at the chosen measure*. **Issued as BRIEF_013 (Esscher), 2026-09-24:**
+   claim *at the chosen measure*. **Landed as BRIEF_013 (Esscher), PR #20,
+   run 36072416203 (2026-09-24):**
    the shift `ψ^θ(v) = ψ(v − iθ) − ψ(−iθ)` maps CGMY to itself with
-   `(G, M) ↦ (G+θ, M−θ)`; the drift equation `κ(θ+1) − κ(θ) = r − q` is
-   strictly monotone (strict convexity of `κ` on the strip), and a unique
+   `(G, M) ↦ (G+θ, M−θ)` (`esscher_cgmy_shift`, `esscher_tilt_factorization`);
+   the drift equation `κ(θ+1) − κ(θ) = r − q` is
+   strictly monotone (strict convexity of `κ` on the strip —
+   `κ″ = CΓ(2−Y)[(M−u)^{Y−2} + (G+u)^{Y−2}] > 0`, the Γ rewrite
+   `Γ(−Y)·Y·(Y−1) = Γ(2−Y)` keeping the curvature constant manifestly
+   positive), and a unique
    `θ ∈ (−G, M−1)` exists exactly when `|r−q| < |CΓ(−Y)|·|(G+M)^Y −
-   (G+M−1)^Y − 1|` — the strip's edge values decide. Route-checked before
-   issue; the deliverable lands at the factor level, with the
+   (G+M−1)^Y − 1|` — the strip's edge values decide
+   (`esscher_exists_unique_of_mem_range`,
+   `esscher_no_solution_of_outside_range`), with the zero-drift parameter
+   the exact `θ₀ = (M−G−1)/2` (`esscher_theta_zero_unique`). Route-checked
+   before issue; the deliverable landed at the factor level —
+   `esscher_drift_factor` gives the tilted factor `e^{τ(r−q)}` at the
+   solution, and pricing at the tilted rates consumes
+   `cgmy_cmPriceKernel_integrable` — with the
    expectation-level twin gated on a law construction (the brief's re-scope
-   note).
+   note: the tree has no CGMY law as a measure).
 4. **T6's triangle holds at the new exponent.** The Carr–Madan integral
    converges absolutely on the contour, inverts to `e^{−rτ}·E[(S_T − K)⁺]`,
    and is real-valued — the full pricing claim where no closed form exists.
