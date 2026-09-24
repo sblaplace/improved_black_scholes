@@ -510,6 +510,34 @@
       "axioms": "'BSM.lognormal_parity_gap' depends on axioms: [propext, Classical.choice, Quot.sound]",
       "type": "BSM.lognormal_parity_gap : ∀ (S K tau r q sigma : ℝ), 0 ≤ tau → BSM.modelFreeCall (ProbabilityTheory.gaussianReal 0 1) (fun z => S * Real.exp ((r - q - sigma ^ 2 / 2) * tau + sigma * √tau * z)) K r tau - BSM.modelFreePut (ProbabilityTheory.gaussianReal 0 1) (fun z => S * Real.exp ((r - q - sigma ^ 2 / 2) * tau + sigma * √tau * z)) K r tau = S * Real.exp (-q * tau) - K * Real.exp (-r * tau)"
     },
+    "BSM.martingaleSegment": {
+      "axioms": "'BSM.martingaleSegment' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.martingaleSegment : ℝ → MeasureTheory.Measure ℝ"
+    },
+    "BSM.martingale_set_call_eq": {
+      "axioms": "'BSM.martingale_set_call_eq' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.martingale_set_call_eq : ∀ (p₁ : ℝ), 0 ≤ p₁ → p₁ ≤ 2 / 3 → BSM.modelFreeCall (BSM.martingaleSegment p₁) id 1 0 1 = p₁ / 2"
+    },
+    "BSM.martingale_set_eq_segment": {
+      "axioms": "'BSM.martingale_set_eq_segment' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.martingale_set_eq_segment : ∀ (p₁ p₂ p₃ : ℝ), 0 ≤ p₁ → 0 ≤ p₂ → 0 ≤ p₃ → p₁ + p₂ + p₃ = 1 → ∫ (s : ℝ), id s ∂BSM.trinomialMeasure p₁ p₂ p₃ BSM.witnessSpotLo BSM.witnessSpotMid BSM.witnessSpotHi = 1 * Real.exp ((0 - 0) * 1) → BSM.trinomialMeasure p₁ p₂ p₃ BSM.witnessSpotLo BSM.witnessSpotMid BSM.witnessSpotHi = BSM.martingaleSegment p₁"
+    },
+    "BSM.martingale_set_mem": {
+      "axioms": "'BSM.martingale_set_mem' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.martingale_set_mem : ∀ (p₁ : ℝ), 0 ≤ p₁ → p₁ ≤ 2 / 3 → MeasureTheory.IsProbabilityMeasure (BSM.martingaleSegment p₁) ∧ ∫ (s : ℝ), id s ∂BSM.martingaleSegment p₁ = 1 * Real.exp ((0 - 0) * 1)"
+    },
+    "BSM.martingale_set_nondegenerate": {
+      "axioms": "'BSM.martingale_set_nondegenerate' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.martingale_set_nondegenerate : ∃ p₁ p₁', p₁ ≠ p₁' ∧ (0 ≤ p₁ ∧ p₁ ≤ 2 / 3) ∧ (0 ≤ p₁' ∧ p₁' ≤ 2 / 3) ∧ BSM.martingaleSegment p₁ ≠ BSM.martingaleSegment p₁'"
+    },
+    "BSM.martingale_set_param": {
+      "axioms": "'BSM.martingale_set_param' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.martingale_set_param : ∀ (p₁ p₂ p₃ : ℝ), p₁ + p₂ + p₃ = 1 → p₁ / 2 + p₂ + 2 * p₃ = 1 → p₃ = p₁ / 2 ∧ p₂ = 1 - 3 * p₁ / 2"
+    },
+    "BSM.martingale_set_price_range": {
+      "axioms": "'BSM.martingale_set_price_range' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.martingale_set_price_range : ∀ (c : ℝ), 0 ≤ c → c ≤ 1 / 3 → ∃ p₁, 0 ≤ p₁ ∧ p₁ ≤ 2 / 3 ∧ BSM.modelFreeCall (BSM.martingaleSegment p₁) id 1 0 1 = c"
+    },
     "BSM.max_spot_sub_strike_mul_phi": {
       "axioms": "'BSM.max_spot_sub_strike_mul_phi' depends on axioms: [propext, Classical.choice, Quot.sound]",
       "type": "BSM.max_spot_sub_strike_mul_phi : ∀ (S K m s d : ℝ), 0 < S → 0 < K → 0 < s → s * d = Real.log (S / K) + m → ∀ (z : ℝ), max (S * Real.exp (m + s * z) - K) 0 * BSM.phi z = (Set.Ioi (-d)).indicator (fun z => (S * Real.exp (m + s * z) - K) * BSM.phi z) z"
@@ -598,6 +626,10 @@
       "axioms": "'BSM.spot_sub_strike_eq' depends on axioms: [propext, Classical.choice, Quot.sound]",
       "type": "BSM.spot_sub_strike_eq : ∀ (S K m s d z : ℝ), 0 < S → 0 < K → s * d = Real.log (S / K) + m → S * Real.exp (m + s * z) - K = K * (Real.exp (s * (z + d)) - 1)"
     },
+    "BSM.static_skeleton_does_not_select_measure": {
+      "axioms": "'BSM.static_skeleton_does_not_select_measure' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.static_skeleton_does_not_select_measure : MeasureTheory.IsProbabilityMeasure BSM.witnessMeasureA ∧ MeasureTheory.IsProbabilityMeasure BSM.witnessMeasureB ∧ BSM.witnessMeasureA ≠ BSM.witnessMeasureB ∧ (BSM.witnessMeasureA.AbsolutelyContinuous BSM.witnessMeasureB ∧ BSM.witnessMeasureB.AbsolutelyContinuous BSM.witnessMeasureA) ∧ ∫ (s : ℝ), id s ∂BSM.witnessMeasureA = 1 * Real.exp ((0 - 0) * 1) ∧ ∫ (s : ℝ), id s ∂BSM.witnessMeasureB = 1 * Real.exp ((0 - 0) * 1) ∧ BSM.modelFreeCall BSM.witnessMeasureA id 1 0 1 - BSM.modelFreePut BSM.witnessMeasureA id 1 0 1 = 1 * Real.exp (-0 * 1) - 1 * Real.exp (-0 * 1) ∧ BSM.modelFreeCall BSM.witnessMeasureB id 1 0 1 - BSM.modelFreePut BSM.witnessMeasureB id 1 0 1 = 1 * Real.exp (-0 * 1) - 1 * Real.exp (-0 * 1) ∧ (max (1 * Real.exp (-0 * 1) - 1 * Real.exp (-0 * 1)) 0 ≤ BSM.modelFreeCall BSM.witnessMeasureA id 1 0 1 ∧ BSM.modelFreeCall BSM.witnessMeasureA id 1 0 1 ≤ 1 * Real.exp (-0 * 1)) ∧ (max (1 * Real.exp (-0 * 1) - 1 * Real.exp (-0 * 1)) 0 ≤ BSM.modelFreeCall BSM.witnessMeasureB id 1 0 1 ∧ BSM.modelFreeCall BSM.witnessMeasureB id 1 0 1 ≤ 1 * Real.exp (-0 * 1)) ∧ BSM.modelFreeCall BSM.witnessMeasureA id 1 0 1 ≠ BSM.modelFreeCall BSM.witnessMeasureB id 1 0 1"
+    },
     "BSM.strikeTransform": {
       "axioms": "'BSM.strikeTransform' depends on axioms: [propext, Classical.choice, Quot.sound]",
       "type": "BSM.strikeTransform : ℝ → ℝ → ℝ → ℝ → ℂ"
@@ -658,9 +690,157 @@
       "axioms": "'BSM.t5_tau' depends on axioms: [propext, Classical.choice, Quot.sound]",
       "type": "BSM.t5_tau : ∀ (S K tau r q sigma : ℝ), 0 < S → 0 < K → 0 < tau → sigma ≠ 0 → HasDerivAt (fun u => BSM.bsCall S K u r q sigma) (-q * (S * Real.exp (-q * tau) * BSM.Phi (BSM.d1 S K tau r q sigma)) + r * (K * Real.exp (-r * tau) * BSM.Phi (BSM.d2 S K tau r q sigma)) + sigma / (2 * √tau) * (S * Real.exp (-q * tau) * BSM.phi (BSM.d1 S K tau r q sigma))) tau"
     },
+    "BSM.trinomialMeasure": {
+      "axioms": "'BSM.trinomialMeasure' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.trinomialMeasure : ℝ → ℝ → ℝ → ℝ → ℝ → ℝ → MeasureTheory.Measure ℝ"
+    },
+    "BSM.trinomialMeasure_absolutelyContinuous_of_pos": {
+      "axioms": "'BSM.trinomialMeasure_absolutelyContinuous_of_pos' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.trinomialMeasure_absolutelyContinuous_of_pos : ∀ (q₁ q₂ q₃ p₁ p₂ p₃ s₁ s₂ s₃ : ℝ), 0 < p₁ → 0 < p₂ → 0 < p₃ → (BSM.trinomialMeasure q₁ q₂ q₃ s₁ s₂ s₃).AbsolutelyContinuous (BSM.trinomialMeasure p₁ p₂ p₃ s₁ s₂ s₃)"
+    },
+    "BSM.trinomialMeasure_ae_of_atoms": {
+      "axioms": "'BSM.trinomialMeasure_ae_of_atoms' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.trinomialMeasure_ae_of_atoms : ∀ {P : ℝ → Prop} (p₁ p₂ p₃ s₁ s₂ s₃ : ℝ), P s₁ → P s₂ → P s₃ → ∀ᵐ (s : ℝ) ∂BSM.trinomialMeasure p₁ p₂ p₃ s₁ s₂ s₃, P s"
+    },
+    "BSM.trinomialMeasure_apply": {
+      "axioms": "'BSM.trinomialMeasure_apply' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.trinomialMeasure_apply : ∀ (p₁ p₂ p₃ s₁ s₂ s₃ : ℝ) (A : Set ℝ), (BSM.trinomialMeasure p₁ p₂ p₃ s₁ s₂ s₃) A = ENNReal.ofReal p₁ * (MeasureTheory.Measure.dirac s₁) A + ENNReal.ofReal p₂ * (MeasureTheory.Measure.dirac s₂) A + ENNReal.ofReal p₃ * (MeasureTheory.Measure.dirac s₃) A"
+    },
+    "BSM.trinomialMeasure_integrable": {
+      "axioms": "'BSM.trinomialMeasure_integrable' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.trinomialMeasure_integrable : ∀ (f : ℝ → ℝ) (p₁ p₂ p₃ s₁ s₂ s₃ : ℝ), MeasureTheory.Integrable f (BSM.trinomialMeasure p₁ p₂ p₃ s₁ s₂ s₃)"
+    },
+    "BSM.trinomialMeasure_integral": {
+      "axioms": "'BSM.trinomialMeasure_integral' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.trinomialMeasure_integral : ∀ (f : ℝ → ℝ) (p₁ p₂ p₃ s₁ s₂ s₃ : ℝ), 0 ≤ p₁ → 0 ≤ p₂ → 0 ≤ p₃ → ∫ (s : ℝ), f s ∂BSM.trinomialMeasure p₁ p₂ p₃ s₁ s₂ s₃ = p₁ * f s₁ + p₂ * f s₂ + p₃ * f s₃"
+    },
+    "BSM.trinomialMeasure_isProbability": {
+      "axioms": "'BSM.trinomialMeasure_isProbability' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.trinomialMeasure_isProbability : ∀ (p₁ p₂ p₃ s₁ s₂ s₃ : ℝ), 0 ≤ p₁ → 0 ≤ p₂ → 0 ≤ p₃ → p₁ + p₂ + p₃ = 1 → MeasureTheory.IsProbabilityMeasure (BSM.trinomialMeasure p₁ p₂ p₃ s₁ s₂ s₃)"
+    },
+    "BSM.trinomial_witness_drift": {
+      "axioms": "'BSM.trinomial_witness_drift' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.trinomial_witness_drift : ∀ (p₁ p₂ p₃ : ℝ), 0 ≤ p₁ → 0 ≤ p₂ → 0 ≤ p₃ → ∫ (s : ℝ), id s ∂BSM.trinomialMeasure p₁ p₂ p₃ BSM.witnessSpotLo BSM.witnessSpotMid BSM.witnessSpotHi = p₁ / 2 + p₂ + 2 * p₃"
+    },
     "BSM.undamped_dampedCallPrice": {
       "axioms": "'BSM.undamped_dampedCallPrice' depends on axioms: [propext, Classical.choice, Quot.sound]",
       "type": "BSM.undamped_dampedCallPrice : ∀ (S K tau r q sigma : ℝ), 0 < S → 0 < K → 0 < tau → 0 < sigma → ∀ (v : NNReal), ↑v = sigma ^ 2 * tau → ∀ (alpha : ℝ), Real.exp (-alpha * Real.log (K / S)) * BSM.dampedCallPrice S v ((r - q - sigma ^ 2 / 2) * tau) r tau alpha (Real.log (K / S)) = BSM.bsCall S K tau r q sigma"
+    },
+    "BSM.witnessA_bounds": {
+      "axioms": "'BSM.witnessA_bounds' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.witnessA_bounds : max (1 * Real.exp (-0 * 1) - 1 * Real.exp (-0 * 1)) 0 ≤ BSM.modelFreeCall BSM.witnessMeasureA id 1 0 1 ∧ BSM.modelFreeCall BSM.witnessMeasureA id 1 0 1 ≤ 1 * Real.exp (-0 * 1)"
+    },
+    "BSM.witnessA_call": {
+      "axioms": "'BSM.witnessA_call' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.witnessA_call : BSM.modelFreeCall BSM.witnessMeasureA id 1 0 1 = 1 / 4"
+    },
+    "BSM.witnessA_drift": {
+      "axioms": "'BSM.witnessA_drift' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.witnessA_drift : ∫ (s : ℝ), id s ∂BSM.witnessMeasureA = 1 * Real.exp ((0 - 0) * 1)"
+    },
+    "BSM.witnessA_integrable": {
+      "axioms": "'BSM.witnessA_integrable' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.witnessA_integrable : MeasureTheory.Integrable id BSM.witnessMeasureA"
+    },
+    "BSM.witnessA_mem_segment": {
+      "axioms": "'BSM.witnessA_mem_segment' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.witnessA_mem_segment : BSM.witnessMeasureA = BSM.martingaleSegment (1 / 2)"
+    },
+    "BSM.witnessA_ne_B": {
+      "axioms": "'BSM.witnessA_ne_B' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.witnessA_ne_B : BSM.witnessMeasureA ≠ BSM.witnessMeasureB"
+    },
+    "BSM.witnessA_nonneg": {
+      "axioms": "'BSM.witnessA_nonneg' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.witnessA_nonneg : ∀ᵐ (s : ℝ) ∂BSM.witnessMeasureA, 0 ≤ id s"
+    },
+    "BSM.witnessA_parity": {
+      "axioms": "'BSM.witnessA_parity' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.witnessA_parity : BSM.modelFreeCall BSM.witnessMeasureA id 1 0 1 - BSM.modelFreePut BSM.witnessMeasureA id 1 0 1 = 1 * Real.exp (-0 * 1) - 1 * Real.exp (-0 * 1)"
+    },
+    "BSM.witnessA_prob": {
+      "axioms": "'BSM.witnessA_prob' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.witnessA_prob : MeasureTheory.IsProbabilityMeasure BSM.witnessMeasureA"
+    },
+    "BSM.witnessB_bounds": {
+      "axioms": "'BSM.witnessB_bounds' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.witnessB_bounds : max (1 * Real.exp (-0 * 1) - 1 * Real.exp (-0 * 1)) 0 ≤ BSM.modelFreeCall BSM.witnessMeasureB id 1 0 1 ∧ BSM.modelFreeCall BSM.witnessMeasureB id 1 0 1 ≤ 1 * Real.exp (-0 * 1)"
+    },
+    "BSM.witnessB_call": {
+      "axioms": "'BSM.witnessB_call' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.witnessB_call : BSM.modelFreeCall BSM.witnessMeasureB id 1 0 1 = 1 / 8"
+    },
+    "BSM.witnessB_drift": {
+      "axioms": "'BSM.witnessB_drift' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.witnessB_drift : ∫ (s : ℝ), id s ∂BSM.witnessMeasureB = 1 * Real.exp ((0 - 0) * 1)"
+    },
+    "BSM.witnessB_integrable": {
+      "axioms": "'BSM.witnessB_integrable' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.witnessB_integrable : MeasureTheory.Integrable id BSM.witnessMeasureB"
+    },
+    "BSM.witnessB_mem_segment": {
+      "axioms": "'BSM.witnessB_mem_segment' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.witnessB_mem_segment : BSM.witnessMeasureB = BSM.martingaleSegment (1 / 4)"
+    },
+    "BSM.witnessB_nonneg": {
+      "axioms": "'BSM.witnessB_nonneg' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.witnessB_nonneg : ∀ᵐ (s : ℝ) ∂BSM.witnessMeasureB, 0 ≤ id s"
+    },
+    "BSM.witnessB_parity": {
+      "axioms": "'BSM.witnessB_parity' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.witnessB_parity : BSM.modelFreeCall BSM.witnessMeasureB id 1 0 1 - BSM.modelFreePut BSM.witnessMeasureB id 1 0 1 = 1 * Real.exp (-0 * 1) - 1 * Real.exp (-0 * 1)"
+    },
+    "BSM.witnessB_prob": {
+      "axioms": "'BSM.witnessB_prob' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.witnessB_prob : MeasureTheory.IsProbabilityMeasure BSM.witnessMeasureB"
+    },
+    "BSM.witnessCall_ne": {
+      "axioms": "'BSM.witnessCall_ne' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.witnessCall_ne : BSM.modelFreeCall BSM.witnessMeasureA id 1 0 1 ≠ BSM.modelFreeCall BSM.witnessMeasureB id 1 0 1"
+    },
+    "BSM.witnessMeasureA": {
+      "axioms": "'BSM.witnessMeasureA' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.witnessMeasureA : MeasureTheory.Measure ℝ"
+    },
+    "BSM.witnessMeasureA_integral": {
+      "axioms": "'BSM.witnessMeasureA_integral' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.witnessMeasureA_integral : ∀ (f : ℝ → ℝ), ∫ (s : ℝ), f s ∂BSM.witnessMeasureA = 1 / 2 * f BSM.witnessSpotLo + 1 / 4 * f BSM.witnessSpotMid + 1 / 4 * f BSM.witnessSpotHi"
+    },
+    "BSM.witnessMeasureB": {
+      "axioms": "'BSM.witnessMeasureB' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.witnessMeasureB : MeasureTheory.Measure ℝ"
+    },
+    "BSM.witnessMeasureB_integral": {
+      "axioms": "'BSM.witnessMeasureB_integral' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.witnessMeasureB_integral : ∀ (f : ℝ → ℝ), ∫ (s : ℝ), f s ∂BSM.witnessMeasureB = 1 / 4 * f BSM.witnessSpotLo + 5 / 8 * f BSM.witnessSpotMid + 1 / 8 * f BSM.witnessSpotHi"
+    },
+    "BSM.witnessSpotHi": {
+      "axioms": "'BSM.witnessSpotHi' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.witnessSpotHi : ℝ"
+    },
+    "BSM.witnessSpotLo": {
+      "axioms": "'BSM.witnessSpotLo' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.witnessSpotLo : ℝ"
+    },
+    "BSM.witnessSpotMid": {
+      "axioms": "'BSM.witnessSpotMid' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.witnessSpotMid : ℝ"
+    },
+    "BSM.witness_call_payoff_hi": {
+      "axioms": "'BSM.witness_call_payoff_hi' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.witness_call_payoff_hi : max (BSM.witnessSpotHi - 1) 0 = 1"
+    },
+    "BSM.witness_call_payoff_lo": {
+      "axioms": "'BSM.witness_call_payoff_lo' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.witness_call_payoff_lo : max (BSM.witnessSpotLo - 1) 0 = 0"
+    },
+    "BSM.witness_call_payoff_mid": {
+      "axioms": "'BSM.witness_call_payoff_mid' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.witness_call_payoff_mid : max (BSM.witnessSpotMid - 1) 0 = 0"
+    },
+    "BSM.witness_equivalent": {
+      "axioms": "'BSM.witness_equivalent' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.witness_equivalent : BSM.witnessMeasureA.AbsolutelyContinuous BSM.witnessMeasureB ∧ BSM.witnessMeasureB.AbsolutelyContinuous BSM.witnessMeasureA"
     }
   },
   "namespace": "BSM",
