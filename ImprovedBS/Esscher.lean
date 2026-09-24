@@ -370,7 +370,6 @@ theorem esscherDriftMap_strictMono (C G M Y : ℝ) (hC : 0 < C) (hY : 0 < Y)
     ring
   have h1 : HasDerivAt (fun θ => cgmyCumulant C G M Y (θ + 1))
       (deriv (cgmyCumulant C G M Y) (θ + 1)) θ := by
-    rw [hκ1.deriv]
     convert hκ1.comp θ hinner using 1
     ring
   have h2 : HasDerivAt (fun θ => cgmyCumulant C G M Y θ)
