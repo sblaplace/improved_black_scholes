@@ -323,6 +323,51 @@ jobs:
           #print axioms BSM.cgmyLevyDensity_neg_of_neg
           #print axioms BSM.cgmy_levy_sq_integrable
           #print axioms BSM.cgmy_levy_far_moment
+          -- BRIEF_012: the non-uniqueness witness (BSM-2 kit item 7),
+          -- ImprovedBS/NonUniqueness.lean. The three-point law, the two witness
+          -- laws A and B, their BRIEF_009 instantiations (parity, bounds), the
+          -- headline conjunction `static_skeleton_does_not_select_measure`,
+          -- mutual absolute continuity, and the martingale segment with the
+          -- call exactly `p₁/2` on it. All must print
+          -- `[propext, Classical.choice, Quot.sound]` and never sorryAx.
+          #print axioms BSM.trinomialMeasure_apply
+          #print axioms BSM.trinomialMeasure_isProbability
+          #print axioms BSM.trinomialMeasure_integrable
+          #print axioms BSM.trinomialMeasure_integral
+          #print axioms BSM.trinomialMeasure_ae_of_atoms
+          #print axioms BSM.trinomialMeasure_absolutelyContinuous_of_pos
+          #print axioms BSM.witness_call_payoff_lo
+          #print axioms BSM.witness_call_payoff_mid
+          #print axioms BSM.witness_call_payoff_hi
+          #print axioms BSM.witnessA_prob
+          #print axioms BSM.witnessB_prob
+          #print axioms BSM.witnessMeasureA_integral
+          #print axioms BSM.witnessMeasureB_integral
+          #print axioms BSM.witnessA_integrable
+          #print axioms BSM.witnessB_integrable
+          #print axioms BSM.witnessA_nonneg
+          #print axioms BSM.witnessB_nonneg
+          #print axioms BSM.witnessA_drift
+          #print axioms BSM.witnessB_drift
+          #print axioms BSM.witnessA_call
+          #print axioms BSM.witnessB_call
+          #print axioms BSM.witnessA_parity
+          #print axioms BSM.witnessB_parity
+          #print axioms BSM.witnessA_bounds
+          #print axioms BSM.witnessB_bounds
+          #print axioms BSM.witnessCall_ne
+          #print axioms BSM.witnessA_ne_B
+          #print axioms BSM.witness_equivalent
+          #print axioms BSM.static_skeleton_does_not_select_measure
+          #print axioms BSM.martingale_set_param
+          #print axioms BSM.trinomial_witness_drift
+          #print axioms BSM.martingale_set_eq_segment
+          #print axioms BSM.martingale_set_mem
+          #print axioms BSM.martingale_set_call_eq
+          #print axioms BSM.martingale_set_nondegenerate
+          #print axioms BSM.martingale_set_price_range
+          #print axioms BSM.witnessA_mem_segment
+          #print axioms BSM.witnessB_mem_segment
           LEAN
           lake env lean /tmp/Audit.lean 2>&1 | tee lean-audit.log
           if grep -q sorryAx lean-audit.log; then

@@ -43,7 +43,7 @@ jobs:
         # assumption wrong (Lean quotes the name in `#print axioms`).
         run: python3 tests/test_pins.py
 
-      - name: Run the lint's own mutation harness (24 cheats seeded into the Lean tree)
+      - name: Run the lint's own mutation harness (32 cheats seeded into the Lean tree)
         # scripts/lean_lint.py has authority over how the Lean tree is *labelled*
         # and it gates the `lean` workflow's build job, so it gets the same
         # treatment as the oracle: seeded cheats must each be killed by a named

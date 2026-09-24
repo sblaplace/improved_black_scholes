@@ -15,7 +15,7 @@ error actually go red.
 
 Two properties this buys:
 
-1. **Detection.** Every seeded bug is caught (15/15 as of this commit).
+1. **Detection.** Every seeded bug is caught (20/20 as of this commit).
 2. **Non-vacuity.** Two of the mutants exist specifically to catch tests that
    compare a quantity against itself:
 
@@ -180,6 +180,41 @@ MUTANTS = [
         # tolerance, while the GBM Fourier route (spaced `-(alpha + 1.0)`)
         # does not match this anchor and stays green.
         ["test_carr_madan_free_law"],
+    ),
+    (
+        "M17 NONUNIQ DRIFT CANARY: witness B's p3 moved 1/8 -> 3/8 (BRIEF_012's canary)",
+        "NONUNIQ_WEIGHTS_B = (Fraction(1, 4), Fraction(5, 8), Fraction(1, 8))",
+        "NONUNIQ_WEIGHTS_B = (Fraction(1, 4), Fraction(5, 8), Fraction(3, 8))",
+        # Only the witness test reads the witness constants. B now has mass 5/4
+        # and mean 3/2, and traded parity at B is off by exactly 1/4 (call 3/8,
+        # put 1/8) -- the drift clause of `static_skeleton_does_not_select_measure`
+        # is load-bearing, and the test that shadows it notices.
+        ["test_nonuniqueness_witness"],
+    ),
+    (
+        "M18 NONUNIQ payoff corrupted: call payoff (s-K)+ replaced by the LINEAR payoff s-K",
+        "p * max(s - K, 0.0)",
+        "p * (s - K)",
+        # No probability is touched, yet call(A) = call(B) = E[S_T] - K = 0 at
+        # both witness laws: the disagreement 1/4 != 1/8 was a fact about the
+        # CONVEX payoff, and the linear one is pinned by the drift on the whole
+        # martingale segment. The witness test dies on `call(A) = 1/4`; the
+        # skeleton and free-law tests die too (both price against the same
+        # payoff line), which is expected. BRIEF_012's literal M18
+        # (call priced with the put's `max(K - s, 0)`) is blind at this witness
+        # because K = F and r = 0 make call = put at both laws; that mutant is
+        # M13's twin and only test_model_free_skeleton could see it.
+        ["test_nonuniqueness_witness"],
+    ),
+    (
+        "M19 NONUNIQ witness collapsed: B's weights replaced by A's (one law, two names)",
+        "NONUNIQ_WEIGHTS_B = (Fraction(1, 4), Fraction(5, 8), Fraction(1, 8))",
+        "NONUNIQ_WEIGHTS_B = (Fraction(1, 2), Fraction(1, 4), Fraction(1, 4))",
+        # The oracle twin of the lint's N1: B is a probability law with the
+        # forward as mean, parity and bounds hold, B sits on the segment -- and
+        # every clause of the headline is satisfied except the one that IS the
+        # theorem, `call(A) != call(B)`. Only the witness test can see it.
+        ["test_nonuniqueness_witness"],
     ),
 ]
 

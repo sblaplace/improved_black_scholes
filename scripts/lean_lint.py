@@ -76,6 +76,20 @@ Checks
                   line of `carrMadanKernel`, and `cmPriceIntegral` must be the
                   thing `carrMadan_eq_modelFreeCall` consumes. One mutant in
                   tests/test_lint.py.
+14. NONUNIQ       BRIEF_012's route commitments for the non-uniqueness witness
+                  (BSM-2 kit item 7). (1) `witnessA_parity`/`witnessB_parity`
+                  must cite `model_free_put_call_parity` and
+                  `witnessA_bounds`/`witnessB_bounds` must cite
+                  `model_free_call_bounds` -- the witness is graded by
+                  BRIEF_009's layer, not by a private re-derivation from
+                  `max_sub_swap_eq`; (2) the headline
+                  `static_skeleton_does_not_select_measure` must remain the full
+                  conjunction: both drift conditions, both parities, both bound
+                  pairs, `witnessMeasureA ≠ witnessMeasureB`, mutual `≪`, and
+                  `≠` between the two `modelFreeCall` values; (3)
+                  `trinomialMeasure` must be the sum of THREE `Measure.dirac`
+                  atoms -- collapsed to one Dirac, A = B and the theorem is
+                  vacuous. Three mutants in tests/test_lint.py.
 
 Exit status is non-zero on any failure, with every failure printed.
 
@@ -319,6 +333,57 @@ REQUIRED = {
     "cgmyExponent_strip": "ImprovedBS/CGMY.lean",
     "cgmy_levy_sq_integrable": "ImprovedBS/CGMY.lean",
     "cgmy_levy_far_moment": "ImprovedBS/CGMY.lean",
+    # BRIEF_012 (BSM-2 kit item 7): the non-uniqueness witness. Two distinct,
+    # equivalent three-point laws with the drift condition, both inside
+    # BRIEF_009's parity and bounds, pricing the same call differently -- and
+    # the martingale segment (★) they are points of. Every declaration of the
+    # module is listed: the witness is only as strong as its weakest clause, so
+    # none may be deleted, and the [NONUNIQ] check below reads several of them.
+    "trinomialMeasure": "ImprovedBS/NonUniqueness.lean",
+    "trinomialMeasure_apply": "ImprovedBS/NonUniqueness.lean",
+    "trinomialMeasure_isProbability": "ImprovedBS/NonUniqueness.lean",
+    "trinomialMeasure_integrable": "ImprovedBS/NonUniqueness.lean",
+    "trinomialMeasure_integral": "ImprovedBS/NonUniqueness.lean",
+    "trinomialMeasure_ae_of_atoms": "ImprovedBS/NonUniqueness.lean",
+    "trinomialMeasure_absolutelyContinuous_of_pos": "ImprovedBS/NonUniqueness.lean",
+    "witnessSpotLo": "ImprovedBS/NonUniqueness.lean",
+    "witnessSpotMid": "ImprovedBS/NonUniqueness.lean",
+    "witnessSpotHi": "ImprovedBS/NonUniqueness.lean",
+    "witnessMeasureA": "ImprovedBS/NonUniqueness.lean",
+    "witnessMeasureB": "ImprovedBS/NonUniqueness.lean",
+    "witness_call_payoff_lo": "ImprovedBS/NonUniqueness.lean",
+    "witness_call_payoff_mid": "ImprovedBS/NonUniqueness.lean",
+    "witness_call_payoff_hi": "ImprovedBS/NonUniqueness.lean",
+    "witnessA_prob": "ImprovedBS/NonUniqueness.lean",
+    "witnessB_prob": "ImprovedBS/NonUniqueness.lean",
+    "witnessMeasureA_integral": "ImprovedBS/NonUniqueness.lean",
+    "witnessMeasureB_integral": "ImprovedBS/NonUniqueness.lean",
+    "witnessA_integrable": "ImprovedBS/NonUniqueness.lean",
+    "witnessB_integrable": "ImprovedBS/NonUniqueness.lean",
+    "witnessA_nonneg": "ImprovedBS/NonUniqueness.lean",
+    "witnessB_nonneg": "ImprovedBS/NonUniqueness.lean",
+    "witnessA_drift": "ImprovedBS/NonUniqueness.lean",
+    "witnessB_drift": "ImprovedBS/NonUniqueness.lean",
+    "witnessA_call": "ImprovedBS/NonUniqueness.lean",
+    "witnessB_call": "ImprovedBS/NonUniqueness.lean",
+    "witnessA_parity": "ImprovedBS/NonUniqueness.lean",
+    "witnessB_parity": "ImprovedBS/NonUniqueness.lean",
+    "witnessA_bounds": "ImprovedBS/NonUniqueness.lean",
+    "witnessB_bounds": "ImprovedBS/NonUniqueness.lean",
+    "witnessCall_ne": "ImprovedBS/NonUniqueness.lean",
+    "witnessA_ne_B": "ImprovedBS/NonUniqueness.lean",
+    "witness_equivalent": "ImprovedBS/NonUniqueness.lean",
+    "static_skeleton_does_not_select_measure": "ImprovedBS/NonUniqueness.lean",
+    "martingaleSegment": "ImprovedBS/NonUniqueness.lean",
+    "martingale_set_param": "ImprovedBS/NonUniqueness.lean",
+    "trinomial_witness_drift": "ImprovedBS/NonUniqueness.lean",
+    "martingale_set_eq_segment": "ImprovedBS/NonUniqueness.lean",
+    "martingale_set_mem": "ImprovedBS/NonUniqueness.lean",
+    "martingale_set_call_eq": "ImprovedBS/NonUniqueness.lean",
+    "martingale_set_nondegenerate": "ImprovedBS/NonUniqueness.lean",
+    "martingale_set_price_range": "ImprovedBS/NonUniqueness.lean",
+    "witnessA_mem_segment": "ImprovedBS/NonUniqueness.lean",
+    "witnessB_mem_segment": "ImprovedBS/NonUniqueness.lean",
 }
 
 # Zero deferred-proof markers allowed. The T1/T2 node per BRIEF_001; the T3/T4
@@ -501,6 +566,52 @@ PROTECTED = {
     "cgmyExponent_strip",
     "cgmy_levy_sq_integrable",
     "cgmy_levy_far_moment",
+    # BRIEF_012: the non-uniqueness witness lands sorry-free from the start
+    "trinomialMeasure",
+    "trinomialMeasure_apply",
+    "trinomialMeasure_isProbability",
+    "trinomialMeasure_integrable",
+    "trinomialMeasure_integral",
+    "trinomialMeasure_ae_of_atoms",
+    "trinomialMeasure_absolutelyContinuous_of_pos",
+    "witnessSpotLo",
+    "witnessSpotMid",
+    "witnessSpotHi",
+    "witnessMeasureA",
+    "witnessMeasureB",
+    "witness_call_payoff_lo",
+    "witness_call_payoff_mid",
+    "witness_call_payoff_hi",
+    "witnessA_prob",
+    "witnessB_prob",
+    "witnessMeasureA_integral",
+    "witnessMeasureB_integral",
+    "witnessA_integrable",
+    "witnessB_integrable",
+    "witnessA_nonneg",
+    "witnessB_nonneg",
+    "witnessA_drift",
+    "witnessB_drift",
+    "witnessA_call",
+    "witnessB_call",
+    "witnessA_parity",
+    "witnessB_parity",
+    "witnessA_bounds",
+    "witnessB_bounds",
+    "witnessCall_ne",
+    "witnessA_ne_B",
+    "witness_equivalent",
+    "static_skeleton_does_not_select_measure",
+    "martingaleSegment",
+    "martingale_set_param",
+    "trinomial_witness_drift",
+    "martingale_set_eq_segment",
+    "martingale_set_mem",
+    "martingale_set_call_eq",
+    "martingale_set_nondegenerate",
+    "martingale_set_price_range",
+    "witnessA_mem_segment",
+    "witnessB_mem_segment",
 }
 
 # The T5 node, in dependency order, and the two citations docs/04's spine
@@ -540,6 +651,46 @@ SKELETON_FORBIDDEN = (
     "bsCall_nonneg",
     "bsPut_nonneg",
     "Phi_le_exp_mul_Phi_add",
+)
+
+# BRIEF_012's route commitments, checked in [NONUNIQ]. The four skeleton facts
+# at the witness laws must CITE BRIEF_009's theorems (and must not re-derive
+# parity from BRIEF_007's pointwise identity inside the module); the headline
+# must keep each of its clauses; the three-point law must have three atoms.
+# Patterns are matched against the whitespace-collapsed, comment-stripped
+# statement text, so line breaks inside the conjunction are immaterial.
+NONUNIQ_HEADLINE = "static_skeleton_does_not_select_measure"
+NONUNIQ_CITATIONS = (
+    ("witnessA_parity", "model_free_put_call_parity"),
+    ("witnessB_parity", "model_free_put_call_parity"),
+    ("witnessA_bounds", "model_free_call_bounds"),
+    ("witnessB_bounds", "model_free_call_bounds"),
+)
+NONUNIQ_FORBIDDEN = ("max_sub_swap_eq",)
+NONUNIQ_HEADLINE_CLAUSES = (
+    (r"IsProbabilityMeasure witnessMeasureA", "that A is a probability measure"),
+    (r"IsProbabilityMeasure witnessMeasureB", "that B is a probability measure"),
+    (r"witnessMeasureA ≠ witnessMeasureB", "that the two laws are distinct"),
+    (r"witnessMeasureA ≪ witnessMeasureB", "that A is absolutely continuous w.r.t. B"),
+    (r"witnessMeasureB ≪ witnessMeasureA", "that B is absolutely continuous w.r.t. A"),
+    (r"∫ s, id s ∂witnessMeasureA = 1 \* Real\.exp \(\(0 - 0\) \* 1\)",
+     "the drift condition at A"),
+    (r"∫ s, id s ∂witnessMeasureB = 1 \* Real\.exp \(\(0 - 0\) \* 1\)",
+     "the drift condition at B"),
+    (r"modelFreeCall witnessMeasureA id 1 0 1 - modelFreePut witnessMeasureA id 1 0 1 = ",
+     "parity at A"),
+    (r"modelFreeCall witnessMeasureB id 1 0 1 - modelFreePut witnessMeasureB id 1 0 1 = ",
+     "parity at B"),
+    (r"max \(1 \* Real\.exp \(-0 \* 1\) - 1 \* Real\.exp \(-0 \* 1\)\) 0 "
+     r"≤ modelFreeCall witnessMeasureA id 1 0 1 ∧ "
+     r"modelFreeCall witnessMeasureA id 1 0 1 ≤ 1 \* Real\.exp \(-0 \* 1\)",
+     "both bounds at A"),
+    (r"max \(1 \* Real\.exp \(-0 \* 1\) - 1 \* Real\.exp \(-0 \* 1\)\) 0 "
+     r"≤ modelFreeCall witnessMeasureB id 1 0 1 ∧ "
+     r"modelFreeCall witnessMeasureB id 1 0 1 ≤ 1 \* Real\.exp \(-0 \* 1\)",
+     "both bounds at B"),
+    (r"modelFreeCall witnessMeasureA id 1 0 1 ≠ modelFreeCall witnessMeasureB id 1 0 1",
+     "that the two prices differ"),
 )
 
 # A `sorry` that survives `lake build` is an axiom. Allow none by default.
@@ -1189,6 +1340,101 @@ def main() -> int:
             notes.append(
                 "[CGMY] exponent at `Γ(-Y)[(M-iv)^Y - M^Y + (G+iv)^Y - G^Y]`, "
                 "decay at `α + 1 < M` (C14), instantiated through `cmPriceKernel_integrable`"
+            )
+
+    # 14. [NONUNIQ] BRIEF_012: the non-uniqueness witness. `lake build` grades
+    #     that the witness theorems are TRUE; this grades that they are the
+    #     witness the brief asked for. (1) The parity/bounds facts at A and B
+    #     must be instantiations of BRIEF_009's `model_free_put_call_parity` /
+    #     `model_free_call_bounds` -- a re-derivation from `max_sub_swap_eq`
+    #     inside the module would be equally true and would say nothing about
+    #     the skeleton layer the theorem is a statement about. (2) The headline
+    #     must keep every clause: it is a conjunction precisely so that "two
+    #     measures, different prices" cannot be quietly weakened to "two
+    #     measures" (dropping `≠` on the prices) or to "two prices" (dropping
+    #     the drift/parity/bounds that make both measures admissible). (3)
+    #     `trinomialMeasure` must be three Dirac atoms: with one atom the two
+    #     witness laws coincide and every clause is trivially satisfied.
+    #     Bodies are comment-stripped, so doc-comments that discuss the
+    #     forbidden names stay legal.
+    nonuniq_path = os.path.join(ROOT, "ImprovedBS", "NonUniqueness.lean")
+    if not os.path.exists(nonuniq_path):
+        failures.append("[NONUNIQ] ImprovedBS/NonUniqueness.lean not found")
+    else:
+        nonuniq_decls = declarations(strip_comments(open(nonuniq_path, encoding="utf-8").read()))
+        nonuniq_bodies = {name: body for _, name, _, body in nonuniq_decls}
+        nonuniq_failures: list[str] = []
+
+        def nonuniq_split(name: str) -> tuple[str, str]:
+            """(statement, proof) of a theorem in the module, split at the first `:=`."""
+            body = nonuniq_bodies.get(name, "")
+            if body == "":
+                nonuniq_failures.append(f"[NONUNIQ] `{name}` not found")
+                return "", ""
+            head, _, tail = body.partition(":=")
+            return head, tail
+
+        # (1) the skeleton is CITED at the witness, not re-derived
+        for node, witness in NONUNIQ_CITATIONS:
+            _, proof = nonuniq_split(node)
+            if proof == "" and node not in nonuniq_bodies:
+                continue
+            if not re.search(rf"\b{re.escape(witness)}\b", proof):
+                nonuniq_failures.append(
+                    f"[NONUNIQ] `{node}` does not cite `{witness}`. The witness is a "
+                    "statement ABOUT BRIEF_009's skeleton: parity and the bounds at A and "
+                    "B must be instantiations of the model-free theorems, or the headline "
+                    "says nothing about the layer it claims does not select the measure."
+                )
+            for bad in NONUNIQ_FORBIDDEN:
+                if re.search(rf"\b{re.escape(bad)}\b", proof):
+                    nonuniq_failures.append(
+                        f"[NONUNIQ] `{node}` cites `{bad}`: a private re-derivation of "
+                        "parity inside the witness module. Instantiate "
+                        "`model_free_put_call_parity` / `model_free_call_bounds` instead."
+                    )
+
+        # (2) the headline keeps every clause
+        headline, _ = nonuniq_split(NONUNIQ_HEADLINE)
+        if headline != "":
+            flat = " ".join(headline.split())
+            for pat, why in NONUNIQ_HEADLINE_CLAUSES:
+                if not re.search(pat, flat):
+                    nonuniq_failures.append(
+                        f"[NONUNIQ] `{NONUNIQ_HEADLINE}` no longer states {why} "
+                        f"(pattern {pat!r}). The headline is a conjunction so that no "
+                        "clause can be dropped; restore it or change BRIEF_012 and this "
+                        "check in the same PR."
+                    )
+
+        # (3) three atoms, not one
+        tri_body = nonuniq_bodies.get("trinomialMeasure", "")
+        if tri_body == "":
+            nonuniq_failures.append("[NONUNIQ] `trinomialMeasure` not found")
+        else:
+            n_atoms = len(re.findall(r"\bMeasure\.dirac\b", tri_body))
+            if n_atoms != 3:
+                nonuniq_failures.append(
+                    f"[NONUNIQ] `trinomialMeasure` has {n_atoms} `Measure.dirac` atom(s), "
+                    "not 3. A one-atom (or two-atom) law cannot carry two distinct "
+                    "martingale measures on the witness spots, so every clause of the "
+                    "headline would be satisfied vacuously or A = B."
+                )
+            for i in ("1", "2", "3"):
+                sub = {"1": "₁", "2": "₂", "3": "₃"}[i]
+                if not re.search(rf"ENNReal\.ofReal p{sub} • Measure\.dirac s{sub}", tri_body):
+                    nonuniq_failures.append(
+                        f"[NONUNIQ] `trinomialMeasure` must carry the atom "
+                        f"`ENNReal.ofReal p{sub} • Measure.dirac s{sub}`: each weight must "
+                        "sit on its own spot."
+                    )
+
+        if nonuniq_failures:
+            failures.extend(nonuniq_failures)
+        else:
+            notes.append(
+                "[NONUNIQ] parity/bounds at A and B instantiate BRIEF_009; headline keeps "
+                "drift, parity, bounds, A ≠ B, A ~ B and the price `≠`; three Dirac atoms"
             )
 
     if "--write-baseline" in sys.argv:

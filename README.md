@@ -31,8 +31,12 @@ That split is the lever:
   condition no longer selects a measure, and different admissible choices
   price the same call differently. So the widening's honest shape is
   *increment law + a named selection principle*, and the non-uniqueness
-  itself is a formalization target (docs/03 §D1 item 7; ledger C13). This
-  split is the provable part.
+  itself is now machine-checked: `ImprovedBS/NonUniqueness.lean`'s
+  `static_skeleton_does_not_select_measure` exhibits two equivalent
+  martingale laws on three spots that satisfy the skeleton's parity and
+  bounds verbatim and price the same call at `1/4` and `1/8`, and on the
+  whole martingale segment the call is exactly `p₁/2` (docs/03 §D1 item 7;
+  ledger C13, row 12). This split is the provable part.
 - The **increment law** (lognormal, constant σ, single factor) is the fragile
   bit markets reject. Improving BS = widening the class of increment laws
   that still admit a *closed pricing kernel* — an explicit one-dimensional
@@ -60,7 +64,7 @@ both trees, and the property is enforced mechanically:
 - `scripts/lean_lint.py` fails CI if `d2` is defined from `d1`, if `bsPut` is
   defined from `bsCall`, or if `t2_put_call_parity` stops citing
   `Phi_add_Phi_neg`. It needs no Lean toolchain to do this.
-- `tests/test_mutants.py` seeds 17 bugs into the oracle and requires each to be
+- `tests/test_mutants.py` seeds 20 bugs into the oracle and requires each to be
   killed by the test meant to kill it. Two of them exist purely to prove the
   parity and `d1 − d2` tests can fail.
 
@@ -72,7 +76,7 @@ A third lane closes a gap neither of those could see. `lake build` proves a proo
 
 and it builds, shows no `sorryAx` — because `True` really is provable, which is what
 makes it a *sound* way to say nothing — keeps its name for the lint's `REQUIRED`
-check, and leaves the oracle suite at 18/18, since the oracle has no idea what a
+check, and leaves the oracle suite at 19/19, since the oracle has no idea what a
 Lean statement is. So every declaration in the protected stack is pinned in
 `tests/golden_statements.json`: a theorem by its **statement**, a definition by its
 **body** (a definition *is* the specification). `scripts/pin_statements.py`
@@ -82,7 +86,7 @@ where a statement that *reads* the same but elaborates differently gets caught.
 Weakening a claim is still allowed. It is now a diff a reviewer sees.
 
 And because `lean_lint.py` has authority over how the Lean tree is labelled while
-nothing had authority over *it*, `tests/test_lint.py` seeds 29 cheats into copies
+nothing had authority over *it*, `tests/test_lint.py` seeds 32 cheats into copies
 of the tree and requires each to be killed by a *named* check, keeps 5 legitimate
 edits green (a re-wrapped proof, marker words inside a comment, parity reproved
 from `erf_neg` directly), and asserts — rather than folklore-claims — the boundary
@@ -118,7 +122,7 @@ CI-only, so nobody spends a budget discovering this.
 ## Repository layout
 
 ```
-ImprovedBS/         # Lean 4 library, `namespace BSM`: Core.lean (T1..T5), Levy.lean, Fourier.lean, RiskNeutral.lean, Inversion.lean (T6 sub-goals 1, 2, 3a, 3b), Skeleton.lean (model-free parity + bounds), Pricing.lean (T6 at any strip law: kernel on the pricing contour, strike transform, Fubini exchange, inversion, pricing identity), CGMY.lean (the concrete CGMY exponent, its Lévy measure, its moment strip), Crosscheck.lean (#eval twin, guard 3)
+ImprovedBS/         # Lean 4 library, `namespace BSM`: Core.lean (T1..T5), Levy.lean, Fourier.lean, RiskNeutral.lean, Inversion.lean (T6 sub-goals 1, 2, 3a, 3b), Skeleton.lean (model-free parity + bounds), Pricing.lean (T6 at any strip law: kernel on the pricing contour, strike transform, Fubini exchange, inversion, pricing identity), CGMY.lean (the concrete CGMY exponent, its Lévy measure, its moment strip), NonUniqueness.lean (two martingale laws, one skeleton, two prices — the static layer does not select the measure), Crosscheck.lean (#eval twin, guard 3)
 ImprovedBS.lean     # library root module
 lakefile.toml       # mathlib pinned by tag; leanOptions (autoImplicit off)
 lean-toolchain      # pinned toolchain — must match lake-manifest.json
@@ -150,6 +154,7 @@ against.
 | — | `model_free_put_call_parity`, `model_free_call_bounds`, `model_free_put_bounds` (+ the GBM re-derivations `t2_spread_via_skeleton`, `t4_call_bounds_via_skeleton`) | parity and the no-arbitrage bounds lifted off the closed form onto `e^{−rτ}·E[(S_T−K)⁺]` — any terminal-spot law with the drift condition | model-free layer (BSM-2 kit item 5) | **LANDED GREEN** (BRIEF_009) — run 35589005865 |
 | — | `cmPriceKernel`, `strikeTransform`, `fourierDampedModelFreeCall_eq`, `fourierCM_inversion`, `carrMadan_eq_modelFreeCall` (+ the GBM instance `gbm_carrMadan_eq_bsCall`) | T6's triangle at *any* strip law: the Carr–Madan kernel on the pricing contour `u − i(α+1)` (C12), the strike transform, the Fubini exchange, inversion, and the pricing identity landing on the model-free layer | model-free pricing layer (BSM-2 kit item 4, re-scoped) | **LANDED GREEN** (BRIEF_010) — run 35646623031 |
 | — | `cgmyExponent`, `cgmyExponent_strip`, `cgmy_numeraire_strip`, `cgmy_contour_decay`, `cgmy_cmPriceKernel_integrable`, `cgmy_levy_sq_integrable` | the concrete CGMY exponent `Γ(−Y)[(M−iv)^Y − M^Y + (G+iv)^Y − G^Y]`, its tempered moment strip `(−G, M)`, the contour decay that discharges BRIEF_010's (H-decay), and `∫ (1 ∧ x²) ν < ∞` | BSM-2 kit items 1–2 | **LANDED GREEN** (BRIEF_011) — run 35779316727; corrections C14 (`α + 1 < M`, no `min (G, M)`) and C15 (continuity also needs `G > 0`, `α > 0`) |
+| — | `static_skeleton_does_not_select_measure`, `witness_equivalent`, `martingale_set_param`, `martingale_set_call_eq` (+ `witnessMeasureA`/`witnessMeasureB`, the three-point law `trinomialMeasure`) | two equivalent probability laws on the spots `(1/2, 1, 2)` at `S = K = τ = 1`, `r = q = 0`, both with the drift, both satisfying BRIEF_009's parity and bounds *as instantiated*, pricing the call at `1/4` and `1/8`; the whole martingale set is the segment `(p₁, 1 − 3p₁/2, p₁/2)` and the call on it is exactly `p₁/2` | BSM-2 kit item 7: the static layer does not select the measure | **LANDED GREEN** (BRIEF_012) — run 36052072620; correction C16 (the brief's canary mean and its literal M18) |
 
 T1–T4 are the warm-up tier, and all four are now machine-checked. T4 turned
 out to be less routine than "algebra and monotonicity": its lower bound is the
@@ -181,8 +186,8 @@ cheapest high-value theorem in the research tier. Details in docs/03 §D1.
 
 | Layer | what | status |
 |---|---|---|
-| Numeric oracle | independent `d1`/`d2`, independent call and put closed forms, PDE residual, delta identity, quadrature of the risk-neutral expectation, Carr–Madan Fourier inversion, model-free expectation route, Carr–Madan at any strip law, the CGMY exponent's contour and decay | verified — 18/18 tests |
-| Oracle is a falsifier | mutation harness: 17 seeded bugs, each killed by its targeted test, incl. 2 vacuity canaries | verified — 4/4 harness tests |
+| Numeric oracle | independent `d1`/`d2`, independent call and put closed forms, PDE residual, delta identity, quadrature of the risk-neutral expectation, Carr–Madan Fourier inversion, model-free expectation route, Carr–Madan at any strip law, the CGMY exponent's contour and decay, the non-uniqueness witness in exact rationals | verified — 19/19 tests |
+| Oracle is a falsifier | mutation harness: 20 seeded bugs, each killed by its targeted test, incl. 2 vacuity canaries | verified — 4/4 harness tests |
 | Failure modes + research dirs w/ falsifiers | docs/02, docs/03 | written |
 | Lean definitions | `erf`, Φ, φ, d1, d2, bsCall, bsPut — independent, matching the oracle | machine-checked |
 | Lean theorems | `Phi_add_Phi_neg`, T1, T2, T2′ | **GREEN** — `lake build` + `#print axioms` audit, run 35509578689 |
@@ -195,8 +200,9 @@ cheapest high-value theorem in the research tier. Details in docs/03 §D1.
 | Lean theorems | the model-free skeleton: put-call parity + no-arbitrage bounds at the expectation level, for any terminal-spot law with the drift condition (`ImprovedBS/Skeleton.lean`, 14 declarations) | **GREEN** — `lake build` + `#print axioms` audit + statement pins (elab, 108), run 35589005865; `benchmarks/LEDGER.md` row 9 |
 | Lean theorems | T6's triangle at *any* strip law: the Carr–Madan kernel on the pricing contour `u − i(α+1)` (C12 corrected), the strike transform, the Fubini exchange, Fourier inversion in the tree's own normalization, and the pricing identity landing on the model-free layer — instantiated at GBM, the CGMY decay entering only as a recorded hypothesis (`ImprovedBS/Pricing.lean`, 31 declarations) | **GREEN** — `lake build` + `#print axioms` audit + statement pins (elab, 139), run 35646623031; `benchmarks/LEDGER.md` row 10 |
 | Lean theorems | BSM-2 kit items 1–2: the concrete CGMY characteristic exponent `Γ(−Y)[(M−iv)^Y − M^Y + (G+iv)^Y − G^Y]`, its Lévy measure (`∫ (1 ∧ x²) ν < ∞`), its tempered moment strip `(−G, M)`, and the contour decay that discharges BRIEF_010 §5's (H-decay) at that exponent (`ImprovedBS/CGMY.lean`, 52 declarations) | **GREEN** — `lake build` + `#print axioms` audit (148 entries) + statement pins (elab, 165), run 35779316727; `benchmarks/LEDGER.md` row 11, corrections C14/C15 |
+| Lean theorems | BSM-2 kit item 7: the static skeleton does not select the measure — two mutually absolutely continuous three-point martingale laws satisfying BRIEF_009's parity and bounds *by instantiation* and pricing the same call at `1/4` and `1/8`; the martingale set on those spots parametrized as a segment with the call exactly `p₁/2` on it (`ImprovedBS/NonUniqueness.lean`, 45 declarations) | **GREEN** — `lake build` (no warnings on the module) + `#print axioms` audit (186 entries) + statement pins (elab, 210), run 36052072620; `benchmarks/LEDGER.md` row 12, correction C16 |
 | Deferred | *(nothing)* | ratcheted at 0 `sorry`s — `deferred: {}` |
-| Lint is a falsifier | `tests/test_lint.py`: 29 seeded cheats each killed by a named check, 5 legitimate edits green, 1 residual gap asserted open | verified — 7/7 tests |
+| Lint is a falsifier | `tests/test_lint.py`: 32 seeded cheats each killed by a named check, 5 legitimate edits green, 1 residual gap asserted open | verified — 7/7 tests |
 | Pinned claims | `tests/golden_statements.json`: 165 declarations — theorem statements, definition bodies | machine-checked (source + elab 165/165); `#check`/axioms layer verified in build job |
 | Grading lane | briefs/ + benchmarks/ + 2 CI workflows + toolchain-free lint + pins | standing |
 | First brief | BRIEF_001, re-scoped to what is actually checkable | see briefs/ |
@@ -343,12 +349,12 @@ is the formal, machine-checked restatement and the widening question.
 All five harnesses are dependency-free Python; none needs a Lean toolchain.
 
 ```sh
-python3 tests/test_bs.py          # 18/18 — the oracle satisfies the claimed identities
-python3 tests/test_mutants.py     #  4/4  — and those tests can actually fail (17 mutants)
-python3 tests/test_lint.py        #  7/7  — the linter can fail too (29 cheats, 5 controls)
+python3 tests/test_bs.py          # 19/19 — the oracle satisfies the claimed identities
+python3 tests/test_mutants.py     #  4/4  — and those tests can actually fail (20 mutants)
+python3 tests/test_lint.py        #  7/7  — the linter can fail too (32 cheats, 5 controls)
 python3 tests/test_pins.py        # 12/12 — and the pins that back it parse real CI output, and the delta/merge path works
-python3 scripts/lean_lint.py      #  OK   — no sorry in the protected node, ratchet, independence, pins, spine, skeleton, contour, cgmy (10 files, 214 declarations)
-python3 scripts/pin_statements.py --check   # 165 statements match tests/golden_statements.json
+python3 scripts/lean_lint.py      #  OK   — no sorry in the protected node, ratchet, independence, pins, spine, skeleton, contour, cgmy, nonuniq (11 files, 259 declarations)
+python3 scripts/pin_statements.py --check   # 210 statements match tests/golden_statements.json
 python3 tests/test_crosscheck.py    #  6/6  — grid + oracle self-consistency, both T3 sides, input-source routing (the cross-check itself needs lake)
 # or, with pytest installed:
 pytest tests/

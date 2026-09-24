@@ -50,6 +50,7 @@ from __future__ import annotations
 
 import cmath
 import math
+from fractions import Fraction
 
 # ---------------------------------------------------------------- normal
 
@@ -218,6 +219,27 @@ def model_free_forward(probs, spots):
     The right-hand side's `∫ s, X s ∂μ` of Lean's `model_free_parity_gap`.
     """
     return sum(p * s for p, s in zip(probs, spots))
+
+
+# ------------------------------------------------- BRIEF_012: the non-uniqueness witness
+#
+# Data, not code. The two witness laws of ImprovedBS/NonUniqueness.lean at the
+# brief's fixed contract S = K = tau = 1, r = q = 0 and spots (1/2, 1, 2), as
+# exact dyadic rationals so that "E[S_T] = 1", "call(A) = 1/4", "call(B) = 1/8"
+# and "call(A) != call(B)" are exact claims rather than float comparisons. They
+# are priced by `model_free_prices`/`model_free_forward` above and by NOTHING
+# else: the witness is a statement about the model-free layer, so it has to be
+# expressible inside it (BRIEF_012's rule -- a new oracle function here would
+# mean the witness had drifted off that layer). Both laws charge every spot
+# (mutually absolutely continuous), both have the forward as mean, and only
+# the up state pays the call, with weight 1/4 under A and 1/8 under B.
+# `tests/test_bs.py::test_nonuniqueness_witness` asserts the whole table;
+# `tests/test_mutants.py` M17 breaks B's drift (p3 : 1/8 -> 3/8), M18 corrupts
+# the call payoff to the linear payoff (call(A) = call(B) = 0), M19 replaces B
+# by A (every clause but the price disagreement survives).
+NONUNIQ_SPOTS = (Fraction(1, 2), Fraction(1), Fraction(2))
+NONUNIQ_WEIGHTS_A = (Fraction(1, 2), Fraction(1, 4), Fraction(1, 4))
+NONUNIQ_WEIGHTS_B = (Fraction(1, 4), Fraction(5, 8), Fraction(1, 8))
 
 
 def carr_madan_denom(alpha: float, u: float) -> complex:

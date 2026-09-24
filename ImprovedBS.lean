@@ -6,6 +6,7 @@ import ImprovedBS.Inversion
 import ImprovedBS.Skeleton
 import ImprovedBS.Pricing
 import ImprovedBS.CGMY
+import ImprovedBS.NonUniqueness
 
 /-!
 # ImprovedBS
@@ -62,6 +63,17 @@ Root module of the `ImprovedBS` library. Modules imported here are built by
   (`cgmyExponent_strip`, the numéraire condition `1 < M`) and the Lévy measure
   (`∫ (1 ∧ x²) ν < ∞`). Correction C14 lives here: the pricing line's condition
   is `α + 1 < M` alone — `G` constrains only the old line `u + iα`.
+* `ImprovedBS.NonUniqueness` — BRIEF_012: BSM-2 kit item 7, the machine-checked
+  non-uniqueness witness. §1 the three-point law `trinomialMeasure` (mass,
+  integral as a finite sum, a.e. at the atoms, `≪` between two such laws),
+  §2 the witness laws A `(1/2, 1/4, 1/4)` and B `(1/4, 5/8, 1/8)` on the spots
+  `(1/2, 1, 2)`: probability, integrability, drift `E[S_T] = 1`, calls `1/4`
+  and `1/8`, §3 BRIEF_009's parity and bounds instantiated at both (cited, not
+  re-derived — the `[NONUNIQ]` check), §4 the headline conjunction
+  `static_skeleton_does_not_select_measure` (A ≠ B, A ~ B, both drifts, both
+  parities, both bound pairs, `modelFreeCall A ≠ modelFreeCall B`), §5 the
+  martingale segment (★) `p₃ = p₁/2, p₂ = 1 − 3p₁/2` with the call `p₁/2`
+  sweeping `[0, 1/3]`, and A, B as its points `p₁ = 1/2`, `p₁ = 1/4`.
 
 ## Why the module is not called `Lean.*`
 

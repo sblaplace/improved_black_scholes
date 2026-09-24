@@ -1,15 +1,18 @@
 # BRIEF_012 — the machine-checked non-uniqueness witness (BSM-2 kit item 7)
 
-- **Status:** **ISSUED, not landed.** Issued by PR
-  [#18](https://github.com/sblaplace/improved_black_scholes/pull/18) @ `a3d3939`,
-  which is a documentation-only PR — no `.lean` file moved — and whose three
-  lanes are green (lean run 36035539204: `lake build` + the `#print axioms`
-  audit on all 148 entries + statement pins, all 165; oracle lane run
-  36035539099). **That verdict grades the issuance, not the theorem**: nothing
-  in `ImprovedBS/NonUniqueness.lean` exists yet, so no claim in this brief is
-  machine-checked. The brief's own row goes in `benchmarks/LEDGER.md` when the
-  *implementation* PR is graded GREEN or RED, never before. This is
-  **item 7** of the BSM-2 kit in `docs/03` §D1 and the successor `docs/04`'s
+- **Status:** **LANDED GREEN** @ `a61be00` — lean run 36052072620 (oracle lane
+  run 36052072567), PR [#19](https://github.com/sblaplace/improved_black_scholes/pull/19):
+  `lake build` (`✔ Built ImprovedBS.NonUniqueness`, no warnings) + the
+  `#print axioms` audit on all 186 entries (the 148 previous plus this brief's
+  38 theorems, every one on `[propext, Classical.choice, Quot.sound]`) +
+  **statement pins (elab, all 210)** + the oracle↔Lean cross-verifier + `lint`
+  (incl. `[NONUNIQ]`) + `oracle` (incl. `test_nonuniqueness_witness`, mutants
+  M17–M19) all green; `benchmarks/LEDGER.md` row 12 has the verdict, the
+  three-run CI arc and correction C16 (two numerical slips in this brief's own
+  route-check table, found by implementing it). Issued by PR
+  [#18](https://github.com/sblaplace/improved_black_scholes/pull/18) @ `a3d3939`
+  (documentation only; lean run 36035539204). This is **item 7** of the BSM-2
+  kit in `docs/03` §D1 and the successor `docs/04`'s
   queue names explicitly: *"the machine-checked non-uniqueness witness (item 7
   — the named successor `BRIEF_012`, ledger C13: one period is enough, and the
   witness is a trinomial)"*. Items 1–2 landed as BRIEF_011; items 3 and 6 are

@@ -21,6 +21,10 @@ checked between two *independently derived* expressions:
                                  laws, so no Gaussian route can vouch for the
                                  model-free skeleton; the drift hypothesis is
                                  proved load-bearing by a wrong-drift canary
+  BRIEF_012 non-uniqueness       two martingale laws on the SAME spots that
+                                 satisfy every BRIEF_009 clause and price the
+                                 call at 1/4 and 1/8; exact rationals, so the
+                                 disagreement is a claim, not a rounding
 
 `tests/test_mutants.py` enforces this rule mechanically: it seeds bugs that
 violate each identity and asserts the *targeted* test goes red. If a future
@@ -31,6 +35,7 @@ so the vacuity cannot silently come back.
 import math
 import os
 import sys
+from fractions import Fraction
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
@@ -64,6 +69,9 @@ from experiments.black_scholes import (
     model_free_prices,
     norm_cdf,
     norm_pdf,
+    NONUNIQ_SPOTS,
+    NONUNIQ_WEIGHTS_A,
+    NONUNIQ_WEIGHTS_B,
 )
 
 # Textbook reference case: S=K=100, r=5%, q=0, sigma=20%, T-t=1yr
@@ -384,6 +392,130 @@ def test_model_free_skeleton():
         lo_p_ = max(k_ * math.exp(-r * tau) - S * math.exp(-q * tau), 0.0)
         assert abs(call - lo_c_) < 1e-12, f"call lower edge does not bind at K={k_}: {call} vs {lo_c_}"
         assert abs(put - lo_p_) < 1e-12, f"put lower edge does not bind at K={k_}: {put} vs {lo_p_}"
+
+
+def test_nonuniqueness_witness():
+    """BRIEF_012 (numerical shadow): the static skeleton does not select the measure.
+
+    The Lean side (`ImprovedBS/NonUniqueness.lean`,
+    `static_skeleton_does_not_select_measure`) exhibits two probability laws on
+    the SAME three spots (1/2, 1, 2) at S = K = tau = 1, r = q = 0,
+
+        A = (1/2, 1/4, 1/4)      B = (1/4, 5/8, 1/8),
+
+    both with the forward as mean, both satisfying BRIEF_009's parity and
+    bounds VERBATIM (the Lean proofs instantiate `model_free_put_call_parity`
+    and `model_free_call_bounds`; the `[NONUNIQ]` lint checks the citation),
+    mutually absolutely continuous -- and pricing the call at 1/4 versus 1/8.
+    This test is that table, run through `model_free_prices` /
+    `model_free_forward` and nothing else, in exact `Fraction` arithmetic so
+    that "1/4 != 1/8" is a claim and not a rounding artefact. (The constants are
+    data in the oracle module, not oracle code: the witness must be
+    expressible inside the model-free layer or it is not about that layer.)
+
+    Beyond the two points it checks the whole martingale segment (Lean
+    `martingale_set_param` / `martingale_set_call_eq`): on these spots
+    `sum = 1` and `E[S_T] = 1` force `p = (p1, 1 - 3 p1/2, p1/2)`, nonneg
+    exactly for `p1 in [0, 2/3]`, and the call is EXACTLY `p1/2` -- so every
+    price in `[0, 1/3]` is a martingale price, while the skeleton's bounds
+    only say `0 <= call <= 1`. The forward, a linear payoff, is constant on the
+    segment: the martingale condition pins the law on `1` and on `S_T` and on
+    nothing else. Two canaries prove the drift clause is load-bearing:
+    BRIEF_012's own `(1/4, 5/8, 3/8)` (mass 5/4, mean 3/2, traded parity off
+    by 1/4) and a normalized one `(1/4, 1/2, 1/4)` (mass 1, mean 9/8) at which
+    the unfixed gap identity of `model_free_parity_gap` still holds and the
+    bounds still hold while traded parity fails -- BRIEF_009's seam again.
+
+    Mutants M17 (B's `p3 : 1/8 -> 3/8`, the brief's canary: B stops being a
+    probability law with the forward as mean, and traded parity at B fails by
+    1/4), M18 (call payoff corrupted to the LINEAR payoff `s - K`: at both
+    laws the "call" collapses to `E[S_T] - K = 0`, so `call(A) != call(B)` dies
+    without any probability being touched) and M19 (B replaced by A: every
+    clause but the price disagreement survives) are each killed by this test.
+    The brief's literal M18 -- the call payoff evaluated with the put's
+    `max(K - s, 0)` -- is BLIND at this witness, because at K = F with r = 0
+    the call and the put coincide (1/4 = 1/4, 1/8 = 1/8): it is M13's cousin
+    and only `test_model_free_skeleton` (K != F) can see it, which is why the
+    committed M18 is the linear payoff instead.
+    """
+    S, K, r, q, tau = 1, Fraction(1), 0.0, 0.0, 1.0
+    spots = NONUNIQ_SPOTS
+    disc = math.exp(-r * tau)                                    # 1.0
+    fwd = S * math.exp((r - q) * tau)                            # 1.0, the forward
+    traded_spread = S * math.exp(-q * tau) - K * math.exp(-r * tau)   # S e^{-q tau} - K e^{-r tau} = 0
+    lo_c, hi_c = max(traded_spread, 0.0), S * math.exp(-q * tau)      # the BRIEF_009 call bounds
+    assert spots == (Fraction(1, 2), Fraction(1), Fraction(2)), f"witness spots moved: {spots}"
+
+    def segment(p1):
+        # (★): the unique three-point law on these spots with mass 1 and mean 1
+        return (p1, 1 - Fraction(3, 2) * p1, p1 / 2)
+
+    expected = {"A": (NONUNIQ_WEIGHTS_A, Fraction(1, 4)), "B": (NONUNIQ_WEIGHTS_B, Fraction(1, 8))}
+    prices = {}
+    for tag, (probs, price) in expected.items():
+        # (1) a probability law with the forward as mean -- exactly
+        assert sum(probs) == 1, f"[{tag}] not a probability law: mass {sum(probs)}"
+        assert all(p > 0 for p in probs), f"[{tag}] must charge every spot (A ~ B): {probs}"
+        mean = model_free_forward(probs, spots)
+        assert mean == fwd, f"[{tag}] drift fails: E[S_T] = {mean} != {fwd}"
+        # (2) the skeleton's clauses: gap identity, traded parity, bounds
+        call, put = model_free_prices(probs, spots, K, r, tau)
+        assert call - put == disc * (mean - K), f"[{tag}] gap identity fails: {call - put}"
+        assert call - put == traded_spread, f"[{tag}] traded parity fails: {call - put} vs {traded_spread}"
+        assert lo_c <= call <= hi_c, f"[{tag}] call bounds fail: {call} not in [{lo_c}, {hi_c}]"
+        assert 0.0 <= put <= K * math.exp(-r * tau), f"[{tag}] put bounds fail: {put}"
+        # (3) the price, at its exact dyadic value (float agrees bit-for-bit)
+        assert call == float(price), f"[{tag}] call = {call}, expected {price}"
+        assert put == float(price), f"[{tag}] put = {put}, expected {price}"
+        # (4) the law sits on the segment (martingale_set_param): p3 = p1/2, p2 = 1 - 3 p1/2
+        assert probs == segment(probs[0]), f"[{tag}] not on the martingale segment: {probs}"
+        prices[tag] = call
+
+    # (5) the point: same spots, same drift, same skeleton -- different prices
+    assert NONUNIQ_WEIGHTS_A != NONUNIQ_WEIGHTS_B, "the two witness laws coincide"
+    assert prices["A"] != prices["B"], (
+        f"call(A) = {prices['A']} == call(B) = {prices['B']}: the skeleton selected the price "
+        f"and `static_skeleton_does_not_select_measure` is over-claimed"
+    )
+    assert prices["A"] - prices["B"] == 0.125, f"price gap {prices['A'] - prices['B']} != 1/8"
+
+    # (6) the segment (★), swept exactly: p1 in {0, 1/24, ..., 2/3}, 17 points
+    calls = []
+    for k in range(17):
+        p1 = Fraction(k, 24)
+        probs = segment(p1)
+        assert sum(probs) == 1 and all(p >= 0 for p in probs), f"(★) leaves the simplex at p1={p1}: {probs}"
+        assert model_free_forward(probs, spots) == 1, f"(★) drift fails at p1={p1}"
+        call, put = model_free_prices(probs, spots, K, r, tau)
+        assert call == float(p1 / 2), f"(★) call at p1={p1} is {call}, not p1/2 = {p1 / 2}"
+        assert call - put == traded_spread, f"(★) parity fails at p1={p1}"
+        calls.append(call)
+    assert calls[0] == 0.0 and calls[-1] == float(Fraction(1, 3)), f"(★) price range is not [0, 1/3]: {calls}"
+    assert calls == sorted(calls) and len(set(calls)) == 17, "(★) call is not strictly increasing in p1"
+    assert segment(Fraction(17, 24))[1] == Fraction(-1, 16), "(★) should first leave the simplex at p1 = 17/24"
+    assert segment(Fraction(1, 2)) == NONUNIQ_WEIGHTS_A and segment(Fraction(1, 4)) == NONUNIQ_WEIGHTS_B
+    # the skeleton's bounds [lo_c, hi_c] = [0, 1] do not come close to pinning it
+    assert hi_c - lo_c > calls[-1] - calls[0] > 0.3
+
+    # (7) the drift canaries: the drift clause is load-bearing, not decorative.
+    # BRIEF_012's own canary -- B with p3 moved from 1/8 to 3/8 (the M17 seed).
+    canary = (Fraction(1, 4), Fraction(5, 8), Fraction(3, 8))
+    call, put = model_free_prices(canary, spots, K, r, tau)
+    assert sum(canary) == Fraction(5, 4) and model_free_forward(canary, spots) == Fraction(3, 2)
+    assert call - put == 0.25, f"canary parity gap {call - put} != 1/4 (BRIEF_012 route check)"
+    assert call - put != traded_spread, "traded parity held at the wrong-drift canary"
+    # A NORMALIZED wrong-drift law: mass 1, mean 9/8. The unfixed gap identity
+    # (model_free_parity_gap) and the bounds still hold; traded parity fails.
+    canary = (Fraction(1, 4), Fraction(1, 2), Fraction(1, 4))
+    mean = model_free_forward(canary, spots)
+    call, put = model_free_prices(canary, spots, K, r, tau)
+    assert sum(canary) == 1 and mean == Fraction(9, 8)
+    assert call - put == disc * (mean - K), f"gap identity fails at the normalized canary: {call - put}"
+    assert lo_c <= call <= hi_c and 0.0 <= put <= K * math.exp(-r * tau)
+    assert call - put == 0.125 and call - put != traded_spread, (
+        f"traded parity held at a normalized wrong-drift law (mean={mean}): "
+        f"the drift hypothesis is NOT load-bearing and the Lean statement is over-claimed"
+    )
 
 
 def test_carr_madan_free_law():

@@ -109,7 +109,11 @@ worth stating exactly (ledger C13):
   differently. So the drift being "fixed by the martingale condition" is only
   ever fixed *relative to a named selection principle*, and the hedging
   content of the price is quadratic-error minimization, not delta
-  replication.
+  replication. This half is now machine-checked at the smallest law that can
+  carry it (`ImprovedBS/NonUniqueness.lean`, BRIEF_012, item 7 below): on
+  three spots the martingale condition leaves a whole segment of measures,
+  every one satisfying the static skeleton, and the call price runs over all
+  of `[0, 1/3]` along it.
 
 That is the whole point, restated honestly: **the tail moves into the
 increment rather than into an elastic volatility**, so *pricing* stays a
@@ -191,12 +195,21 @@ one above — **in the same tree, under the same skeleton**, with all seven of:
    preservation is necessary-but-not-sufficient, and it is what obliges
    item 3's "named". A one-period trinomial witness suffices (finite sums, no
    Lévy machinery); the compound-Poisson version ties it to the Lévy line.
-   Issued as **BRIEF_012** (ledger C13); the witness is fixed there as a
-   one-period trinomial at spots `(1/2, 1, 2)` with the two interior martingale
-   measures `(1/2, 1/4, 1/4)` and `(1/4, 5/8, 1/8)`, which price the call at
-   `1/4` and `1/8` — interior to the martingale segment `p₃ = p₁/2`,
-   `p₂ = 1 − 3p₁/2`, so both are fully supported and mutually equivalent and the
-   price difference is incompleteness rather than a support artifact.
+   **LANDED** as **BRIEF_012** (ledger C13 → row 12; PR #19, lean run
+   36052072620): `ImprovedBS/NonUniqueness.lean`, headline
+   `static_skeleton_does_not_select_measure`. The witness is a one-period
+   trinomial at spots `(1/2, 1, 2)` with the two interior martingale measures
+   `(1/2, 1/4, 1/4)` and `(1/4, 5/8, 1/8)`, which price the call at `1/4` and
+   `1/8` — interior to the martingale segment `p₃ = p₁/2`, `p₂ = 1 − 3p₁/2`, so
+   both are fully supported and mutually equivalent (`witness_equivalent`) and
+   the price difference is incompleteness rather than a support artifact. The
+   sharp form is machine-checked too: `martingale_set_call_eq` — on the whole
+   segment the call is exactly `p₁/2`, so every price in `[0, 1/3]` is a
+   martingale price (`martingale_set_price_range`) while item 5's bounds only
+   say `0 ≤ call ≤ 1`. Parity and the bounds at both measures are
+   *instantiations* of item 5's theorems (the `[NONUNIQ]` lint check reads the
+   citation), which is what makes this a statement about the static layer
+   rather than beside it.
 
 Items 1–3 are the new analysis. Items 4–6 are the widening being *proved*
 rather than fitted. Item 7 is the honest shape of the whole enterprise: it
