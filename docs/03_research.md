@@ -191,7 +191,12 @@ one above — **in the same tree, under the same skeleton**, with all seven of:
    preservation is necessary-but-not-sufficient, and it is what obliges
    item 3's "named". A one-period trinomial witness suffices (finite sums, no
    Lévy machinery); the compound-Poisson version ties it to the Lévy line.
-   Queued as BRIEF_012 (ledger C13).
+   Issued as **BRIEF_012** (ledger C13); the witness is fixed there as a
+   one-period trinomial at spots `(1/2, 1, 2)` with the two interior martingale
+   measures `(1/2, 1/4, 1/4)` and `(1/4, 5/8, 1/8)`, which price the call at
+   `1/4` and `1/8` — interior to the martingale segment `p₃ = p₁/2`,
+   `p₂ = 1 − 3p₁/2`, so both are fully supported and mutually equivalent and the
+   price difference is incompleteness rather than a support artifact.
 
 Items 1–3 are the new analysis. Items 4–6 are the widening being *proved*
 rather than fitted. Item 7 is the honest shape of the whole enterprise: it
