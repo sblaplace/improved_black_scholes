@@ -64,6 +64,7 @@ noncomputable section
 namespace BSM
 
 open MeasureTheory Filter Set
+open scoped Topology
 
 /-! ## §1 the Esscher shift — algebra on BRIEF_011 -/
 
@@ -168,11 +169,11 @@ theorem cgmyCumulant_hasDerivAt (C G M Y u : ℝ) (h₁ : -G < u) (h₂ : u < M)
   have hMu : M - u ≠ 0 := by linarith
   have hGu : G + u ≠ 0 := by linarith
   have hdM : HasDerivAt (fun u => (M - u) ^ Y) (-Y * (M - u) ^ (Y - 1)) u := by
-    convert (hasDerivAt_rpow_const (M - u) Y (Or.inl hMu)).comp u
+    convert (Real.hasDerivAt_rpow_const (M - u) Y (Or.inl hMu)).comp u
         ((hasDerivAt_const u M).sub (hasDerivAt_id u)) using 1
     ring
   have hdG : HasDerivAt (fun u => (G + u) ^ Y) (Y * (G + u) ^ (Y - 1)) u := by
-    convert (hasDerivAt_rpow_const (G + u) Y (Or.inl hGu)).comp u
+    convert (Real.hasDerivAt_rpow_const (G + u) Y (Or.inl hGu)).comp u
         ((hasDerivAt_const u G).add (hasDerivAt_id u)) using 1
     ring
   have hdB : HasDerivAt (fun u => (M - u) ^ Y - M ^ Y + (G + u) ^ Y - G ^ Y)
@@ -187,14 +188,16 @@ with no case split on `Y ≷ 1` (the pole at `Y = 1` is excluded as everywhere
 in BRIEF_011). -/
 theorem cgmyGamma_two_sub_eq (Y : ℝ) (hY : 0 < Y) (hY₂ : Y < 2) (hY₁ : Y ≠ 1) :
     Real.Gamma (-Y) * Y * (Y - 1) = Real.Gamma (2 - Y) := by
+  have hne : 1 - Y ≠ 0 := by
+    intro h
+    apply hY₁
+    linarith
   have hstep1 : Real.Gamma (1 - Y) = -Y * Real.Gamma (-Y) := by
-    have := Real.Gamma_add_one (s := -Y) (by linarith : -Y ≠ 0)
-    rw [show (1 : ℝ) - Y = -Y + 1 by ring] at this
-    exact this
+    rw [show (1 : ℝ) - Y = -Y + 1 by ring]
+    exact Real.Gamma_add_one (by linarith : -Y ≠ 0)
   have hstep2 : Real.Gamma (2 - Y) = (1 - Y) * Real.Gamma (1 - Y) := by
-    have := Real.Gamma_add_one (s := 1 - Y) (by linarith : 1 - Y ≠ 0)
-    rw [show (2 : ℝ) - Y = 1 - Y + 1 by ring] at this
-    exact this
+    rw [show (2 : ℝ) - Y = 1 - Y + 1 by ring]
+    exact Real.Gamma_add_one hne
   rw [hstep2, hstep1]
   ring
 
@@ -208,11 +211,11 @@ theorem cgmyCumulant_hasDerivAt2 (C G M Y u : ℝ) (h₁ : -G < u) (h₂ : u < M
   have hMu : M - u ≠ 0 := by linarith
   have hGu : G + u ≠ 0 := by linarith
   have hdG : HasDerivAt (fun u => (G + u) ^ (Y - 1)) ((Y - 1) * (G + u) ^ (Y - 2)) u := by
-    convert (hasDerivAt_rpow_const (G + u) (Y - 1) (Or.inl hGu)).comp u
+    convert (Real.hasDerivAt_rpow_const (G + u) (Y - 1) (Or.inl hGu)).comp u
         ((hasDerivAt_const u G).add (hasDerivAt_id u)) using 1
     ring
   have hdM : HasDerivAt (fun u => (M - u) ^ (Y - 1)) (-(Y - 1) * (M - u) ^ (Y - 2)) u := by
-    convert (hasDerivAt_rpow_const (M - u) (Y - 1) (Or.inl hMu)).comp u
+    convert (Real.hasDerivAt_rpow_const (M - u) (Y - 1) (Or.inl hMu)).comp u
         ((hasDerivAt_const u M).sub (hasDerivAt_id u)) using 1
     ring
   have hexpr : HasDerivAt
@@ -234,7 +237,7 @@ theorem cgmyCumulant_hasDerivAt2 (C G M Y u : ℝ) (h₁ : -G < u) (h₂ : u < M
     convert hexpr.congr_of_eventuallyEq hκ.symm using 1
     ring
   convert hfinal using 1
-  rw [cgmyGamma_two_sub_eq Y hY hY₂ hY₁]
+  rw [← cgmyGamma_two_sub_eq Y hY hY₂ hY₁]
   ring
 
 /-- The second derivative is strictly positive on the open strip:
@@ -254,11 +257,13 @@ finding 2. -/
 theorem cgmyCumulant_deriv_strictMono (C G M Y : ℝ) (hC : 0 < C) (hY : 0 < Y)
     (hY₂ : Y < 2) (hY₁ : Y ≠ 1) :
     StrictMonoOn (deriv (cgmyCumulant C G M Y)) (Ioo (-G) M) := by
-  refine strictMonoOn_of_deriv_pos convex_Ioo ?cont ?pos
+  refine strictMonoOn_of_deriv_pos (convex_Ioo (-G) M) ?cont ?pos
   · intro x hx
-    exact (cgmyCumulant_hasDerivAt2 C G M Y x hx.1 hx.2 hY hY₂ hY₁).differentiableAt
-      |>.continuousAt.continuousWithinAt
+    rw [isOpen_Ioo.interior_eq] at hx
+    have hd := cgmyCumulant_hasDerivAt2 C G M Y x hx.1 hx.2 hY hY₂ hY₁
+    exact hd.differentiableAt.continuousAt.continuousWithinAt
   · intro x hx
+    rw [isOpen_Ioo.interior_eq] at hx
     exact cgmyCumulant_second_deriv_pos C G M Y x hC hx.1 hx.2 hY hY₂ hY₁
 
 /-- The cumulant is strictly convex on the strip: positive second derivative,
@@ -272,7 +277,7 @@ theorem cgmyCumulant_strictConvex (C G M Y : ℝ) (hC : 0 < C) (hY : 0 < Y)
   have hsm : StrictMonoOn (deriv (cgmyCumulant C G M Y)) (interior (Ioo (-G) M)) := by
     rw [isOpen_Ioo.interior_eq]
     exact cgmyCumulant_deriv_strictMono C G M Y hC hY hY₂ hY₁
-  exact hsm.strictConvexOn_of_deriv convex_Ioo hcont
+  exact hsm.strictConvexOn_of_deriv (convex_Ioo (-G) M) hcont
 
 /-! ## §3 the Esscher equation, and the strip decides solvability -/
 
@@ -300,9 +305,9 @@ put in normal form. -/
 theorem esscherDriftMap_reflect (C G M Y θ : ℝ) :
     esscherDriftMap C G M Y (M - G - 1 - θ) = - esscherDriftMap C G M Y θ := by
   unfold esscherDriftMap cgmyCumulant
-  have h₁ : M - (M - G - 1 - θ) - 1 = G + θ := by ring
+  have h₁ : M - (M - G - 1 - θ + 1) = G + θ := by ring
   have h₂ : M - (M - G - 1 - θ) = G + θ + 1 := by ring
-  have h₃ : G + (M - G - 1 - θ) + 1 = M - θ := by ring
+  have h₃ : G + (M - G - 1 - θ + 1) = M - θ := by ring
   have h₄ : G + (M - G - 1 - θ) = M - θ - 1 := by ring
   rw [h₁, h₂, h₃, h₄]
   ring
@@ -330,8 +335,12 @@ private theorem esscherDriftMap_continuousOn (C G M Y : ℝ) (hY : 0 < Y) :
   refine (hκ.comp (continuousOn_id.add continuousOn_const) ?_).sub
     (hκ.comp continuousOn_id ?_)
   · intro θ hθ
-    exact ⟨by linarith [hθ.1], by linarith [hθ.2]⟩
+    simp only [Pi.add_apply, id_eq]
+    constructor
+    · linarith [hθ.1]
+    · linarith [hθ.2]
   · intro θ hθ
+    simp only [id_eq]
     exact ⟨hθ.1, by linarith [hθ.2]⟩
 
 /-- The drift map is strictly increasing on the WHOLE closed admissible
@@ -341,17 +350,20 @@ interval gives the boundary comparisons downstream for free. -/
 theorem esscherDriftMap_strictMono (C G M Y : ℝ) (hC : 0 < C) (hY : 0 < Y)
     (hY₂ : Y < 2) (hY₁ : Y ≠ 1) :
     StrictMonoOn (esscherDriftMap C G M Y) (Icc (-G) (M - 1)) := by
-  refine strictMonoOn_of_deriv_pos convex_Icc (esscherDriftMap_continuousOn C G M Y hY) ?_
+  refine strictMonoOn_of_deriv_pos (convex_Icc (-G) (M - 1))
+    (esscherDriftMap_continuousOn C G M Y hY) ?_
   intro θ
   rw [interior_Icc]
   intro hθ
   have hκθ := cgmyCumulant_hasDerivAt C G M Y θ hθ.1 (by linarith [hθ.2])
   have hκ1 :=
     cgmyCumulant_hasDerivAt C G M Y (θ + 1) (by linarith [hθ.1]) (by linarith [hθ.2])
+  have hinner : HasDerivAt (fun θ => θ + 1) 1 θ := by
+    simpa using (hasDerivAt_id θ).add (hasDerivAt_const θ 1)
   have h1 : HasDerivAt (fun θ => cgmyCumulant C G M Y (θ + 1))
       (deriv (cgmyCumulant C G M Y) (θ + 1)) θ := by
     rw [hκ1.deriv]
-    convert hκ1.comp θ ((hasDerivAt_id θ).add (hasDerivAt_const θ 1)) using 1
+    convert hκ1.comp θ hinner using 1
     ring
   have h2 : HasDerivAt (fun θ => cgmyCumulant C G M Y θ)
       (deriv (cgmyCumulant C G M Y) θ) θ := by
@@ -360,6 +372,7 @@ theorem esscherDriftMap_strictMono (C G M Y : ℝ) (hC : 0 < C) (hY : 0 < Y)
   have hg : HasDerivAt (fun θ => cgmyCumulant C G M Y (θ + 1) - cgmyCumulant C G M Y θ)
       (deriv (cgmyCumulant C G M Y) (θ + 1) - deriv (cgmyCumulant C G M Y) θ) θ :=
     h1.sub h2
+  unfold esscherDriftMap
   rw [hg.deriv]
   have hsm := cgmyCumulant_deriv_strictMono C G M Y hC hY hY₂ hY₁
   have hin : θ ∈ Ioo (-G) M := ⟨hθ.1, by linarith [hθ.2]⟩
@@ -393,7 +406,11 @@ theorem esscherDriftMap_bound_eq (C G M Y : ℝ) (hC : 0 < C) (hY : 0 < Y) (hY�
   have hgeq : esscherDriftMap C G M Y (M - 1) =
       C * Real.Gamma (-Y) * ((G + M) ^ Y - (G + M - 1) ^ Y - 1) := by
     unfold esscherDriftMap cgmyCumulant
-    rw [Real.zero_rpow hY.ne', Real.one_rpow]
+    have hM0 : M - (M - 1 + 1) = 0 := by ring
+    have hM1 : M - (M - 1) = 1 := by ring
+    have hG1 : G + (M - 1) = G + M - 1 := by ring
+    have hG0 : G + (M - 1 + 1) = G + M := by ring
+    rw [hM0, Real.zero_rpow hY.ne', hM1, Real.one_rpow, hG1, hG0]
     ring
   have hright : esscherDriftMap C G M Y (M - 1) = esscherDriftBound C G M Y := by
     rw [hgeq, esscherDriftBound, ← abs_mul]
@@ -427,7 +444,7 @@ theorem esscherDriftMap_mem_range (C G M Y θ : ℝ) (hC : 0 < C) (hY : 0 < Y)
   constructor
   · rw [← hbe.1]
     exact hsm hlo hθ' hθ.1
-  · rw [hbe.2]
+  · rw [← hbe.2]
     exact hsm hθ' hhi hθ.2
 
 /-- THE STRIP DECIDES SOLVABILITY, positive half: when the target drift lies
@@ -447,7 +464,7 @@ theorem esscher_exists_unique_of_mem_range (C G M Y r q : ℝ) (hC : 0 < C)
     rw [hbe.1, hbe.2]
     exact abs_lt.mp hd
   obtain ⟨θ, hθI, hθ⟩ :=
-    (intermediate_value_Ioo hab (esscherDriftMap_continuousOn C G M Y hY)) hmem
+    (intermediate_value_Ioo hab.le (esscherDriftMap_continuousOn C G M Y hY)) hmem
   refine ⟨θ, hθI, hθ, ?_⟩
   intro θ' ⟨hθ'I, hθ'⟩
   have hsm := esscherDriftMap_strictMono C G M Y hC hY hY₂ hY₁
@@ -516,10 +533,11 @@ theorem esscherExponent_neg_I_eq (C G M Y θ : ℝ) (hG : 0 < G) (hM : 0 < M)
   have h0 : -(θ : ℂ) * Complex.I = -(Complex.I * (θ : ℂ)) := by
     rw [neg_mul, mul_comm (θ : ℂ) Complex.I]
   rw [h1, h0,
-    cgmyExponent_strip C G M Y (θ + 1) hG hM (by linarith [hθ.1]) hθ.2,
+    cgmyExponent_strip C G M Y (θ + 1) hG hM (by linarith [hθ.1])
+      (by linarith [hθ.2]),
     cgmyExponent_strip C G M Y θ hG hM hθ.1 (by linarith [hθ.2])]
   unfold esscherDriftMap cgmyCumulant
-  push_cast
+  norm_cast
 
 /-- ITEM 3'S DELIVERABLE, at the factor level (re-scope note): the Esscher
 parameter `θ` delivering `g(θ) = r − q` makes the TILTED characteristic factor
