@@ -177,6 +177,8 @@ theorem cgmyCumulant_hasDerivAt (C G M Y u : ℝ) (h₁ : -G < u) (h₂ : u < M)
       convert h using 1
       ring
     convert (Real.hasDerivAt_rpow_const (h := Or.inl hMu) (p := Y)).comp u hdu using 1
+    · ext u
+      simp only [Function.comp_apply]
     ring
   have hdG : HasDerivAt (fun u => (G + u) ^ Y) (Y * (G + u) ^ (Y - 1)) u := by
     have hgu : HasDerivAt (fun x => G + x) 1 u := by
@@ -187,6 +189,8 @@ theorem cgmyCumulant_hasDerivAt (C G M Y u : ℝ) (h₁ : -G < u) (h₂ : u < M)
       convert h using 1
       ring
     convert (Real.hasDerivAt_rpow_const (h := Or.inl hGu) (p := Y)).comp u hgu using 1
+    · ext u
+      simp only [Function.comp_apply]
     ring
   have hdB : HasDerivAt (fun u => (M - u) ^ Y - M ^ Y + (G + u) ^ Y - G ^ Y)
       (-Y * (M - u) ^ (Y - 1) - 0 + Y * (G + u) ^ (Y - 1) - 0) u :=
@@ -231,6 +235,8 @@ theorem cgmyCumulant_hasDerivAt2 (C G M Y u : ℝ) (h₁ : -G < u) (h₂ : u < M
       convert h using 1
       ring
     convert (Real.hasDerivAt_rpow_const (h := Or.inl hGu) (p := Y - 1)).comp u hgu using 1
+    · ext u
+      simp only [Function.comp_apply]
     ring
   have hdM : HasDerivAt (fun u => (M - u) ^ (Y - 1)) (-(Y - 1) * (M - u) ^ (Y - 2)) u := by
     have hdu : HasDerivAt (fun x => M - x) (-1) u := by
@@ -241,6 +247,8 @@ theorem cgmyCumulant_hasDerivAt2 (C G M Y u : ℝ) (h₁ : -G < u) (h₂ : u < M
       convert h using 1
       ring
     convert (Real.hasDerivAt_rpow_const (h := Or.inl hMu) (p := Y - 1)).comp u hdu using 1
+    · ext u
+      simp only [Function.comp_apply]
     ring
   have hexpr : HasDerivAt
       (fun u => C * Real.Gamma (-Y) * Y * ((G + u) ^ (Y - 1) - (M - u) ^ (Y - 1)))
@@ -391,6 +399,8 @@ theorem esscherDriftMap_strictMono (C G M Y : ℝ) (hC : 0 < C) (hY : 0 < Y)
   have h1 : HasDerivAt (fun θ => cgmyCumulant C G M Y (θ + 1))
       (deriv (cgmyCumulant C G M Y) (θ + 1)) θ := by
     convert hκ1.comp θ hinner using 1
+    · ext θ
+      simp only [Function.comp_apply]
     rw [hκ1.deriv]
     ring
   have h2 : HasDerivAt (fun θ => cgmyCumulant C G M Y θ)
