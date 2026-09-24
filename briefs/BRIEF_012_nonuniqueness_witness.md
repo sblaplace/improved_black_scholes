@@ -1,7 +1,14 @@
 # BRIEF_012 — the machine-checked non-uniqueness witness (BSM-2 kit item 7)
 
-- **Status:** **ISSUED, not landed.** No PR, no CI verdict yet; `benchmarks/LEDGER.md`
-  gets its row when the harness says GREEN or RED, never before. This is
+- **Status:** **ISSUED, not landed.** Issued by PR
+  [#18](https://github.com/sblaplace/improved_black_scholes/pull/18) @ `a3d3939`,
+  which is a documentation-only PR — no `.lean` file moved — and whose three
+  lanes are green (lean run 36035539204: `lake build` + the `#print axioms`
+  audit on all 148 entries + statement pins, all 165; oracle lane run
+  36035539099). **That verdict grades the issuance, not the theorem**: nothing
+  in `ImprovedBS/NonUniqueness.lean` exists yet, so no claim in this brief is
+  machine-checked. The brief's own row goes in `benchmarks/LEDGER.md` when the
+  *implementation* PR is graded GREEN or RED, never before. This is
   **item 7** of the BSM-2 kit in `docs/03` §D1 and the successor `docs/04`'s
   queue names explicitly: *"the machine-checked non-uniqueness witness (item 7
   — the named successor `BRIEF_012`, ledger C13: one period is enough, and the
