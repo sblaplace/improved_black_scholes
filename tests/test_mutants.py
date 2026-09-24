@@ -15,7 +15,7 @@ error actually go red.
 
 Two properties this buys:
 
-1. **Detection.** Every seeded bug is caught (20/20 as of this commit).
+1. **Detection.** Every seeded bug is caught (22/22 as of this commit).
 2. **Non-vacuity.** Two of the mutants exist specifically to catch tests that
    compare a quantity against itself:
 
@@ -215,6 +215,32 @@ MUTANTS = [
         # every clause of the headline is satisfied except the one that IS the
         # theorem, `call(A) != call(B)`. Only the witness test can see it.
         ["test_nonuniqueness_witness"],
+    ),
+    (
+        "M20 ESSCHER shift sign flip: psi(v + i theta) - psi(i theta) for the tilt",
+        "cgmy_exponent(C, G, M, Y, v - 1j * theta) - cgmy_exponent(C, G, M, Y, -1j * theta)",
+        "cgmy_exponent(C, G, M, Y, v + 1j * theta) - cgmy_exponent(C, G, M, Y, 1j * theta)",
+        # The wrong-sign shift still defines a perfectly valid function; what
+        # it is not is the family closure. The closure assertion
+        # `esscher_exponent == cgmy_exponent at (G+theta, M-theta)` breaks by
+        # O(1) (route-check residual at issue: 2.251), while the real-drift
+        # machinery (`cgmy_cumulant`, `esscher_solve`) never touches the
+        # complex route and stays green -- so only the Esscher test can see
+        # it, and it must.
+        ["test_esscher_drift"],
+    ),
+    (
+        "M21 ESSCHER range half-width with the inner absolute value dropped",
+        "abs(C * cgmy_gamma_neg(Y)) * abs(s ** Y - (s - 1.0) ** Y - 1.0)",
+        "abs(C * cgmy_gamma_neg(Y)) * (s ** Y - (s - 1.0) ** Y - 1.0)",
+        # The bracket `s^Y - (s-1)^Y - 1` has the sign of `Y - 1` (MVT), so
+        # dropping the abs makes H NEGATIVE for every set with `Y < 1` (sets A
+        # and C) while leaving the `Y > 1` sets untouched -- one mutant, both
+        # regimes, in opposite directions. The `H > 0` and edge-value
+        # assertions of the Esscher test are its falsifiers; a test that only
+        # exercised `Y > 1` sets would let it survive, which is why the
+        # committed contract carries both.
+        ["test_esscher_drift"],
     ),
 ]
 

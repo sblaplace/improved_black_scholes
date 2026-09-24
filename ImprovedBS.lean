@@ -7,6 +7,7 @@ import ImprovedBS.Skeleton
 import ImprovedBS.Pricing
 import ImprovedBS.CGMY
 import ImprovedBS.NonUniqueness
+import ImprovedBS.Esscher
 
 /-!
 # ImprovedBS
@@ -74,6 +75,22 @@ Root module of the `ImprovedBS` library. Modules imported here are built by
   parities, both bound pairs, `modelFreeCall A ≠ modelFreeCall B`), §5 the
   martingale segment (★) `p₃ = p₁/2, p₂ = 1 − 3p₁/2` with the call `p₁/2`
   sweeping `[0, 1/3]`, and A, B as its points `p₁ = 1/2`, `p₁ = 1/4`.
+* `ImprovedBS.Esscher` — BRIEF_013: BSM-2 kit item 3, the named pricing
+  measure at CGMY, landed at the characteristic-factor level (re-scope note in
+  the module header: the tree has no CGMY law as a `Measure ℝ`). §1 the
+  Esscher shift `ψ^θ(v) = ψ(v − iθ) − ψ(−iθ)` for a general `ψ` and the family
+  closure `(G, M) ↦ (G+θ, M−θ)` (derived, not defined — the `[ESSCHER]`
+  check), §2 the cumulant `κ(u) = ψ(−iu)` on the real section and its strict
+  convexity (`Γ(−Y)·Y(Y−1) = Γ(2−Y) > 0` — no case split on `Y ≷ 1`), §3 the
+  drift map `g(θ) = κ(θ+1) − κ(θ)`: antisymmetry about `θ₀ = (M−G−1)/2`,
+  strict monotonicity on `[−G, M−1]`, edge values `±H`, and the headline pair
+  `esscher_exists_unique_of_mem_range` / `esscher_no_solution_of_outside_range`
+  (the strip decides solvability: exactly one `θ` for `|r−q| < H`, none
+  otherwise; the admissible interval is nonempty exactly when `1 < G + M`),
+  §4 the drift condition at factor level `esscher_drift_factor`, §5 pricing at
+  the Esscher measure by CONSUMING `cgmy_cmPriceKernel_integrable` at the
+  shifted rates with the tilted condition `α + 1 < M − θ` (C14 at
+  `(G+θ, M−θ)`).
 
 ## Why the module is not called `Lean.*`
 

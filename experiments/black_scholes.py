@@ -561,6 +561,116 @@ def cgmy_decay_threshold(C: float, G: float, M: float, Y: float) -> float:
     )
 
 
+# --------------------------------------------------------------- Esscher drift
+
+# The numerical shadow of ImprovedBS/Esscher.lean (BRIEF_013). The Esscher
+# tilt of an exponent is the shift
+#
+#     psi^theta(v) = psi(v - i theta) - psi(-i theta),
+#
+# and for CGMY the shift is INTERNAL: it just moves the tempering rates
+# (G, M) -> (G + theta, M - theta) (Lean `esscher_cgmy_shift`). The drift the
+# tilt delivers is g(theta) = kappa(theta+1) - kappa(theta), where kappa is
+# the real cumulant psi(-iu) on the strip, and the martingale condition is
+# g(theta) = r - q with theta admissible in (-G, M-1) -- nonempty exactly
+# when 1 < G + M. Two conventions are pinned because they are the two places
+# a silent sign/shape error can hide:
+#
+#   * WHICH SIGN THE SHIFT HAS. `esscher_exponent` applies the exponent at
+#     `v - i theta` and subtracts the value at `-i theta` -- a wrong-sign
+#     shift is mutant M20's target, and the closure assertion in
+#     tests/test_bs.py::test_esscher_drift is its falsifier (resid O(1)).
+#   * WHICH CLOSED FORM THE RANGE HALF-WIDTH CARRIES. `esscher_drift_bound`
+#     is `|C Gamma(-Y)| * |s^Y - (s-1)^Y - 1|` at `s = G + M`, the Lean
+#     `esscherDriftBound` -- the INNER absolute value is load-bearing (the
+#     bracket has the sign of `Y - 1`), and dropping it is mutant M21.
+
+
+def esscher_exponent(C: float, G: float, M: float, Y: float, theta: float,
+                     v: complex) -> complex:
+    """`psi^theta(v) = psi(v - i theta) - psi(-i theta)` -- the shift itself,
+    evaluated through the COMPLEX route `cgmy_exponent`.
+
+    The Lean `esscher_cgmy_shift` says this equals
+    `cgmy_exponent(C, G + theta, M - theta, Y, v)` for every `v` -- term
+    algebra on the two bases, no branch hypothesis. The test asserts that
+    closure on a grid; a wrong-sign shift (M20) breaks it by O(1).
+    """
+    return cgmy_exponent(C, G, M, Y, v - 1j * theta) - cgmy_exponent(C, G, M, Y, -1j * theta)
+
+
+def cgmy_cumulant(C: float, G: float, M: float, Y: float, u: float) -> float:
+    """`kappa(u) = psi(-iu)` on the real section of the strip, the Lean
+    `cgmyCumulant`: `C Gamma(-Y) [(M-u)^Y - M^Y + (G+u)^Y - G^Y]`.
+
+    Real-valued exactly because on `u in (-G, M)` both bases are positive
+    reals (Lean `cgmyExponent_strip`); no complex power is formed here.
+    """
+    return C * cgmy_gamma_neg(Y) * (
+        (M - u) ** Y - M ** Y + (G + u) ** Y - G ** Y
+    )
+
+
+def esscher_drift_map(C: float, G: float, M: float, Y: float, theta: float) -> float:
+    """`g(theta) = kappa(theta+1) - kappa(theta)` -- the drift the tilt at
+    `theta` delivers (Lean `esscherDriftMap`). The martingale condition is
+    `g(theta) = r - q`; antisymmetric about `(M-G-1)/2` (Lean
+    `esscherDriftMap_reflect`), strictly increasing on `[-G, M-1]`.
+    """
+    return cgmy_cumulant(C, G, M, Y, theta + 1.0) - cgmy_cumulant(C, G, M, Y, theta)
+
+
+def esscher_theta_zero(G: float, M: float) -> float:
+    """`(M - G - 1) / 2` -- the zero-drift Esscher parameter (Lean
+    `esscherThetaZero`), independent of `Y`: the fixed point of the
+    reflection `theta |-> M - G - 1 - theta`.
+    """
+    return (M - G - 1.0) / 2.0
+
+
+def esscher_drift_bound(C: float, G: float, M: float, Y: float) -> float:
+    """`H = |C Gamma(-Y)| |s^Y - (s-1)^Y - 1|` at `s = G + M` -- the
+    half-width of the attainable drift interval `(−H, H)` (Lean
+    `esscherDriftBound`). A function of `(C, Y, G+M)` alone: the edge values
+    `g(-G) = -H`, `g(M-1) = H` (Lean `esscherDriftMap_bound_eq`).
+
+    The inner absolute value is part of the specification: the bracket
+    `s^Y - (s-1)^Y - 1` has the sign of `Y - 1`, so dropping the abs makes
+    `H` negative for every `Y < 1` set -- mutant M21, killed by the range
+    assertions in test_esscher_drift.
+    """
+    s = G + M
+    return abs(C * cgmy_gamma_neg(Y)) * abs(s ** Y - (s - 1.0) ** Y - 1.0)
+
+
+def esscher_solve(C: float, G: float, M: float, Y: float, target: float,
+                  iters: int = 200):
+    """Bisection on `g(theta) = target` over the admissible interval
+    `[-G, M-1]` -- the numerical `esscher_exists_unique_of_mem_range`.
+
+    Returns `None` when the interval is EMPTY (`G + M <= 1`) or when there is
+    no sign change (the target lies at or beyond the edge values, the
+    `esscher_no_solution_of_outside_range` regime). Otherwise returns the
+    midpoint after `iters` halvings; `g` is strictly monotone on the
+    interval, so the bisection root is the unique Esscher parameter.
+    """
+    lo, hi = -G, M - 1.0
+    if not lo < hi:
+        return None
+    flo = esscher_drift_map(C, G, M, Y, lo) - target
+    fhi = esscher_drift_map(C, G, M, Y, hi) - target
+    if flo * fhi > 0.0:
+        return None
+    for _ in range(iters):
+        mid = 0.5 * (lo + hi)
+        fm = esscher_drift_map(C, G, M, Y, mid) - target
+        if flo * fm <= 0.0:
+            hi, fhi = mid, fm
+        else:
+            lo, flo = mid, fm
+    return 0.5 * (lo + hi)
+
+
 def cgmy_levy_near_zero_mass(Y: float, M: float, x_min: float = 1e-9, n: int = 20000) -> float:
     """`int_{x_min}^1 x^{1-Y} e^{-M x} dx` -- the truncated `x^2` piece at 0.
 

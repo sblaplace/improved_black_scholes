@@ -86,7 +86,7 @@ where a statement that *reads* the same but elaborates differently gets caught.
 Weakening a claim is still allowed. It is now a diff a reviewer sees.
 
 And because `lean_lint.py` has authority over how the Lean tree is labelled while
-nothing had authority over *it*, `tests/test_lint.py` seeds 32 cheats into copies
+nothing had authority over *it*, `tests/test_lint.py` seeds 35 cheats into copies
 of the tree and requires each to be killed by a *named* check, keeps 5 legitimate
 edits green (a re-wrapped proof, marker words inside a comment, parity reproved
 from `erf_neg` directly), and asserts — rather than folklore-claims — the boundary
@@ -202,8 +202,8 @@ cheapest high-value theorem in the research tier. Details in docs/03 §D1.
 | Lean theorems | BSM-2 kit items 1–2: the concrete CGMY characteristic exponent `Γ(−Y)[(M−iv)^Y − M^Y + (G+iv)^Y − G^Y]`, its Lévy measure (`∫ (1 ∧ x²) ν < ∞`), its tempered moment strip `(−G, M)`, and the contour decay that discharges BRIEF_010 §5's (H-decay) at that exponent (`ImprovedBS/CGMY.lean`, 52 declarations) | **GREEN** — `lake build` + `#print axioms` audit (148 entries) + statement pins (elab, 165), run 35779316727; `benchmarks/LEDGER.md` row 11, corrections C14/C15 |
 | Lean theorems | BSM-2 kit item 7: the static skeleton does not select the measure — two mutually absolutely continuous three-point martingale laws satisfying BRIEF_009's parity and bounds *by instantiation* and pricing the same call at `1/4` and `1/8`; the martingale set on those spots parametrized as a segment with the call exactly `p₁/2` on it (`ImprovedBS/NonUniqueness.lean`, 45 declarations) | **GREEN** — `lake build` (no warnings on the module) + `#print axioms` audit (186 entries) + statement pins (elab, 210), run 36052072620; `benchmarks/LEDGER.md` row 12, correction C16 |
 | Deferred | *(nothing)* | ratcheted at 0 `sorry`s — `deferred: {}` |
-| Lint is a falsifier | `tests/test_lint.py`: 32 seeded cheats each killed by a named check, 5 legitimate edits green, 1 residual gap asserted open | verified — 7/7 tests |
-| Pinned claims | `tests/golden_statements.json`: 165 declarations — theorem statements, definition bodies | machine-checked (source + elab 165/165); `#check`/axioms layer verified in build job |
+| Lint is a falsifier | `tests/test_lint.py`: 35 seeded cheats each killed by a named check, 5 legitimate edits green, 1 residual gap asserted open | verified — 7/7 tests |
+| Pinned claims | `tests/golden_statements.json`: 240 declarations — theorem statements, definition bodies | machine-checked (source 240, elab 210); `#check`/axioms layer verified in build job |
 | Grading lane | briefs/ + benchmarks/ + 2 CI workflows + toolchain-free lint + pins | standing |
 | First brief | BRIEF_001, re-scoped to what is actually checkable | see briefs/ |
 
@@ -349,12 +349,12 @@ is the formal, machine-checked restatement and the widening question.
 All five harnesses are dependency-free Python; none needs a Lean toolchain.
 
 ```sh
-python3 tests/test_bs.py          # 19/19 — the oracle satisfies the claimed identities
-python3 tests/test_mutants.py     #  4/4  — and those tests can actually fail (20 mutants)
-python3 tests/test_lint.py        #  7/7  — the linter can fail too (32 cheats, 5 controls)
+python3 tests/test_bs.py          # 20/20 — the oracle satisfies the claimed identities
+python3 tests/test_mutants.py     #  4/4  — and those tests can actually fail (22 mutants)
+python3 tests/test_lint.py        #  7/7  — the linter can fail too (35 cheats, 5 controls)
 python3 tests/test_pins.py        # 12/12 — and the pins that back it parse real CI output, and the delta/merge path works
-python3 scripts/lean_lint.py      #  OK   — no sorry in the protected node, ratchet, independence, pins, spine, skeleton, contour, cgmy, nonuniq (11 files, 259 declarations)
-python3 scripts/pin_statements.py --check   # 210 statements match tests/golden_statements.json
+python3 scripts/lean_lint.py      #  OK   — no sorry in the protected node, ratchet, independence, pins, spine, skeleton, contour, cgmy, nonuniq, esscher (12 files, 291 declarations)
+python3 scripts/pin_statements.py --check   # 240 statements match tests/golden_statements.json
 python3 tests/test_crosscheck.py    #  6/6  — grid + oracle self-consistency, both T3 sides, input-source routing (the cross-check itself needs lake)
 # or, with pytest installed:
 pytest tests/

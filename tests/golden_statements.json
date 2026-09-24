@@ -1015,6 +1015,46 @@
       "kind": "def",
       "pin": "def cgmyContour (α u : ℝ) : ℂ := (u : ℂ) - ((α + 1 : ℝ) : ℂ) * Complex.I"
     },
+    "BSM.cgmyCumulant": {
+      "file": "ImprovedBS/Esscher.lean",
+      "kind": "def",
+      "pin": "def cgmyCumulant (C G M Y u : ℝ) : ℝ := C * Real.Gamma (-Y) * ((M - u) ^ Y - M ^ Y + (G + u) ^ Y - G ^ Y)"
+    },
+    "BSM.cgmyCumulant_continuousOn": {
+      "file": "ImprovedBS/Esscher.lean",
+      "kind": "theorem",
+      "pin": "theorem cgmyCumulant_continuousOn (C G M Y : ℝ) (hY : 0 < Y) : ContinuousOn (cgmyCumulant C G M Y) (Icc (-G) M)"
+    },
+    "BSM.cgmyCumulant_deriv_strictMono": {
+      "file": "ImprovedBS/Esscher.lean",
+      "kind": "theorem",
+      "pin": "theorem cgmyCumulant_deriv_strictMono (C G M Y : ℝ) (hC : 0 < C) (hY : 0 < Y) (hY₂ : Y < 2) (hY₁ : Y ≠ 1) : StrictMonoOn (deriv (cgmyCumulant C G M Y)) (Ioo (-G) M)"
+    },
+    "BSM.cgmyCumulant_eq_strip": {
+      "file": "ImprovedBS/Esscher.lean",
+      "kind": "theorem",
+      "pin": "theorem cgmyCumulant_eq_strip (C G M Y u : ℝ) (hG : 0 < G) (hM : 0 < M) (h₁ : -G < u) (h₂ : u < M) : cgmyExponent C G M Y (-(Complex.I * (u : ℂ))) = ((cgmyCumulant C G M Y u : ℝ) : ℂ)"
+    },
+    "BSM.cgmyCumulant_hasDerivAt": {
+      "file": "ImprovedBS/Esscher.lean",
+      "kind": "theorem",
+      "pin": "theorem cgmyCumulant_hasDerivAt (C G M Y u : ℝ) (h₁ : -G < u) (h₂ : u < M) : HasDerivAt (cgmyCumulant C G M Y) (C * Real.Gamma (-Y) * Y * ((G + u) ^ (Y - 1) - (M - u) ^ (Y - 1))) u"
+    },
+    "BSM.cgmyCumulant_hasDerivAt2": {
+      "file": "ImprovedBS/Esscher.lean",
+      "kind": "theorem",
+      "pin": "theorem cgmyCumulant_hasDerivAt2 (C G M Y u : ℝ) (h₁ : -G < u) (h₂ : u < M) (hY : 0 < Y) (hY₂ : Y < 2) (hY₁ : Y ≠ 1) : HasDerivAt (deriv (cgmyCumulant C G M Y)) (C * Real.Gamma (2 - Y) * ((M - u) ^ (Y - 2) + (G + u) ^ (Y - 2))) u"
+    },
+    "BSM.cgmyCumulant_second_deriv_pos": {
+      "file": "ImprovedBS/Esscher.lean",
+      "kind": "theorem",
+      "pin": "theorem cgmyCumulant_second_deriv_pos (C G M Y u : ℝ) (hC : 0 < C) (h₁ : -G < u) (h₂ : u < M) (hY : 0 < Y) (hY₂ : Y < 2) (hY₁ : Y ≠ 1) : 0 < deriv (deriv (cgmyCumulant C G M Y)) u"
+    },
+    "BSM.cgmyCumulant_strictConvex": {
+      "file": "ImprovedBS/Esscher.lean",
+      "kind": "theorem",
+      "pin": "theorem cgmyCumulant_strictConvex (C G M Y : ℝ) (hC : 0 < C) (hY : 0 < Y) (hY₂ : Y < 2) (hY₁ : Y ≠ 1) : StrictConvexOn ℝ (Ioo (-G) M) (cgmyCumulant C G M Y)"
+    },
     "BSM.cgmyDecayThreshold": {
       "file": "ImprovedBS/CGMY.lean",
       "kind": "def",
@@ -1049,6 +1089,16 @@
       "file": "ImprovedBS/CGMY.lean",
       "kind": "theorem",
       "pin": "theorem cgmyExponent_strip (C G M Y u : ℝ) (hG : 0 < G) (hM : 0 < M) (h₁ : -G < u) (h₂ : u < M) : cgmyExponent C G M Y (-(Complex.I * (u : ℂ))) = ((C * Real.Gamma (-Y) * ((M - u) ^ Y - M ^ Y + (G + u) ^ Y - G ^ Y) : ℝ) : ℂ)"
+    },
+    "BSM.cgmyExponent_zero": {
+      "file": "ImprovedBS/Esscher.lean",
+      "kind": "theorem",
+      "pin": "theorem cgmyExponent_zero (C G M Y : ℝ) : cgmyExponent C G M Y 0 = 0"
+    },
+    "BSM.cgmyGamma_two_sub_eq": {
+      "file": "ImprovedBS/Esscher.lean",
+      "kind": "theorem",
+      "pin": "theorem cgmyGamma_two_sub_eq (Y : ℝ) (hY : 0 < Y) (hY₂ : Y < 2) (hY₁ : Y ≠ 1) : Real.Gamma (-Y) * Y * (Y - 1) = Real.Gamma (2 - Y)"
     },
     "BSM.cgmyLevyDensity": {
       "file": "ImprovedBS/CGMY.lean",
@@ -1249,6 +1299,106 @@
       "file": "ImprovedBS/Core.lean",
       "kind": "theorem",
       "pin": "theorem erf_neg (x : ℝ) : erf (-x) = -erf x"
+    },
+    "BSM.esscherDriftBound": {
+      "file": "ImprovedBS/Esscher.lean",
+      "kind": "def",
+      "pin": "def esscherDriftBound (C G M Y : ℝ) : ℝ := |C * Real.Gamma (-Y)| * |(G + M) ^ Y - (G + M - 1) ^ Y - 1|"
+    },
+    "BSM.esscherDriftBound_pos": {
+      "file": "ImprovedBS/Esscher.lean",
+      "kind": "theorem",
+      "pin": "theorem esscherDriftBound_pos (C G M Y : ℝ) (hC : 0 < C) (hY : 0 < Y) (hY₂ : Y < 2) (hY₁ : Y ≠ 1) (hGM : 1 < G + M) : 0 < esscherDriftBound C G M Y"
+    },
+    "BSM.esscherDriftMap": {
+      "file": "ImprovedBS/Esscher.lean",
+      "kind": "def",
+      "pin": "def esscherDriftMap (C G M Y θ : ℝ) : ℝ := cgmyCumulant C G M Y (θ + 1) - cgmyCumulant C G M Y θ"
+    },
+    "BSM.esscherDriftMap_bound_eq": {
+      "file": "ImprovedBS/Esscher.lean",
+      "kind": "theorem",
+      "pin": "theorem esscherDriftMap_bound_eq (C G M Y : ℝ) (hC : 0 < C) (hY : 0 < Y) (hY₂ : Y < 2) (hY₁ : Y ≠ 1) (hGM : 1 < G + M) : esscherDriftMap C G M Y (-G) = - esscherDriftBound C G M Y ∧ esscherDriftMap C G M Y (M - 1) = esscherDriftBound C G M Y"
+    },
+    "BSM.esscherDriftMap_mem_range": {
+      "file": "ImprovedBS/Esscher.lean",
+      "kind": "theorem",
+      "pin": "theorem esscherDriftMap_mem_range (C G M Y θ : ℝ) (hC : 0 < C) (hY : 0 < Y) (hY₂ : Y < 2) (hY₁ : Y ≠ 1) (hGM : 1 < G + M) (hθ : θ ∈ Ioo (-G) (M - 1)) : - esscherDriftBound C G M Y < esscherDriftMap C G M Y θ ∧ esscherDriftMap C G M Y θ < esscherDriftBound C G M Y"
+    },
+    "BSM.esscherDriftMap_reflect": {
+      "file": "ImprovedBS/Esscher.lean",
+      "kind": "theorem",
+      "pin": "theorem esscherDriftMap_reflect (C G M Y θ : ℝ) : esscherDriftMap C G M Y (M - G - 1 - θ) = - esscherDriftMap C G M Y θ"
+    },
+    "BSM.esscherDriftMap_strictMono": {
+      "file": "ImprovedBS/Esscher.lean",
+      "kind": "theorem",
+      "pin": "theorem esscherDriftMap_strictMono (C G M Y : ℝ) (hC : 0 < C) (hY : 0 < Y) (hY₂ : Y < 2) (hY₁ : Y ≠ 1) : StrictMonoOn (esscherDriftMap C G M Y) (Icc (-G) (M - 1))"
+    },
+    "BSM.esscherDriftMap_zero": {
+      "file": "ImprovedBS/Esscher.lean",
+      "kind": "theorem",
+      "pin": "theorem esscherDriftMap_zero (C G M Y : ℝ) : esscherDriftMap C G M Y (esscherThetaZero G M) = 0"
+    },
+    "BSM.esscherExponent": {
+      "file": "ImprovedBS/Esscher.lean",
+      "kind": "def",
+      "pin": "def esscherExponent (ψ : ℂ → ℂ) (θ : ℝ) (v : ℂ) : ℂ := ψ (v - (θ : ℂ) * Complex.I) - ψ (-(θ : ℂ) * Complex.I)"
+    },
+    "BSM.esscherExponent_neg_I_eq": {
+      "file": "ImprovedBS/Esscher.lean",
+      "kind": "theorem",
+      "pin": "theorem esscherExponent_neg_I_eq (C G M Y θ : ℝ) (hG : 0 < G) (hM : 0 < M) (hθ : θ ∈ Ioo (-G) (M - 1)) : esscherExponent (cgmyExponent C G M Y) θ (-Complex.I) = ((esscherDriftMap C G M Y θ : ℝ) : ℂ)"
+    },
+    "BSM.esscherThetaZero": {
+      "file": "ImprovedBS/Esscher.lean",
+      "kind": "def",
+      "pin": "def esscherThetaZero (G M : ℝ) : ℝ := (M - G - 1) / 2"
+    },
+    "BSM.esscher_cgmy_shift": {
+      "file": "ImprovedBS/Esscher.lean",
+      "kind": "theorem",
+      "pin": "theorem esscher_cgmy_shift (C G M Y θ : ℝ) : esscherExponent (cgmyExponent C G M Y) θ = cgmyExponent C (G + θ) (M - θ) Y"
+    },
+    "BSM.esscher_cmPriceKernel_integrable": {
+      "file": "ImprovedBS/Esscher.lean",
+      "kind": "theorem",
+      "pin": "theorem esscher_cmPriceKernel_integrable (C G M Y τ α θ : ℝ) (hC : 0 < C) (hY : 0 < Y) (hY₂ : Y < 2) (hY₁ : Y ≠ 1) (hα : 0 < α) (hτ : 0 < τ) (hθ : θ ∈ Ioo (-G) (M - 1)) (hcontour : α + 1 < M - θ) : Integrable (cmPriceKernel (cgmyCharFactor C (G + θ) (M - θ) Y τ) α)"
+    },
+    "BSM.esscher_correction_invariant": {
+      "file": "ImprovedBS/Esscher.lean",
+      "kind": "theorem",
+      "pin": "theorem esscher_correction_invariant (C G M Y θ : ℝ) : cgmyTemperedCorrection C (G + θ) (M - θ) Y = cgmyTemperedCorrection C G M Y"
+    },
+    "BSM.esscher_drift_factor": {
+      "file": "ImprovedBS/Esscher.lean",
+      "kind": "theorem",
+      "pin": "theorem esscher_drift_factor (C G M Y τ r q θ : ℝ) (hG : 0 < G) (hM : 0 < M) (hθ : θ ∈ Ioo (-G) (M - 1)) (hE : esscherDriftMap C G M Y θ = r - q) : cgmyCharFactor C (G + θ) (M - θ) Y τ (-Complex.I) = Complex.exp (↑τ * ↑(r - q))"
+    },
+    "BSM.esscher_exists_unique_of_mem_range": {
+      "file": "ImprovedBS/Esscher.lean",
+      "kind": "theorem",
+      "pin": "theorem esscher_exists_unique_of_mem_range (C G M Y r q : ℝ) (hC : 0 < C) (hG : 0 < G) (hM : 0 < M) (hY : 0 < Y) (hY₂ : Y < 2) (hY₁ : Y ≠ 1) (hGM : 1 < G + M) (hd : |r - q| < esscherDriftBound C G M Y) : ∃! θ : ℝ, θ ∈ Ioo (-G) (M - 1) ∧ esscherDriftMap C G M Y θ = r - q"
+    },
+    "BSM.esscher_no_solution_of_outside_range": {
+      "file": "ImprovedBS/Esscher.lean",
+      "kind": "theorem",
+      "pin": "theorem esscher_no_solution_of_outside_range (C G M Y r q : ℝ) (hC : 0 < C) (hG : 0 < G) (hM : 0 < M) (hY : 0 < Y) (hY₂ : Y < 2) (hY₁ : Y ≠ 1) (hGM : 1 < G + M) (hd : esscherDriftBound C G M Y ≤ |r - q|) : ¬ ∃ θ : ℝ, θ ∈ Ioo (-G) (M - 1) ∧ esscherDriftMap C G M Y θ = r - q"
+    },
+    "BSM.esscher_theta_zero_unique": {
+      "file": "ImprovedBS/Esscher.lean",
+      "kind": "theorem",
+      "pin": "theorem esscher_theta_zero_unique (C G M Y : ℝ) (hC : 0 < C) (hY : 0 < Y) (hY₂ : Y < 2) (hY₁ : Y ≠ 1) (hGM : 1 < G + M) : esscherThetaZero G M ∈ Ioo (-G) (M - 1) ∧ (esscherDriftMap C G M Y (esscherThetaZero G M) = 0 ∧ ∀ θ ∈ Ioo (-G) (M - 1), esscherDriftMap C G M Y θ = 0 → θ = esscherThetaZero G M)"
+    },
+    "BSM.esscher_tilt_factorization": {
+      "file": "ImprovedBS/Esscher.lean",
+      "kind": "theorem",
+      "pin": "theorem esscher_tilt_factorization (C G M Y τ θ : ℝ) (v : ℂ) : cgmyCharFactor C G M Y τ (v - (θ : ℂ) * Complex.I) = cgmyCharFactor C (G + θ) (M - θ) Y τ v * cgmyCharFactor C G M Y τ (-(θ : ℂ) * Complex.I)"
+    },
+    "BSM.esscher_tilted_numeraire": {
+      "file": "ImprovedBS/Esscher.lean",
+      "kind": "theorem",
+      "pin": "theorem esscher_tilted_numeraire (G M θ : ℝ) (hθ : θ ∈ Ioo (-G) (M - 1)) : 1 < M - θ"
     },
     "BSM.exp_moment_infinite_add_of_tail_lower_bound": {
       "file": "ImprovedBS/Levy.lean",

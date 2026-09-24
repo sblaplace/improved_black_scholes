@@ -32,6 +32,7 @@ refactor re-derives the put from parity (or d2 from d1), that suite fails --
 so the vacuity cannot silently come back.
 """
 
+import cmath
 import math
 import os
 import sys
@@ -54,6 +55,7 @@ from experiments.black_scholes import (
     cgmy_base_reals,
     cgmy_char_factor,
     cgmy_contour_re,
+    cgmy_cumulant,
     cgmy_decay_threshold,
     cgmy_exponent,
     cgmy_exponent_by_pieces,
@@ -64,6 +66,11 @@ from experiments.black_scholes import (
     cgmy_tempered_constant,
     cgmy_tempered_correction,
     cgmy_tempered_rate,
+    esscher_drift_bound,
+    esscher_drift_map,
+    esscher_exponent,
+    esscher_solve,
+    esscher_theta_zero,
     forward_by_expectation,
     model_free_forward,
     model_free_prices,
@@ -674,6 +681,137 @@ def test_cgmy_contour():
     for u in (0.5, 1.0):
         z = cgmy_exponent(1.0, 5.0, 10.0, 0.7, -1j * u)
         assert abs(z.imag) < 1e-14 * max(1.0, abs(z.real)), u
+
+
+# BRIEF_013 witness sets (the brief's numeric contract, tau = 1 throughout):
+# (label, C, G, M, Y, target r-q, expected theta*, expected range half-width H).
+ESSCHER_SETS = [
+    ("A", 1.0, 5.0, 10.0, 0.7, 0.05, 2.381041, 2.932381),
+    ("B", 1.0, 2.0, 8.0, 1.5, 0.05, 2.531499, 8.561606),
+    ("C", 0.5, 0.05, 1.0, 0.3, 0.05, -0.021865, 0.848811),
+    ("D", 1.0, 0.5, 3.0, 1.9, 0.05, 0.752775, 22.837027),
+]
+
+
+def test_esscher_drift():
+    """BRIEF_013 (numerical shadow of `ImprovedBS/Esscher.lean`).
+
+    Every assertion names the Lean declaration it shadows. The Esscher tilt
+    is the shift psi^theta(v) = psi(v - i theta) - psi(-i theta), which for
+    CGMY stays inside the family -- `(G, M) |-> (G+theta, M-theta)`
+    (`esscher_cgmy_shift`); the drift g(theta) = kappa(theta+1) - kappa(theta)
+    is antisymmetric about theta0 = (M-G-1)/2 (`esscherDriftMap_reflect`),
+    strictly monotone on the admissible interval
+    (`esscherDriftMap_strictMono`), and the strip decides solvability of the
+    martingale equation g(theta) = r - q: exactly one theta when
+    `|r-q| < H` (`esscher_exists_unique_of_mem_range`), none at and beyond
+    (`esscher_no_solution_of_outside_range`), with
+    `H = |C Gamma(-Y)| |(G+M)^Y - (G+M-1)^Y - 1|` (`esscherDriftBound`).
+    The witness sets are the brief's numeric contract; the solver is the
+    bisection of `esscher_solve` (200 steps), so residuals sit at ~1e-13 and
+    the 1e-12 tolerances carry a 10x margin.
+    """
+    # --- family closure `esscher_cgmy_shift`: the shift equals the exponent
+    # at shifted rates, for EVERY v (term algebra, no branch hypothesis)
+    grid = [(1.0, 5.0, 10.0, 0.7), (1.0, 2.0, 8.0, 1.5), (0.5, 0.05, 1.0, 0.3),
+            (1.0, 0.5, 3.0, 1.9), (0.5, 3.0, 1.0, 1.7), (1.0, 1.0, 2.0, 0.99)]
+    worst = 0.0
+    for C, G, M, Y in grid:
+        for frac in (0.05, 0.25, 0.5, 0.75, 0.95):
+            theta = -G + frac * (M - 1.0 + G)
+            for v in (2.0 + 0j, 1j, -3.0 + 0.5j, 0.0 + 0j,
+                      0.3 + 0.2j, -1.5 + 0.4j, -0.8j):
+                a = esscher_exponent(C, G, M, Y, theta, v)
+                b = cgmy_exponent(C, G + theta, M - theta, Y, v)
+                worst = max(worst, abs(a - b) / max(1.0, abs(b)))
+    assert worst <= 1e-10, worst
+
+    for label, C, G, M, Y, target, theta_exp, H_exp in ESSCHER_SETS:
+        H = esscher_drift_bound(C, G, M, Y)
+        th0 = esscher_theta_zero(G, M)
+        width = M - 1.0 + G
+        # `esscherDriftBound_pos`, and the brief's H values
+        assert H > 0.0, label
+        assert abs(H - H_exp) < 1e-4, (label, H)
+        # `esscher_theta_zero_unique`: theta0 is admissible, and its drift is 0
+        assert -G < th0 < M - 1.0, label
+        assert abs(esscher_drift_map(C, G, M, Y, th0)) < 1e-12, label
+        # `esscherDriftMap_bound_eq`: the edge values are exactly ±H
+        assert abs(esscher_drift_map(C, G, M, Y, M - 1.0) - H) < 1e-12, label
+        assert abs(esscher_drift_map(C, G, M, Y, -G) + H) < 1e-12, label
+        # `esscherDriftMap_reflect`: antisymmetry about theta0
+        for f in (0.05, 0.15, 0.3):
+            t = f * width
+            s = (esscher_drift_map(C, G, M, Y, th0 + t)
+                 + esscher_drift_map(C, G, M, Y, th0 - t))
+            assert abs(s) < 1e-11, (label, t, s)
+        # `esscherDriftMap_strictMono`: a strict-monotonicity sweep
+        prev = None
+        for i in range(401):
+            theta = -G + (i + 0.5) / 401.0 * width
+            g = esscher_drift_map(C, G, M, Y, theta)
+            if prev is not None:
+                assert g > prev, (label, i, prev, g)
+            prev = g
+        # `esscher_exists_unique_of_mem_range`: the witness solve
+        th = esscher_solve(C, G, M, Y, target)
+        assert th is not None, label
+        assert -G < th < M - 1.0, label
+        assert abs(th - theta_exp) < 1e-4, (label, th)
+        assert abs(esscher_drift_map(C, G, M, Y, th) - target) <= 1e-12, label
+        # `esscherExponent_neg_I_eq`: the COMPLEX route at v = -i is real and
+        # equals the delivered drift; both bases are positive reals there
+        z = esscher_exponent(C, G, M, Y, th, -1j)
+        assert abs(z.imag) < 1e-12, (label, z.imag)
+        assert abs(z.real - target) <= 1e-12, label
+        assert M - th - 1.0 > 0.0 and G + th + 1.0 > 0.0, label
+        z2 = cgmy_exponent(C, G + th, M - th, Y, -1j)
+        assert abs(z2 - z) < 1e-12, label
+        # `esscher_drift_factor`: exp(tau psi^theta(-i)) = exp(tau (r-q)), tau = 1
+        fac = cgmy_char_factor(C, G + th, M - th, Y, 1.0, -1j)
+        assert abs(fac - cmath.exp(target)) < 1e-12, label
+        # `esscher_tilted_numeraire`: the numeraire sits in the TILTED strip
+        assert 1.0 < M - th, label
+        # `esscher_correction_invariant`: c' carries G + M, which the tilt fixes
+        c0 = cgmy_tempered_correction(C, G, M, Y)
+        c1 = cgmy_tempered_correction(C, G + th, M - th, Y)
+        assert abs(c1 - c0) < 1e-13 * max(1.0, c0), label
+
+    # --- consumption in `esscher_cmPriceKernel_integrable`, set A at alpha=1.5:
+    # the tilted contour is legal, and the decay bound holds past the shifted
+    # threshold -- r and c' tilt-invariant, K0 at the shifted rates
+    _, C, G, M, Y, target, _, _ = ESSCHER_SETS[0]
+    th = esscher_solve(C, G, M, Y, target)
+    alpha = 1.5
+    assert alpha + 1.0 < M - th
+    r = cgmy_tempered_rate(C, Y)
+    cp = cgmy_tempered_correction(C, G, M, Y)
+    K0 = cgmy_tempered_constant(C, G + th, M - th, Y)
+    u0 = cgmy_decay_threshold(C, G + th, M - th, Y)
+    for u in (u0, 1.7 * u0, 12.0 * u0, 2000.0):
+        re_psi = cgmy_contour_re(C, G + th, M - th, Y, alpha, u)
+        bound = -r * u ** Y + cp * u ** (Y - 1.0) + K0
+        assert re_psi <= bound + 1e-9, (u, re_psi, bound)
+        f = cgmy_char_factor(C, G + th, M - th, Y, 1.0,
+                             cgmy_pricing_contour_v(alpha, u))
+        assert abs(f) <= math.exp(-0.5 * r * u ** Y) + 1e-12, u
+
+    # --- `esscher_no_solution_of_outside_range`: set A, target beyond H
+    H_A = esscher_drift_bound(C, G, M, Y)
+    assert 3.0324 > H_A
+    assert esscher_solve(C, G, M, Y, 3.0324) is None
+
+    # --- empty admissible interval: G + M <= 1 makes (-G, M-1) empty
+    assert not (-0.3 < 0.5 - 1.0)
+    assert esscher_solve(1.0, 0.3, 0.5, 0.7, 0.05) is None
+
+    # --- strong tilt: set A at target 0.4 -- the tilted contour condition
+    # `alpha + 1 < M - theta` binds at alpha = M - theta - 1 = 4.1729
+    th4 = esscher_solve(C, G, M, Y, 0.4)
+    assert th4 is not None
+    assert abs(th4 - 4.8271) < 1e-3, th4
+    assert abs((M - th4) - 5.1729) < 1e-3, M - th4
+    assert abs((M - th4 - 1.0) - 4.1729) < 1e-3
 
 
 if __name__ == "__main__":
