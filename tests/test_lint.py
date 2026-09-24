@@ -67,6 +67,7 @@ ORACLE = "experiments/black_scholes.py"
 CROSSCHECK = "ImprovedBS/Crosscheck.lean"
 SKELETON = "ImprovedBS/Skeleton.lean"
 NONUNIQ = "ImprovedBS/NonUniqueness.lean"
+ESSCHER = "ImprovedBS/Esscher.lean"
 GOLDEN = "tests/golden_statements.json"
 BASELINE = ".github/lean_lint_baseline.json"
 
@@ -442,6 +443,64 @@ MUTANTS = [
                "headline is a conjunction precisely so that each clause is a "
                "regex away from being missed; [NONUNIQ] holds the list.",
     },
+    # ---- BRIEF_013: the named Esscher measure (BSM-2 kit item 3) ----
+    # The two guards [ESSCHER] watches are exactly the two a reviewer checks:
+    # the shift must be DERIVED, not defined (the C1 tautology class), and the
+    # pricing integrability must be CONSUMED from BRIEF_011, not re-proved
+    # (the route-commitment class).
+    {
+        "name": "E1 esscherExponent hollowed: the shift defined AS the shifted CGMY form",
+        "file": ESSCHER,
+        "from": "def esscherExponent (ψ : ℂ → ℂ) (θ : ℝ) (v : ℂ) : ℂ :=\n"
+                "  ψ (v - (θ : ℂ) * Complex.I) - ψ (-(θ : ℂ) * Complex.I)",
+        "to": "def esscherExponent (ψ : ℂ → ℂ) (θ : ℝ) (v : ℂ) : ℂ :=\n"
+              "  cgmyExponent 1 (0 + θ) (2 - θ) 1 v",
+        "tag": "[ESSCHER]",
+        "why": "With the tilt DEFINED as the shifted CGMY form, "
+               "`esscher_cgmy_shift` is an `rfl` tautology: the family "
+               "closure -- the whole algebraic content of the Esscher "
+               "transform -- is assumed in the definition and certifies "
+               "nothing (C1 item 1 reloaded). The guard is clause 1 of "
+               "[ESSCHER]: the body must apply the GENERAL `ψ` at `v − ↑θ·I` "
+               "and subtract `ψ` at `−↑θ·I`, and must never mention "
+               "`cgmyExponent`. The mutant need not build to make the point; "
+               "the lint is text over the tree.",
+    },
+    {
+        "name": "E2 tilted integrability re-derived from the abstract interface",
+        "file": ESSCHER,
+        "from": "  refine cgmy_cmPriceKernel_integrable C (G + θ) (M - θ) Y τ α hC ?_ ?_ hY hY₂ hY₁ hα\n"
+                "    hcontour hτ",
+        "to": "  exact cmPriceKernel_integrable hα",
+        "tag": "[ESSCHER]",
+        "why": "Pricing at the Esscher measure is a claim that the TILTED law "
+               "plugs into the machine BRIEF_011 already built -- the "
+               "integrability must be `cgmy_cmPriceKernel_integrable` CITED at "
+               "the shifted rates `(G+θ, M−θ)`. Re-deriving it from the "
+               "abstract `cmPriceKernel_integrable` inside the module is the "
+               "[CGMY] route-commitment cheat one level up: equally true, and "
+               "equally silent about which landed theorem does the work. The "
+               "statement is untouched and every pin stays green; only the "
+               "citation check in [ESSCHER] clause 2 can see it.",
+    },
+    {
+        "name": "E3 headline weakened: the admissible interval's nonemptiness `1 < G + M` dropped",
+        "file": ESSCHER,
+        "from": "    (hGM : 1 < G + M) (hd : |r - q| < esscherDriftBound C G M Y) :\n"
+                "    ∃! θ : ℝ, θ ∈ Ioo (-G) (M - 1) ∧ esscherDriftMap C G M Y θ = r - q := by",
+        "to": "    (hGM : 1 ≤ G + M) (hd : |r - q| < esscherDriftBound C G M Y) :\n"
+              "    ∃! θ : ℝ, θ ∈ Ioo (-G) (M - 1) ∧ esscherDriftMap C G M Y θ = r - q := by",
+        "also_rewrite_pins": True,
+        "tag": "[ESSCHER]",
+        "why": "`1 < G + M` is exactly the nonemptiness of the admissible "
+               "interval `(-G, M-1)` -- at `G + M = 1` it is empty and the "
+               "`∃!` claim is simply false, so weakening `<` to `≤` is not a "
+               "generalization but a broken theorem. The brief's canary "
+               "`G = 0.3, M = 0.5` is the number the hypothesis exists for; "
+               "an author who regenerates the pins has a self-consistent "
+               "layer 1 and a green build in their head. Only clause 3 of "
+               "[ESSCHER] reads the hypothesis list.",
+    },
 ]
 
 # Attacks the toolchain-free lanes provably CANNOT see, kept as
@@ -630,8 +689,8 @@ def test_baseline_is_green():
 def test_mutation_anchors_exist():
     """Guard: every anchor must be present in the committed source.
 
-    A mutant whose anchor has been edited away is a silent no-op, and 32 silent
-    no-ops read exactly like 32 kills.
+    A mutant whose anchor has been edited away is a silent no-op, and 35 silent
+    no-ops read exactly like 35 kills.
     """
     missing = []
     for mut in MUTANTS + CONTROLS + KNOWN_LOCAL_GAPS:

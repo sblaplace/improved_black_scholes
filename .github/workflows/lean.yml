@@ -368,6 +368,39 @@ jobs:
           #print axioms BSM.martingale_set_price_range
           #print axioms BSM.witnessA_mem_segment
           #print axioms BSM.witnessB_mem_segment
+          -- BRIEF_013: the Esscher drift at CGMY (BSM-2 kit item 3),
+          -- ImprovedBS/Esscher.lean. The shift and the family closure, the
+          -- cumulant and its strict convexity, the drift map's reflection,
+          -- zero and strict monotonicity, the range half-width and the
+          -- existence/no-solution pair, the drift factor at the named
+          -- measure, and the consumption of BRIEF_011's pricing machine at
+          -- the shifted rates. All must print
+          -- `[propext, Classical.choice, Quot.sound]` and never sorryAx.
+          #print axioms BSM.cgmyExponent_zero
+          #print axioms BSM.esscher_cgmy_shift
+          #print axioms BSM.esscher_tilt_factorization
+          #print axioms BSM.cgmyCumulant_eq_strip
+          #print axioms BSM.cgmyCumulant_continuousOn
+          #print axioms BSM.cgmyCumulant_hasDerivAt
+          #print axioms BSM.cgmyGamma_two_sub_eq
+          #print axioms BSM.cgmyCumulant_hasDerivAt2
+          #print axioms BSM.cgmyCumulant_second_deriv_pos
+          #print axioms BSM.cgmyCumulant_deriv_strictMono
+          #print axioms BSM.cgmyCumulant_strictConvex
+          #print axioms BSM.esscherDriftMap_reflect
+          #print axioms BSM.esscherDriftMap_zero
+          #print axioms BSM.esscherDriftMap_strictMono
+          #print axioms BSM.esscherDriftBound_pos
+          #print axioms BSM.esscherDriftMap_bound_eq
+          #print axioms BSM.esscherDriftMap_mem_range
+          #print axioms BSM.esscher_exists_unique_of_mem_range
+          #print axioms BSM.esscher_no_solution_of_outside_range
+          #print axioms BSM.esscher_theta_zero_unique
+          #print axioms BSM.esscherExponent_neg_I_eq
+          #print axioms BSM.esscher_drift_factor
+          #print axioms BSM.esscher_tilted_numeraire
+          #print axioms BSM.esscher_correction_invariant
+          #print axioms BSM.esscher_cmPriceKernel_integrable
           LEAN
           lake env lean /tmp/Audit.lean 2>&1 | tee lean-audit.log
           if grep -q sorryAx lean-audit.log; then

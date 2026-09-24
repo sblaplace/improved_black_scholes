@@ -76,7 +76,7 @@ A third lane closes a gap neither of those could see. `lake build` proves a proo
 
 and it builds, shows no `sorryAx` — because `True` really is provable, which is what
 makes it a *sound* way to say nothing — keeps its name for the lint's `REQUIRED`
-check, and leaves the oracle suite at 19/19, since the oracle has no idea what a
+check, and leaves the oracle suite at 20/20, since the oracle has no idea what a
 Lean statement is. So every declaration in the protected stack is pinned in
 `tests/golden_statements.json`: a theorem by its **statement**, a definition by its
 **body** (a definition *is* the specification). `scripts/pin_statements.py`
@@ -86,7 +86,7 @@ where a statement that *reads* the same but elaborates differently gets caught.
 Weakening a claim is still allowed. It is now a diff a reviewer sees.
 
 And because `lean_lint.py` has authority over how the Lean tree is labelled while
-nothing had authority over *it*, `tests/test_lint.py` seeds 32 cheats into copies
+nothing had authority over *it*, `tests/test_lint.py` seeds 35 cheats into copies
 of the tree and requires each to be killed by a *named* check, keeps 5 legitimate
 edits green (a re-wrapped proof, marker words inside a comment, parity reproved
 from `erf_neg` directly), and asserts — rather than folklore-claims — the boundary
@@ -155,6 +155,7 @@ against.
 | — | `cmPriceKernel`, `strikeTransform`, `fourierDampedModelFreeCall_eq`, `fourierCM_inversion`, `carrMadan_eq_modelFreeCall` (+ the GBM instance `gbm_carrMadan_eq_bsCall`) | T6's triangle at *any* strip law: the Carr–Madan kernel on the pricing contour `u − i(α+1)` (C12), the strike transform, the Fubini exchange, inversion, and the pricing identity landing on the model-free layer | model-free pricing layer (BSM-2 kit item 4, re-scoped) | **LANDED GREEN** (BRIEF_010) — run 35646623031 |
 | — | `cgmyExponent`, `cgmyExponent_strip`, `cgmy_numeraire_strip`, `cgmy_contour_decay`, `cgmy_cmPriceKernel_integrable`, `cgmy_levy_sq_integrable` | the concrete CGMY exponent `Γ(−Y)[(M−iv)^Y − M^Y + (G+iv)^Y − G^Y]`, its tempered moment strip `(−G, M)`, the contour decay that discharges BRIEF_010's (H-decay), and `∫ (1 ∧ x²) ν < ∞` | BSM-2 kit items 1–2 | **LANDED GREEN** (BRIEF_011) — run 35779316727; corrections C14 (`α + 1 < M`, no `min (G, M)`) and C15 (continuity also needs `G > 0`, `α > 0`) |
 | — | `static_skeleton_does_not_select_measure`, `witness_equivalent`, `martingale_set_param`, `martingale_set_call_eq` (+ `witnessMeasureA`/`witnessMeasureB`, the three-point law `trinomialMeasure`) | two equivalent probability laws on the spots `(1/2, 1, 2)` at `S = K = τ = 1`, `r = q = 0`, both with the drift, both satisfying BRIEF_009's parity and bounds *as instantiated*, pricing the call at `1/4` and `1/8`; the whole martingale set is the segment `(p₁, 1 − 3p₁/2, p₁/2)` and the call on it is exactly `p₁/2` | BSM-2 kit item 7: the static layer does not select the measure | **LANDED GREEN** (BRIEF_012) — run 36052072620; correction C16 (the brief's canary mean and its literal M18) |
+| — | `esscher_cgmy_shift`, `esscher_tilt_factorization`, `cgmyCumulant_eq_strip`, `esscher_exists_unique_of_mem_range`, `esscher_no_solution_of_outside_range`, `esscher_theta_zero_unique`, `esscher_drift_factor`, `esscher_cmPriceKernel_integrable` (+ `esscherExponent`, `cgmyCumulant`, `esscherDriftMap`, `esscherThetaZero`, `esscherDriftBound`) | the Esscher shift keeps CGMY inside the family (`(G, M) ↦ (G+θ, M−θ)`), the cumulant `κ` is strictly convex on the strip (`κ″ = CΓ(2−Y)[(M−u)^{Y−2} + (G+u)^{Y−2}] > 0`), so the drift equation `κ(θ+1) − κ(θ) = r − q` has a unique `θ ∈ (−G, M−1)` exactly when `|r−q|` is below the edge-value bound `H = |CΓ(−Y)|·|(G+M)^Y − (G+M−1)^Y − 1|`, the tilted factor equals `e^{τ(r−q)}` at the solution, and the pricing kernel stays integrable on the shifted contour | BSM-2 kit item 3: the drift fixed at a named pricing measure | **LANDED GREEN** (BRIEF_013) — run 36072416203 |
 
 T1–T4 are the warm-up tier, and all four are now machine-checked. T4 turned
 out to be less routine than "algebra and monotonicity": its lower bound is the
@@ -186,8 +187,8 @@ cheapest high-value theorem in the research tier. Details in docs/03 §D1.
 
 | Layer | what | status |
 |---|---|---|
-| Numeric oracle | independent `d1`/`d2`, independent call and put closed forms, PDE residual, delta identity, quadrature of the risk-neutral expectation, Carr–Madan Fourier inversion, model-free expectation route, Carr–Madan at any strip law, the CGMY exponent's contour and decay, the non-uniqueness witness in exact rationals | verified — 19/19 tests |
-| Oracle is a falsifier | mutation harness: 20 seeded bugs, each killed by its targeted test, incl. 2 vacuity canaries | verified — 4/4 harness tests |
+| Numeric oracle | independent `d1`/`d2`, independent call and put closed forms, PDE residual, delta identity, quadrature of the risk-neutral expectation, Carr–Madan Fourier inversion, model-free expectation route, Carr–Madan at any strip law, the CGMY exponent's contour and decay, the non-uniqueness witness in exact rationals, the Esscher drift map, its zero and its solvability bound | verified — 20/20 tests |
+| Oracle is a falsifier | mutation harness: 22 seeded bugs, each killed by its targeted test, incl. 2 vacuity canaries | verified — 4/4 harness tests |
 | Failure modes + research dirs w/ falsifiers | docs/02, docs/03 | written |
 | Lean definitions | `erf`, Φ, φ, d1, d2, bsCall, bsPut — independent, matching the oracle | machine-checked |
 | Lean theorems | `Phi_add_Phi_neg`, T1, T2, T2′ | **GREEN** — `lake build` + `#print axioms` audit, run 35509578689 |
@@ -201,9 +202,10 @@ cheapest high-value theorem in the research tier. Details in docs/03 §D1.
 | Lean theorems | T6's triangle at *any* strip law: the Carr–Madan kernel on the pricing contour `u − i(α+1)` (C12 corrected), the strike transform, the Fubini exchange, Fourier inversion in the tree's own normalization, and the pricing identity landing on the model-free layer — instantiated at GBM, the CGMY decay entering only as a recorded hypothesis (`ImprovedBS/Pricing.lean`, 31 declarations) | **GREEN** — `lake build` + `#print axioms` audit + statement pins (elab, 139), run 35646623031; `benchmarks/LEDGER.md` row 10 |
 | Lean theorems | BSM-2 kit items 1–2: the concrete CGMY characteristic exponent `Γ(−Y)[(M−iv)^Y − M^Y + (G+iv)^Y − G^Y]`, its Lévy measure (`∫ (1 ∧ x²) ν < ∞`), its tempered moment strip `(−G, M)`, and the contour decay that discharges BRIEF_010 §5's (H-decay) at that exponent (`ImprovedBS/CGMY.lean`, 52 declarations) | **GREEN** — `lake build` + `#print axioms` audit (148 entries) + statement pins (elab, 165), run 35779316727; `benchmarks/LEDGER.md` row 11, corrections C14/C15 |
 | Lean theorems | BSM-2 kit item 7: the static skeleton does not select the measure — two mutually absolutely continuous three-point martingale laws satisfying BRIEF_009's parity and bounds *by instantiation* and pricing the same call at `1/4` and `1/8`; the martingale set on those spots parametrized as a segment with the call exactly `p₁/2` on it (`ImprovedBS/NonUniqueness.lean`, 45 declarations) | **GREEN** — `lake build` (no warnings on the module) + `#print axioms` audit (186 entries) + statement pins (elab, 210), run 36052072620; `benchmarks/LEDGER.md` row 12, correction C16 |
+| Lean theorems | BSM-2 kit item 3: the Esscher drift at CGMY — the exponent shift `ψ^θ(v) = ψ(v − iθ) − ψ(−iθ)` keeps the family (`(G, M) ↦ (G+θ, M−θ)`), the cumulant's strict convexity makes the drift map strictly increasing, `θ₀ = (M−G−1)/2` is its unique zero, in-range targets solve uniquely and out-of-range ones have no solution, the tilted numeraire condition `1 < M − θ` holds on the strip, and pricing at the tilted rates consumes `cgmy_cmPriceKernel_integrable` (`ImprovedBS/Esscher.lean`, 30 declarations) | **GREEN** — `lake build` + `#print axioms` audit (211 entries) + statement pins (elab, 240), run 36072416203; `benchmarks/LEDGER.md` row 13 |
 | Deferred | *(nothing)* | ratcheted at 0 `sorry`s — `deferred: {}` |
-| Lint is a falsifier | `tests/test_lint.py`: 32 seeded cheats each killed by a named check, 5 legitimate edits green, 1 residual gap asserted open | verified — 7/7 tests |
-| Pinned claims | `tests/golden_statements.json`: 165 declarations — theorem statements, definition bodies | machine-checked (source + elab 165/165); `#check`/axioms layer verified in build job |
+| Lint is a falsifier | `tests/test_lint.py`: 35 seeded cheats each killed by a named check, 5 legitimate edits green, 1 residual gap asserted open | verified — 7/7 tests |
+| Pinned claims | `tests/golden_statements.json`: 240 declarations — theorem statements, definition bodies | machine-checked (source 240, elab 240); `#check`/axioms layer verified in build job |
 | Grading lane | briefs/ + benchmarks/ + 2 CI workflows + toolchain-free lint + pins | standing |
 | First brief | BRIEF_001, re-scoped to what is actually checkable | see briefs/ |
 
@@ -349,12 +351,12 @@ is the formal, machine-checked restatement and the widening question.
 All five harnesses are dependency-free Python; none needs a Lean toolchain.
 
 ```sh
-python3 tests/test_bs.py          # 19/19 — the oracle satisfies the claimed identities
-python3 tests/test_mutants.py     #  4/4  — and those tests can actually fail (20 mutants)
-python3 tests/test_lint.py        #  7/7  — the linter can fail too (32 cheats, 5 controls)
+python3 tests/test_bs.py          # 20/20 — the oracle satisfies the claimed identities
+python3 tests/test_mutants.py     #  4/4  — and those tests can actually fail (22 mutants)
+python3 tests/test_lint.py        #  7/7  — the linter can fail too (35 cheats, 5 controls)
 python3 tests/test_pins.py        # 12/12 — and the pins that back it parse real CI output, and the delta/merge path works
-python3 scripts/lean_lint.py      #  OK   — no sorry in the protected node, ratchet, independence, pins, spine, skeleton, contour, cgmy, nonuniq (11 files, 259 declarations)
-python3 scripts/pin_statements.py --check   # 210 statements match tests/golden_statements.json
+python3 scripts/lean_lint.py      #  OK   — no sorry in the protected node, ratchet, independence, pins, spine, skeleton, contour, cgmy, nonuniq, esscher (12 files, 291 declarations)
+python3 scripts/pin_statements.py --check   # 240 statements match tests/golden_statements.json
 python3 tests/test_crosscheck.py    #  6/6  — grid + oracle self-consistency, both T3 sides, input-source routing (the cross-check itself needs lake)
 # or, with pytest installed:
 pytest tests/

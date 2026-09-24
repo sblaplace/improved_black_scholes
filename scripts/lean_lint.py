@@ -90,6 +90,24 @@ Checks
                   `trinomialMeasure` must be the sum of THREE `Measure.dirac`
                   atoms -- collapsed to one Dirac, A = B and the theorem is
                   vacuous. Three mutants in tests/test_lint.py.
+15. ESSCHER       BRIEF_013's route commitments for the named Esscher measure
+                  (BSM-2 kit item 3). (1) `esscherExponent` must be defined by
+                  the shift for a GENERAL `psi` and must not mention
+                  `cgmyExponent` -- defining the tilt as the shifted CGMY form
+                  would make `esscher_cgmy_shift` an `rfl` tautology (C1 item 1
+                  reloaded); (2) `esscher_cmPriceKernel_integrable` must cite
+                  BRIEF_011's `cgmy_cmPriceKernel_integrable` at the shifted
+                  rates and must not mention the abstract
+                  `cmPriceKernel_integrable` -- re-deriving integrability inside
+                  the module is the [CGMY] route commitment one level up;
+                  (3) `esscher_exists_unique_of_mem_range` must carry
+                  `1 < G + M`, `Y ≠ 1` and the `esscherDriftBound` comparison,
+                  and no `min` over `G`/`M` may appear anywhere in the module
+                  (the C14 regression guard, extended); (4) `esscherDriftBound`
+                  must carry the closed form
+                  `(G+M)^Y - (G+M-1)^Y - 1` -- the cheat is a `max` over
+                  sampled values, which builds and certifies nothing. Three
+                  mutants in tests/test_lint.py.
 
 Exit status is non-zero on any failure, with every failure printed.
 
@@ -384,6 +402,40 @@ REQUIRED = {
     "martingale_set_price_range": "ImprovedBS/NonUniqueness.lean",
     "witnessA_mem_segment": "ImprovedBS/NonUniqueness.lean",
     "witnessB_mem_segment": "ImprovedBS/NonUniqueness.lean",
+    # BRIEF_013 (BSM-2 kit item 3): the Esscher drift at CGMY, landed at the
+    # characteristic-factor level. Definitions are specifications -- hollowing
+    # `esscherExponent` or `esscherDriftBound` is a diff -- so they sit here
+    # beside the theorems, and every one of the 30 declarations is PROTECTED.
+    "esscherExponent": "ImprovedBS/Esscher.lean",
+    "cgmyCumulant": "ImprovedBS/Esscher.lean",
+    "esscherDriftMap": "ImprovedBS/Esscher.lean",
+    "esscherThetaZero": "ImprovedBS/Esscher.lean",
+    "esscherDriftBound": "ImprovedBS/Esscher.lean",
+    "cgmyExponent_zero": "ImprovedBS/Esscher.lean",
+    "esscher_cgmy_shift": "ImprovedBS/Esscher.lean",
+    "esscher_tilt_factorization": "ImprovedBS/Esscher.lean",
+    "cgmyCumulant_eq_strip": "ImprovedBS/Esscher.lean",
+    "cgmyCumulant_continuousOn": "ImprovedBS/Esscher.lean",
+    "cgmyCumulant_hasDerivAt": "ImprovedBS/Esscher.lean",
+    "cgmyGamma_two_sub_eq": "ImprovedBS/Esscher.lean",
+    "cgmyCumulant_hasDerivAt2": "ImprovedBS/Esscher.lean",
+    "cgmyCumulant_second_deriv_pos": "ImprovedBS/Esscher.lean",
+    "cgmyCumulant_deriv_strictMono": "ImprovedBS/Esscher.lean",
+    "cgmyCumulant_strictConvex": "ImprovedBS/Esscher.lean",
+    "esscherDriftMap_reflect": "ImprovedBS/Esscher.lean",
+    "esscherDriftMap_zero": "ImprovedBS/Esscher.lean",
+    "esscherDriftMap_strictMono": "ImprovedBS/Esscher.lean",
+    "esscherDriftBound_pos": "ImprovedBS/Esscher.lean",
+    "esscherDriftMap_bound_eq": "ImprovedBS/Esscher.lean",
+    "esscherDriftMap_mem_range": "ImprovedBS/Esscher.lean",
+    "esscher_exists_unique_of_mem_range": "ImprovedBS/Esscher.lean",
+    "esscher_no_solution_of_outside_range": "ImprovedBS/Esscher.lean",
+    "esscher_theta_zero_unique": "ImprovedBS/Esscher.lean",
+    "esscherExponent_neg_I_eq": "ImprovedBS/Esscher.lean",
+    "esscher_drift_factor": "ImprovedBS/Esscher.lean",
+    "esscher_tilted_numeraire": "ImprovedBS/Esscher.lean",
+    "esscher_correction_invariant": "ImprovedBS/Esscher.lean",
+    "esscher_cmPriceKernel_integrable": "ImprovedBS/Esscher.lean",
 }
 
 # Zero deferred-proof markers allowed. The T1/T2 node per BRIEF_001; the T3/T4
@@ -612,6 +664,39 @@ PROTECTED = {
     "martingale_set_price_range",
     "witnessA_mem_segment",
     "witnessB_mem_segment",
+    # BRIEF_013 (BSM-2 kit item 3): all 30 declarations of Esscher.lean, defs
+    # included -- the shift's definition and the bound's closed form are the
+    # specification the [ESSCHER] check reads.
+    "esscherExponent",
+    "cgmyCumulant",
+    "esscherDriftMap",
+    "esscherThetaZero",
+    "esscherDriftBound",
+    "cgmyExponent_zero",
+    "esscher_cgmy_shift",
+    "esscher_tilt_factorization",
+    "cgmyCumulant_eq_strip",
+    "cgmyCumulant_continuousOn",
+    "cgmyCumulant_hasDerivAt",
+    "cgmyGamma_two_sub_eq",
+    "cgmyCumulant_hasDerivAt2",
+    "cgmyCumulant_second_deriv_pos",
+    "cgmyCumulant_deriv_strictMono",
+    "cgmyCumulant_strictConvex",
+    "esscherDriftMap_reflect",
+    "esscherDriftMap_zero",
+    "esscherDriftMap_strictMono",
+    "esscherDriftBound_pos",
+    "esscherDriftMap_bound_eq",
+    "esscherDriftMap_mem_range",
+    "esscher_exists_unique_of_mem_range",
+    "esscher_no_solution_of_outside_range",
+    "esscher_theta_zero_unique",
+    "esscherExponent_neg_I_eq",
+    "esscher_drift_factor",
+    "esscher_tilted_numeraire",
+    "esscher_correction_invariant",
+    "esscher_cmPriceKernel_integrable",
 }
 
 # The T5 node, in dependency order, and the two citations docs/04's spine
@@ -1435,6 +1520,129 @@ def main() -> int:
             notes.append(
                 "[NONUNIQ] parity/bounds at A and B instantiate BRIEF_009; headline keeps "
                 "drift, parity, bounds, A ≠ B, A ~ B and the price `≠`; three Dirac atoms"
+            )
+
+    # [ESSCHER] BRIEF_013: the named Esscher measure at CGMY. `lake build`
+    #     grades that the Esscher theorems are TRUE; this grades that they are
+    #     the theorems the brief asked for. (1) `esscherExponent` is defined by
+    #     the shift for a GENERAL ψ and never mentions `cgmyExponent` --
+    #     defining the tilt as the shifted CGMY form makes `esscher_cgmy_shift`
+    #     an `rfl` tautology and the family closure certifies nothing (C1
+    #     item 1 reloaded). (2) The tilted pricing kernel CONSUMES BRIEF_011's
+    #     `cgmy_cmPriceKernel_integrable` at the shifted rates -- re-deriving
+    #     integrability from the abstract `cmPriceKernel_integrable` inside the
+    #     module is the [CGMY] route commitment cheat one level up. (3) The
+    #     headline keeps `1 < G + M` (nonemptiness of the admissible interval),
+    #     the `Y ≠ 1` exclusion and the `esscherDriftBound` comparison, and no
+    #     `min` over `G`/`M` appears anywhere in the module (the C14 regression
+    #     guard, extended). (4) `esscherDriftBound` IS the closed form -- a
+    #     `max` over sampled values would build and certify nothing. Bodies are
+    #     comment-stripped, so honest doc-comments naming the forbidden
+    #     declarations stay legal.
+    esscher_path = os.path.join(ROOT, "ImprovedBS", "Esscher.lean")
+    if not os.path.exists(esscher_path):
+        failures.append("[ESSCHER] ImprovedBS/Esscher.lean not found")
+    else:
+        esscher_clean = strip_comments(open(esscher_path, encoding="utf-8").read())
+        esscher_bodies = {name: body for _, name, _, body in declarations(esscher_clean)}
+        esscher_failures: list[str] = []
+
+        def esscher_body(name: str) -> str:
+            body = esscher_bodies.get(name, "")
+            if body == "":
+                esscher_failures.append(f"[ESSCHER] `{name}` not found")
+            return body
+
+        # (1) the shift is a definition over a GENERAL ψ, not the shifted form
+        exp_body = esscher_body("esscherExponent")
+        if exp_body != "":
+            rhs = exp_body.split(":=", 1)[1] if ":=" in exp_body else ""
+            if "cgmyExponent" in rhs:
+                esscher_failures.append(
+                    "[ESSCHER] `esscherExponent` mentions `cgmyExponent`: the tilt must be "
+                    "defined by the shift for a general `ψ` -- defining it AS the shifted "
+                    "CGMY form makes `esscher_cgmy_shift` an `rfl` tautology, and the "
+                    "family closure certifies nothing."
+                )
+            for pat, why in (
+                (r"ψ\s*\(\s*v\s*-\s*\(θ\s*:\s*ℂ\)\s*\*\s*Complex\.I\s*\)",
+                 "`ψ` at the shifted point `v − ↑θ·I`"),
+                (r"ψ\s*\(\s*-\s*\(θ\s*:\s*ℂ\)\s*\*\s*Complex\.I\s*\)",
+                 "`ψ` at the normalizing point `−↑θ·I`"),
+            ):
+                if not re.search(pat, rhs):
+                    esscher_failures.append(
+                        f"[ESSCHER] `esscherExponent` must apply {why} (pattern {pat!r}): "
+                        "the shift `ψ(v − iθ) − ψ(−iθ)` is the specification."
+                    )
+
+        # (2) the tilted kernel consumes BRIEF_011's instantiation
+        inst_body = esscher_body("esscher_cmPriceKernel_integrable")
+        if inst_body != "":
+            if "cgmy_cmPriceKernel_integrable" not in inst_body:
+                esscher_failures.append(
+                    "[ESSCHER] `esscher_cmPriceKernel_integrable` does not cite "
+                    "`cgmy_cmPriceKernel_integrable`: pricing at the Esscher measure must "
+                    "CONSUME BRIEF_011's instantiation at the shifted rates, not re-derive "
+                    "kernel integrability."
+                )
+            # the declaration's own name contains the abstract one as a
+            # substring, so both compound names are masked before the search
+            if "cmPriceKernel_integrable" in inst_body.replace(
+                "cgmy_cmPriceKernel_integrable", ""
+            ).replace("esscher_cmPriceKernel_integrable", ""):
+                esscher_failures.append(
+                    "[ESSCHER] `esscher_cmPriceKernel_integrable` mentions the abstract "
+                    "`cmPriceKernel_integrable`: re-deriving integrability from the "
+                    "interface inside the module is the [CGMY] route commitment cheat, "
+                    "one level up."
+                )
+
+        # (3) the headline keeps its clauses; no `min` regression in the module
+        head_body = esscher_body("esscher_exists_unique_of_mem_range")
+        if head_body != "":
+            flat = " ".join(head_body.split(":=", 1)[0].split())
+            for pat, why in (
+                (r"1\s*<\s*G\s*\+\s*M",
+                 "the nonemptiness condition `1 < G + M` of the admissible interval"),
+                (r"Y\s*≠\s*1", "the `Y ≠ 1` exclusion"),
+                (r"esscherDriftBound", "the comparison against the attainable half-width"),
+            ):
+                if not re.search(pat, flat):
+                    esscher_failures.append(
+                        f"[ESSCHER] `esscher_exists_unique_of_mem_range` no longer carries "
+                        f"{why} (pattern {pat!r}): the strip decides solvability, and each "
+                        "clause is part of the decision."
+                    )
+        if re.search(r"\bmin\b", esscher_clean):
+            esscher_failures.append(
+                "[ESSCHER] `min` appears in ImprovedBS/Esscher.lean: the corrected contour "
+                "condition is `α + 1 < M − θ` at the shifted rates (C14), never a `min` "
+                "over `G`/`M`."
+            )
+
+        # (4) the bound is the closed form
+        bound_body = esscher_body("esscherDriftBound")
+        if bound_body != "":
+            rhs = " ".join((bound_body.split(":=", 1)[1] if ":=" in bound_body else "").split())
+            if not re.search(
+                r"\(\s*G\s*\+\s*M\s*\)\s*\^\s*Y\s*-\s*\(\s*G\s*\+\s*M\s*-\s*1\s*\)\s*\^\s*Y\s*-\s*1",
+                rhs,
+            ):
+                esscher_failures.append(
+                    "[ESSCHER] `esscherDriftBound` no longer carries the closed form "
+                    "`(G + M) ^ Y - (G + M - 1) ^ Y - 1`: the half-width is a function of "
+                    "`(C, Y, G+M)` alone, and defining it otherwise (a `max` over sampled "
+                    "values) builds and certifies nothing."
+                )
+
+        if esscher_failures:
+            failures.extend(esscher_failures)
+        else:
+            notes.append(
+                "[ESSCHER] shift defined for a general `ψ`; pricing at the tilted rates "
+                "consumes `cgmy_cmPriceKernel_integrable`; headline carries `1 < G + M`, "
+                "`Y ≠ 1` and the `esscherDriftBound` comparison; bound is the closed form"
             )
 
     if "--write-baseline" in sys.argv:
