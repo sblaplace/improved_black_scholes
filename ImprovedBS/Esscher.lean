@@ -170,12 +170,22 @@ theorem cgmyCumulant_hasDerivAt (C G M Y u : ℝ) (h₁ : -G < u) (h₂ : u < M)
   have hGu : G + u ≠ 0 := by linarith
   have hdM : HasDerivAt (fun u => (M - u) ^ Y) (-Y * (M - u) ^ (Y - 1)) u := by
     have hdu : HasDerivAt (fun x => M - x) (-1) u := by
-      simpa using (hasDerivAt_const u M).sub (hasDerivAt_id u)
+      have h : HasDerivAt (fun x => M - x) (0 - 1) u :=
+        ((hasDerivAt_const u M).sub (hasDerivAt_id u)).congr_of_eventuallyEq (by
+          filter_upwards with x
+          simp only [Pi.sub_apply, id_eq])
+      convert h using 1
+      ring
     convert (Real.hasDerivAt_rpow_const (h := Or.inl hMu) (p := Y)).comp u hdu using 1
     ring
   have hdG : HasDerivAt (fun u => (G + u) ^ Y) (Y * (G + u) ^ (Y - 1)) u := by
     have hgu : HasDerivAt (fun x => G + x) 1 u := by
-      simpa using (hasDerivAt_const u G).add (hasDerivAt_id u)
+      have h : HasDerivAt (fun x => G + x) (0 + 1) u :=
+        ((hasDerivAt_const u G).add (hasDerivAt_id u)).congr_of_eventuallyEq (by
+          filter_upwards with x
+          simp only [Pi.add_apply, id_eq])
+      convert h using 1
+      ring
     convert (Real.hasDerivAt_rpow_const (h := Or.inl hGu) (p := Y)).comp u hgu using 1
     ring
   have hdB : HasDerivAt (fun u => (M - u) ^ Y - M ^ Y + (G + u) ^ Y - G ^ Y)
@@ -214,12 +224,22 @@ theorem cgmyCumulant_hasDerivAt2 (C G M Y u : ℝ) (h₁ : -G < u) (h₂ : u < M
   have hGu : G + u ≠ 0 := by linarith
   have hdG : HasDerivAt (fun u => (G + u) ^ (Y - 1)) ((Y - 1) * (G + u) ^ (Y - 2)) u := by
     have hgu : HasDerivAt (fun x => G + x) 1 u := by
-      simpa using (hasDerivAt_const u G).add (hasDerivAt_id u)
+      have h : HasDerivAt (fun x => G + x) (0 + 1) u :=
+        ((hasDerivAt_const u G).add (hasDerivAt_id u)).congr_of_eventuallyEq (by
+          filter_upwards with x
+          simp only [Pi.add_apply, id_eq])
+      convert h using 1
+      ring
     convert (Real.hasDerivAt_rpow_const (h := Or.inl hGu) (p := Y - 1)).comp u hgu using 1
     ring
   have hdM : HasDerivAt (fun u => (M - u) ^ (Y - 1)) (-(Y - 1) * (M - u) ^ (Y - 2)) u := by
     have hdu : HasDerivAt (fun x => M - x) (-1) u := by
-      simpa using (hasDerivAt_const u M).sub (hasDerivAt_id u)
+      have h : HasDerivAt (fun x => M - x) (0 - 1) u :=
+        ((hasDerivAt_const u M).sub (hasDerivAt_id u)).congr_of_eventuallyEq (by
+          filter_upwards with x
+          simp only [Pi.sub_apply, id_eq])
+      convert h using 1
+      ring
     convert (Real.hasDerivAt_rpow_const (h := Or.inl hMu) (p := Y - 1)).comp u hdu using 1
     ring
   have hexpr : HasDerivAt
@@ -371,6 +391,7 @@ theorem esscherDriftMap_strictMono (C G M Y : ℝ) (hC : 0 < C) (hY : 0 < Y)
   have h1 : HasDerivAt (fun θ => cgmyCumulant C G M Y (θ + 1))
       (deriv (cgmyCumulant C G M Y) (θ + 1)) θ := by
     convert hκ1.comp θ hinner using 1
+    rw [hκ1.deriv]
     ring
   have h2 : HasDerivAt (fun θ => cgmyCumulant C G M Y θ)
       (deriv (cgmyCumulant C G M Y) θ) θ := by
