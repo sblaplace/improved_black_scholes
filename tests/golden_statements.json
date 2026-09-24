@@ -138,6 +138,38 @@
       "axioms": "'BSM.cgmyContour' depends on axioms: [propext, Classical.choice, Quot.sound]",
       "type": "BSM.cgmyContour : ℝ → ℝ → ℂ"
     },
+    "BSM.cgmyCumulant": {
+      "axioms": "'BSM.cgmyCumulant' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.cgmyCumulant : ℝ → ℝ → ℝ → ℝ → ℝ → ℝ"
+    },
+    "BSM.cgmyCumulant_continuousOn": {
+      "axioms": "'BSM.cgmyCumulant_continuousOn' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.cgmyCumulant_continuousOn : ∀ (C G M Y : ℝ), 0 < Y → ContinuousOn (BSM.cgmyCumulant C G M Y) (Set.Icc (-G) M)"
+    },
+    "BSM.cgmyCumulant_deriv_strictMono": {
+      "axioms": "'BSM.cgmyCumulant_deriv_strictMono' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.cgmyCumulant_deriv_strictMono : ∀ (C G M Y : ℝ), 0 < C → 0 < Y → Y < 2 → Y ≠ 1 → StrictMonoOn (deriv (BSM.cgmyCumulant C G M Y)) (Set.Ioo (-G) M)"
+    },
+    "BSM.cgmyCumulant_eq_strip": {
+      "axioms": "'BSM.cgmyCumulant_eq_strip' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.cgmyCumulant_eq_strip : ∀ (C G M Y u : ℝ), 0 < G → 0 < M → -G < u → u < M → BSM.cgmyExponent C G M Y (-(Complex.I * ↑u)) = ↑(BSM.cgmyCumulant C G M Y u)"
+    },
+    "BSM.cgmyCumulant_hasDerivAt": {
+      "axioms": "'BSM.cgmyCumulant_hasDerivAt' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.cgmyCumulant_hasDerivAt : ∀ (C G M Y u : ℝ), -G < u → u < M → HasDerivAt (BSM.cgmyCumulant C G M Y) (C * Real.Gamma (-Y) * Y * ((G + u) ^ (Y - 1) - (M - u) ^ (Y - 1))) u"
+    },
+    "BSM.cgmyCumulant_hasDerivAt2": {
+      "axioms": "'BSM.cgmyCumulant_hasDerivAt2' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.cgmyCumulant_hasDerivAt2 : ∀ (C G M Y u : ℝ), -G < u → u < M → 0 < Y → Y < 2 → Y ≠ 1 → HasDerivAt (deriv (BSM.cgmyCumulant C G M Y)) (C * Real.Gamma (2 - Y) * ((M - u) ^ (Y - 2) + (G + u) ^ (Y - 2))) u"
+    },
+    "BSM.cgmyCumulant_second_deriv_pos": {
+      "axioms": "'BSM.cgmyCumulant_second_deriv_pos' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.cgmyCumulant_second_deriv_pos : ∀ (C G M Y u : ℝ), 0 < C → -G < u → u < M → 0 < Y → Y < 2 → Y ≠ 1 → 0 < deriv (deriv (BSM.cgmyCumulant C G M Y)) u"
+    },
+    "BSM.cgmyCumulant_strictConvex": {
+      "axioms": "'BSM.cgmyCumulant_strictConvex' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.cgmyCumulant_strictConvex : ∀ (C G M Y : ℝ), 0 < C → 0 < Y → Y < 2 → Y ≠ 1 → StrictConvexOn ℝ (Set.Ioo (-G) M) (BSM.cgmyCumulant C G M Y)"
+    },
     "BSM.cgmyDecayThreshold": {
       "axioms": "'BSM.cgmyDecayThreshold' depends on axioms: [propext, Classical.choice, Quot.sound]",
       "type": "BSM.cgmyDecayThreshold : ℝ → ℝ → ℝ → ℝ → ℝ"
@@ -165,6 +197,14 @@
     "BSM.cgmyExponent_strip": {
       "axioms": "'BSM.cgmyExponent_strip' depends on axioms: [propext, Classical.choice, Quot.sound]",
       "type": "BSM.cgmyExponent_strip : ∀ (C G M Y u : ℝ), 0 < G → 0 < M → -G < u → u < M → BSM.cgmyExponent C G M Y (-(Complex.I * ↑u)) = ↑(C * Real.Gamma (-Y) * ((M - u) ^ Y - M ^ Y + (G + u) ^ Y - G ^ Y))"
+    },
+    "BSM.cgmyExponent_zero": {
+      "axioms": "'BSM.cgmyExponent_zero' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.cgmyExponent_zero : ∀ (C G M Y : ℝ), BSM.cgmyExponent C G M Y 0 = 0"
+    },
+    "BSM.cgmyGamma_two_sub_eq": {
+      "axioms": "'BSM.cgmyGamma_two_sub_eq' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.cgmyGamma_two_sub_eq : ∀ (Y : ℝ), 0 < Y → Y < 2 → Y ≠ 1 → Real.Gamma (-Y) * Y * (Y - 1) = Real.Gamma (2 - Y)"
     },
     "BSM.cgmyLevyDensity": {
       "axioms": "'BSM.cgmyLevyDensity' depends on axioms: [propext, Classical.choice, Quot.sound]",
@@ -325,6 +365,86 @@
     "BSM.erf_neg": {
       "axioms": "'BSM.erf_neg' depends on axioms: [propext, Classical.choice, Quot.sound]",
       "type": "BSM.erf_neg : ∀ (x : ℝ), BSM.erf (-x) = -BSM.erf x"
+    },
+    "BSM.esscherDriftBound": {
+      "axioms": "'BSM.esscherDriftBound' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.esscherDriftBound : ℝ → ℝ → ℝ → ℝ → ℝ"
+    },
+    "BSM.esscherDriftBound_pos": {
+      "axioms": "'BSM.esscherDriftBound_pos' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.esscherDriftBound_pos : ∀ (C G M Y : ℝ), 0 < C → 0 < Y → Y < 2 → Y ≠ 1 → 1 < G + M → 0 < BSM.esscherDriftBound C G M Y"
+    },
+    "BSM.esscherDriftMap": {
+      "axioms": "'BSM.esscherDriftMap' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.esscherDriftMap : ℝ → ℝ → ℝ → ℝ → ℝ → ℝ"
+    },
+    "BSM.esscherDriftMap_bound_eq": {
+      "axioms": "'BSM.esscherDriftMap_bound_eq' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.esscherDriftMap_bound_eq : ∀ (C G M Y : ℝ), 0 < C → 0 < Y → Y < 2 → Y ≠ 1 → 1 < G + M → BSM.esscherDriftMap C G M Y (-G) = -BSM.esscherDriftBound C G M Y ∧ BSM.esscherDriftMap C G M Y (M - 1) = BSM.esscherDriftBound C G M Y"
+    },
+    "BSM.esscherDriftMap_mem_range": {
+      "axioms": "'BSM.esscherDriftMap_mem_range' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.esscherDriftMap_mem_range : ∀ (C G M Y θ : ℝ), 0 < C → 0 < Y → Y < 2 → Y ≠ 1 → 1 < G + M → θ ∈ Set.Ioo (-G) (M - 1) → -BSM.esscherDriftBound C G M Y < BSM.esscherDriftMap C G M Y θ ∧ BSM.esscherDriftMap C G M Y θ < BSM.esscherDriftBound C G M Y"
+    },
+    "BSM.esscherDriftMap_reflect": {
+      "axioms": "'BSM.esscherDriftMap_reflect' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.esscherDriftMap_reflect : ∀ (C G M Y θ : ℝ), BSM.esscherDriftMap C G M Y (M - G - 1 - θ) = -BSM.esscherDriftMap C G M Y θ"
+    },
+    "BSM.esscherDriftMap_strictMono": {
+      "axioms": "'BSM.esscherDriftMap_strictMono' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.esscherDriftMap_strictMono : ∀ (C G M Y : ℝ), 0 < C → 0 < Y → Y < 2 → Y ≠ 1 → StrictMonoOn (BSM.esscherDriftMap C G M Y) (Set.Icc (-G) (M - 1))"
+    },
+    "BSM.esscherDriftMap_zero": {
+      "axioms": "'BSM.esscherDriftMap_zero' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.esscherDriftMap_zero : ∀ (C G M Y : ℝ), BSM.esscherDriftMap C G M Y (BSM.esscherThetaZero G M) = 0"
+    },
+    "BSM.esscherExponent": {
+      "axioms": "'BSM.esscherExponent' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.esscherExponent : (ℂ → ℂ) → ℝ → ℂ → ℂ"
+    },
+    "BSM.esscherExponent_neg_I_eq": {
+      "axioms": "'BSM.esscherExponent_neg_I_eq' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.esscherExponent_neg_I_eq : ∀ (C G M Y θ : ℝ), 0 < G → 0 < M → θ ∈ Set.Ioo (-G) (M - 1) → BSM.esscherExponent (BSM.cgmyExponent C G M Y) θ (-Complex.I) = ↑(BSM.esscherDriftMap C G M Y θ)"
+    },
+    "BSM.esscherThetaZero": {
+      "axioms": "'BSM.esscherThetaZero' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.esscherThetaZero : ℝ → ℝ → ℝ"
+    },
+    "BSM.esscher_cgmy_shift": {
+      "axioms": "'BSM.esscher_cgmy_shift' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.esscher_cgmy_shift : ∀ (C G M Y θ : ℝ), BSM.esscherExponent (BSM.cgmyExponent C G M Y) θ = BSM.cgmyExponent C (G + θ) (M - θ) Y"
+    },
+    "BSM.esscher_cmPriceKernel_integrable": {
+      "axioms": "'BSM.esscher_cmPriceKernel_integrable' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.esscher_cmPriceKernel_integrable : ∀ (C G M Y τ α θ : ℝ), 0 < C → 0 < Y → Y < 2 → Y ≠ 1 → 0 < α → 0 < τ → θ ∈ Set.Ioo (-G) (M - 1) → α + 1 < M - θ → MeasureTheory.Integrable (BSM.cmPriceKernel (BSM.cgmyCharFactor C (G + θ) (M - θ) Y τ) α) MeasureTheory.volume"
+    },
+    "BSM.esscher_correction_invariant": {
+      "axioms": "'BSM.esscher_correction_invariant' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.esscher_correction_invariant : ∀ (C G M Y θ : ℝ), BSM.cgmyTemperedCorrection C (G + θ) (M - θ) Y = BSM.cgmyTemperedCorrection C G M Y"
+    },
+    "BSM.esscher_drift_factor": {
+      "axioms": "'BSM.esscher_drift_factor' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.esscher_drift_factor : ∀ (C G M Y τ r q θ : ℝ), 0 < G → 0 < M → θ ∈ Set.Ioo (-G) (M - 1) → BSM.esscherDriftMap C G M Y θ = r - q → BSM.cgmyCharFactor C (G + θ) (M - θ) Y τ (-Complex.I) = Complex.exp (↑τ * ↑(r - q))"
+    },
+    "BSM.esscher_exists_unique_of_mem_range": {
+      "axioms": "'BSM.esscher_exists_unique_of_mem_range' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.esscher_exists_unique_of_mem_range : ∀ (C G M Y r q : ℝ), 0 < C → 0 < G → 0 < M → 0 < Y → Y < 2 → Y ≠ 1 → 1 < G + M → |r - q| < BSM.esscherDriftBound C G M Y → ∃! θ, θ ∈ Set.Ioo (-G) (M - 1) ∧ BSM.esscherDriftMap C G M Y θ = r - q"
+    },
+    "BSM.esscher_no_solution_of_outside_range": {
+      "axioms": "'BSM.esscher_no_solution_of_outside_range' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.esscher_no_solution_of_outside_range : ∀ (C G M Y r q : ℝ), 0 < C → 0 < G → 0 < M → 0 < Y → Y < 2 → Y ≠ 1 → 1 < G + M → BSM.esscherDriftBound C G M Y ≤ |r - q| → ¬∃ θ ∈ Set.Ioo (-G) (M - 1), BSM.esscherDriftMap C G M Y θ = r - q"
+    },
+    "BSM.esscher_theta_zero_unique": {
+      "axioms": "'BSM.esscher_theta_zero_unique' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.esscher_theta_zero_unique : ∀ (C G M Y : ℝ), 0 < C → 0 < Y → Y < 2 → Y ≠ 1 → 1 < G + M → BSM.esscherThetaZero G M ∈ Set.Ioo (-G) (M - 1) ∧ BSM.esscherDriftMap C G M Y (BSM.esscherThetaZero G M) = 0 ∧ ∀ θ ∈ Set.Ioo (-G) (M - 1), BSM.esscherDriftMap C G M Y θ = 0 → θ = BSM.esscherThetaZero G M"
+    },
+    "BSM.esscher_tilt_factorization": {
+      "axioms": "'BSM.esscher_tilt_factorization' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.esscher_tilt_factorization : ∀ (C G M Y τ θ : ℝ) (v : ℂ), BSM.cgmyCharFactor C G M Y τ (v - ↑θ * Complex.I) = BSM.cgmyCharFactor C (G + θ) (M - θ) Y τ v * BSM.cgmyCharFactor C G M Y τ (-↑θ * Complex.I)"
+    },
+    "BSM.esscher_tilted_numeraire": {
+      "axioms": "'BSM.esscher_tilted_numeraire' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.esscher_tilted_numeraire : ∀ (G M θ : ℝ), θ ∈ Set.Ioo (-G) (M - 1) → 1 < M - θ"
     },
     "BSM.exp_moment_infinite_add_of_tail_lower_bound": {
       "axioms": "'BSM.exp_moment_infinite_add_of_tail_lower_bound' depends on axioms: [propext, Classical.choice, Quot.sound]",
