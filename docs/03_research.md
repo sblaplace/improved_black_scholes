@@ -160,7 +160,15 @@ one above — **in the same tree, under the same skeleton**, with all seven of:
    CGMY twin of `integral_spot_mul_phi_eq_forward`). The martingale condition
    alone does not select the measure — see item 7; the choice (Esscher,
    minimal-entropy, calibrated, …) is part of the model, and the price is a
-   claim *at the chosen measure*.
+   claim *at the chosen measure*. **Issued as BRIEF_013 (Esscher), 2026-09-24:**
+   the shift `ψ^θ(v) = ψ(v − iθ) − ψ(−iθ)` maps CGMY to itself with
+   `(G, M) ↦ (G+θ, M−θ)`; the drift equation `κ(θ+1) − κ(θ) = r − q` is
+   strictly monotone (strict convexity of `κ` on the strip), and a unique
+   `θ ∈ (−G, M−1)` exists exactly when `|r−q| < |CΓ(−Y)|·|(G+M)^Y −
+   (G+M−1)^Y − 1|` — the strip's edge values decide. Route-checked before
+   issue; the deliverable lands at the factor level, with the
+   expectation-level twin gated on a law construction (the brief's re-scope
+   note).
 4. **T6's triangle holds at the new exponent.** The Carr–Madan integral
    converges absolutely on the contour, inverts to `e^{−rτ}·E[(S_T − K)⁺]`,
    and is real-valued — the full pricing claim where no closed form exists.

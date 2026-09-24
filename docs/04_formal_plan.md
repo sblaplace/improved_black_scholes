@@ -351,15 +351,29 @@ not yet exist. BRIEF_001–010 have landed, in this order.
 non-uniqueness witness, which C13 named as the successor and which was the only
 remaining kit item that tests the repository's own framing rather than
 extending it — the README's dynamic/static split is now a theorem
-(`static_skeleton_does_not_select_measure`) rather than prose. **BRIEF_013+ are
-not yet issued**: what is then left
-of the BSM-2 kit in `docs/03` §D1 ("What extends") is the drift fixed at a
-*named* pricing measure (item 3) and the corner recovery of GBM at `Y → 2`
-(item 6). Item 7 went first deliberately — C13's words are that the witness "is
-what obliges item 3's 'named'", so item 3 can now be written against a proved
-requirement (`static_skeleton_does_not_select_measure`) rather than an
-assertion; and item 6 has a pole to deal with (`Γ(−Y)` at `Y = 2`) that item 7
-did not. Items 1–2 landed as
+(`static_skeleton_does_not_select_measure`) rather than prose. **BRIEF_013
+issued** (2026-09-24, this issuance graded on the documentation lane): item 3
+of the kit, the drift fixed at a *named* pricing measure — **via the Esscher
+transform**: the exponent shift `ψ^θ(v) = ψ(v − iθ) − ψ(−iθ)` keeps CGMY inside
+the family (`(G, M) ↦ (G+θ, M−θ)`), the drift equation
+`κ(θ+1) − κ(θ) = r − q` is strictly monotone (the cumulant's strict convexity
+is a second derivative, `κ'' = CΓ(2−Y)[(M−u)^{Y−2} + (G+u)^{Y−2}] > 0`), and
+the strip decides solvability: a unique `θ ∈ (−G, M−1)` exists exactly when
+`|r − q| < |CΓ(−Y)|·|(G+M)^Y − (G+M−1)^Y − 1|`, with the zero-drift parameter
+the exact `θ₀ = (M−G−1)/2`. Item 3 lands at the factor level — the tree has no
+CGMY law as a measure, so the expectation-level twin of
+`integral_spot_mul_phi_eq_forward` stays gated on a law construction (the
+brief's re-scope note, BRIEF_010's move one level down). The requirement it is
+written against is proved: item 7 went first deliberately — C13's words are
+that the witness "is what obliges item 3's 'named'" — and C13's monotonicity
+remark ("non-uniqueness lives across selection principles, not within the
+Esscher family") becomes the brief's in-family uniqueness theorem. **BRIEF_014+
+not yet issued**: item 6, the corner recovery of GBM at `Y → 2`, has a pole to
+deal with (`Γ(−Y)` at `Y = 2`) that items 3 and 7 did not; C13's two repair
+briefs (the Pareto witness for `Levy.lean`'s tail hypothesis, and the Haug /
+term-structure external anchor) stay queued after the kit items and are
+numbered at issue (C13's provisional "013/014" assignment for them is
+superseded — recorded in BRIEF_013's numbering note). Items 1–2 landed as
 BRIEF_011 and item 7 as BRIEF_012 (rows above). The order constraint for
 whoever issues them holds: items 3 and 6 are the new analysis and can be split
 further (items 1–2 were exactly that — the exponent's `cpow`/branch work was
