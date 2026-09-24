@@ -103,9 +103,7 @@ theorem trinomialMeasure_apply (p₁ p₂ p₃ s₁ s₂ s₃ : ℝ) (A : Set �
       = ENNReal.ofReal p₁ * Measure.dirac s₁ A + ENNReal.ofReal p₂ * Measure.dirac s₂ A
         + ENNReal.ofReal p₃ * Measure.dirac s₃ A := by
   unfold trinomialMeasure
-  first
-    | rfl
-    | simp only [Measure.coe_add, Pi.add_apply, Measure.smul_apply, smul_eq_mul]
+  rfl
 
 /-- Nonnegative weights summing to one make a probability measure:
 `dirac sᵢ univ = 1`, then `ENNReal.ofReal` is additive on nonnegative reals. -/
@@ -444,7 +442,10 @@ theorem martingale_set_eq_segment (p₁ p₂ p₃ : ℝ) (h₁ : 0 ≤ p₁) (h�
       = 1 * Real.exp ((0 - 0) * 1)) :
     trinomialMeasure p₁ p₂ p₃ witnessSpotLo witnessSpotMid witnessSpotHi = martingaleSegment p₁ := by
   rw [trinomial_witness_drift p₁ p₂ p₃ h₁ h₂ h₃] at hdrift
-  have hexp : (1 : ℝ) * Real.exp ((0 - 0) * 1) = 1 := by norm_num
+  -- `1 * exp ((0 - 0) * 1)` is `1`; normalize it away BEFORE linarith, whose
+  -- denominator-cancelling step would `ring_nf` the exponential's argument on
+  -- one side only and split the atom (CI run 36044790368).
+  simp only [sub_self, zero_mul, Real.exp_zero, one_mul] at hdrift
   have hdrift' : p₁ / 2 + p₂ + 2 * p₃ = 1 := by linarith
   obtain ⟨h3, h2⟩ := martingale_set_param p₁ p₂ p₃ hsum hdrift'
   unfold martingaleSegment
@@ -460,8 +461,8 @@ theorem martingale_set_mem (p₁ : ℝ) (h0 : 0 ≤ p₁) (h1 : p₁ ≤ 2 / 3) 
   unfold martingaleSegment
   refine ⟨trinomialMeasure_isProbability _ _ _ _ _ _ h0 h₂ h₃ (by ring), ?_⟩
   rw [trinomial_witness_drift p₁ _ _ h0 h₂ h₃]
-  have hexp : (1 : ℝ) * Real.exp ((0 - 0) * 1) = 1 := by norm_num
-  linarith
+  simp only [sub_self, zero_mul, Real.exp_zero, one_mul]
+  ring
 
 /-- **The call along the segment is `p₁/2`**: only the up state pays, and its
 weight is `p₃ = p₁/2`. -/
@@ -473,9 +474,7 @@ theorem martingale_set_call_eq (p₁ : ℝ) (h0 : 0 ≤ p₁) (h1 : p₁ ≤ 2 /
   rw [trinomialMeasure_integral _ p₁ _ _ _ _ _ h0 h₂ h₃]
   simp only [id_eq]
   rw [witness_call_payoff_lo, witness_call_payoff_mid, witness_call_payoff_hi]
-  first
-    | (norm_num; done)
-    | (simp only [neg_zero, zero_mul, Real.exp_zero]; ring)
+  norm_num
 
 /-- **The segment is not a point**: two admissible parameters with distinct
 laws (distinct because their prices `1/4 ≠ 1/8` differ). -/
@@ -499,15 +498,11 @@ theorem martingale_set_price_range (c : ℝ) (h0 : 0 ≤ c) (h1 : c ≤ 1 / 3) :
 /-- **A is the point `p₁ = 1/2` of the segment.** -/
 theorem witnessA_mem_segment : witnessMeasureA = martingaleSegment (1 / 2) := by
   unfold witnessMeasureA martingaleSegment
-  first
-    | (congr 1 <;> norm_num; done)
-    | (norm_num; done)
+  congr 1 <;> norm_num
 
 /-- **B is the point `p₁ = 1/4` of the segment.** -/
 theorem witnessB_mem_segment : witnessMeasureB = martingaleSegment (1 / 4) := by
   unfold witnessMeasureB martingaleSegment
-  first
-    | (congr 1 <;> norm_num; done)
-    | (norm_num; done)
+  congr 1 <;> norm_num
 
 end BSM
