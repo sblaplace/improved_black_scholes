@@ -66,6 +66,7 @@ CORE = "ImprovedBS/Core.lean"
 ORACLE = "experiments/black_scholes.py"
 CROSSCHECK = "ImprovedBS/Crosscheck.lean"
 SKELETON = "ImprovedBS/Skeleton.lean"
+NONUNIQ = "ImprovedBS/NonUniqueness.lean"
 GOLDEN = "tests/golden_statements.json"
 BASELINE = ".github/lean_lint_baseline.json"
 
@@ -375,6 +376,72 @@ MUTANTS = [
                "`#print axioms` (the theorem is still true, under a stronger hypothesis) "
                "and to the oracle; only [CGMY] can see it.",
     },
+    # ---- BRIEF_012, the non-uniqueness witness. Three ways to keep the module
+    # green while it stops being the witness. N1 and N3 regenerate the pins the
+    # way an author without a toolchain would, so `[PINS]` stays green and the
+    # only lane left that can object is `[NONUNIQ]`; N2 is proof-only and the
+    # pins are proof-blind by design.
+    {
+        "name": "N1 trinomialMeasure collapsed to a single Dirac atom (A = B, theorem vacuous)",
+        "file": NONUNIQ,
+        "from": "  ENNReal.ofReal p₁ • Measure.dirac s₁ + ENNReal.ofReal p₂ • Measure.dirac s₂\n"
+                "    + ENNReal.ofReal p₃ • Measure.dirac s₃",
+        "to": "  ENNReal.ofReal (p₁ + p₂ + p₃) • Measure.dirac s₂",
+        "also_rewrite_pins": True,
+        "tag": "[NONUNIQ]",
+        "why": "With one atom every three-point law on the witness spots is the "
+               "same law, so `witnessMeasureA = witnessMeasureB`, the two prices "
+               "coincide and the headline's `≠` clauses are simply false -- the "
+               "build goes red, honestly. But a def body is pinned whole, and an "
+               "author who regenerates the pins has a green `[PINS]` and a "
+               "one-line `def` that reads plausibly; the witness lives or dies on "
+               "the atom count, which only [NONUNIQ] reads.",
+    },
+    {
+        "name": "N2 witnessA_parity re-derived from max_sub_swap_eq instead of citing BRIEF_009",
+        "file": NONUNIQ,
+        "from": "      = 1 * Real.exp (-0 * 1) - 1 * Real.exp (-0 * 1) :=\n"
+                "  model_free_put_call_parity 1 1 1 0 0 id witnessA_integrable witnessA_drift",
+        "to": "      = 1 * Real.exp (-0 * 1) - 1 * Real.exp (-0 * 1) := by\n"
+              "  have hpt : ∀ s : ℝ, max (1 - id s) 0 = max (id s - 1) 0 - id s + 1 := fun s =>\n"
+              "    max_sub_swap_eq (id s) 1\n"
+              "  unfold modelFreeCall modelFreePut\n"
+              "  rw [integral_congr_ae (Filter.Eventually.of_forall hpt), witnessMeasureA_integral,\n"
+              "    witnessMeasureA_integral]\n"
+              "  simp only [id_eq]\n"
+              "  norm_num [witnessSpotLo, witnessSpotMid, witnessSpotHi]",
+        "tag": "[NONUNIQ]",
+        "why": "Parity at a three-point law is a finite-sum identity; proved by "
+               "direct computation from BRIEF_007's pointwise `max_sub_swap_eq` it "
+               "is just as TRUE, builds, has no sorryAx and leaves the statement "
+               "byte-identical. But the theorem is a claim about BRIEF_009's "
+               "skeleton -- that the layer's parity and bounds hold at A and B and "
+               "still do not pin the price -- and a private re-derivation says "
+               "nothing about that layer. Statement untouched, nothing deferred, "
+               "nothing deleted: only the citation check in [NONUNIQ] can see it.",
+    },
+    {
+        "name": "N3 headline weakened: the price `≠` clause dropped (two measures, no disagreement)",
+        "file": NONUNIQ,
+        "from": "      modelFreeCall witnessMeasureB id 1 0 1 ≤ 1 * Real.exp (-0 * 1)) ∧\n"
+                "    modelFreeCall witnessMeasureA id 1 0 1 ≠ modelFreeCall witnessMeasureB id 1 0 1 :=\n"
+                "  ⟨witnessA_prob, witnessB_prob, witnessA_ne_B, witness_equivalent, witnessA_drift,\n"
+                "    witnessB_drift, witnessA_parity, witnessB_parity, witnessA_bounds, witnessB_bounds,\n"
+                "    witnessCall_ne⟩",
+        "to": "      modelFreeCall witnessMeasureB id 1 0 1 ≤ 1 * Real.exp (-0 * 1)) :=\n"
+              "  ⟨witnessA_prob, witnessB_prob, witnessA_ne_B, witness_equivalent, witnessA_drift,\n"
+              "    witnessB_drift, witnessA_parity, witnessB_parity, witnessA_bounds, witnessB_bounds⟩",
+        "also_rewrite_pins": True,
+        "tag": "[NONUNIQ]",
+        "why": "Every remaining conjunct is true and proved by the same named "
+               "lemmas, so the build is green and the pins, regenerated, agree "
+               "with the tree. What is gone is the theorem: two admissible "
+               "measures that happen to agree on the price would satisfy every "
+               "clause left, and `static_skeleton_does_not_select_measure` would "
+               "no longer say that the skeleton fails to select anything. The "
+               "headline is a conjunction precisely so that each clause is a "
+               "regex away from being missed; [NONUNIQ] holds the list.",
+    },
 ]
 
 # Attacks the toolchain-free lanes provably CANNOT see, kept as
@@ -563,8 +630,8 @@ def test_baseline_is_green():
 def test_mutation_anchors_exist():
     """Guard: every anchor must be present in the committed source.
 
-    A mutant whose anchor has been edited away is a silent no-op, and 27 silent
-    no-ops read exactly like 25 kills.
+    A mutant whose anchor has been edited away is a silent no-op, and 32 silent
+    no-ops read exactly like 32 kills.
     """
     missing = []
     for mut in MUTANTS + CONTROLS + KNOWN_LOCAL_GAPS:
