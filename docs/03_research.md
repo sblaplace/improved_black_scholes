@@ -191,6 +191,20 @@ one above — **in the same tree, under the same skeleton**, with all seven of:
    tree's Esscher measure, not the published translated martingale law
    BRIEF_016 prices at. The general-`Y` law (Stage 2) and the complex-rate Γ
    integral (G1) stay open; item 6's expectation-level twin waits on Stage 2.
+   **Stage 2's first half is issued as BRIEF_019**
+   (`briefs/BRIEF_019_compound_poisson_stage2a.md`): the compound-Poisson law of
+   a probability jump measure at rate `λ` — the Poisson mixture of convolution
+   powers, CF `exp(λ(φ−1))` — plus the truncated CGMY jump law `ν_ε/λ_ε` from
+   the landed `cgmyLevyDensity` and its marginal, exponent
+   `∫_{\|x\|≥ε}(e^{ivx}−1)ν`. The route-check *closes the conventions by
+   measurement*: the truncation must be symmetric (two-sided error `O(ε^{2−Y})`,
+   slopes 1.4904 / 0.4947 at `Y = ½, 3⁄2`; one-sided diverges like `ε^{1−Y}` for
+   `Y ≥ 1`) and uncompensated (compensating everywhere lands on
+   `ψ_Y − iv·m^∞`, a translated law), and it corrects F5(iv) below: the `ε ↓ 0`
+   step is not dominated convergence, since `λ_ε → ∞` like `ε^{−Y}` and no
+   integrable dominating function exists at zero. The limit, the tightness and
+   the identification are Stage 2b; the corner cross-check against BRIEF_018's
+   `vgLaw` is already measured (`\|A_ε − ψ₀\|/Y → 0.0375` at `v = 0.5`).
 4. **T6's triangle holds at the new exponent.** The Carr–Madan integral
    converges absolutely on the contour, inverts to `e^{−rτ}·E[(S_T − K)⁺]`,
    and is real-valued — the full pricing claim where no closed form exists.
