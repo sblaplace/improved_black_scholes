@@ -68,6 +68,7 @@ CROSSCHECK = "ImprovedBS/Crosscheck.lean"
 SKELETON = "ImprovedBS/Skeleton.lean"
 NONUNIQ = "ImprovedBS/NonUniqueness.lean"
 ESSCHER = "ImprovedBS/Esscher.lean"
+CORNER = "ImprovedBS/Corner.lean"
 GOLDEN = "tests/golden_statements.json"
 BASELINE = ".github/lean_lint_baseline.json"
 
@@ -500,6 +501,94 @@ MUTANTS = [
                "an author who regenerates the pins has a self-consistent "
                "layer 1 and a green build in their head. Only clause 3 of "
                "[ESSCHER] reads the hypothesis list.",
+    },
+    # ---- BRIEF_014: the normalized CGMY -> GBM corner (BSM-2 kit item 6) ----
+    # One clause per cheat, plus one for the property the whole brief turns on.
+    # None of these decides whether Corner.lean builds; each decides whether it
+    # says the thing correction C17 says it must say. That is the distinction
+    # the harness exists to keep visible: a check that only fires when the tree
+    # is broken is not a check, it is a build error with better prose.
+    {
+        "name": "G1 corner scale without the half: `σ²(2−Y)` instead of `(σ²/2)(2−Y)`",
+        "file": CORNER,
+        "from": "def cgmyCornerC (σ Y : ℝ) : ℝ := (σ ^ 2 / 2) * (2 - Y)",
+        "to": "def cgmyCornerC (σ Y : ℝ) : ℝ := σ ^ 2 * (2 - Y)",
+        "tag": "[CORNER]",
+        "why": "The half is the difference between a HALF-variance and a "
+               "variance, and nothing else in the file objects: the pole still "
+               "cancels (`C_Y Γ(−Y) → σ²/2` is finite), the limits still exist, "
+               "the drift correction is still exact, and the factor still "
+               "converges -- to a GBM with TWICE the intended variance. That "
+               "is the quietest possible wrong answer, and the oracle canary "
+               "for it (M22, measured at 1.257 against a 1e-3 tolerance) is a "
+               "number, not a proof. Clause 1 of [CORNER] is what says which "
+               "scale the corner runs on.",
+    },
+    {
+        "name": "G2 pole cancellation re-derived from the recurrence, `cgmyGamma_two_sub_eq` uncited",
+        "file": CORNER,
+        "from": "  have htwo : Real.Gamma (2 - Y) = Real.Gamma (-Y) * Y * (Y - 1) :=\n"
+                "    (cgmyGamma_two_sub_eq Y hYpos hY₂ hYne).symm",
+        "to": "  have htwo : Real.Gamma (2 - Y) = Real.Gamma (-Y) * Y * (Y - 1) := by\n"
+              "    rw [show 2 - Y = (1 - Y) + 1 by ring,\n"
+              "      Real.Gamma_add_one (by linarith : 1 - Y ≠ 0),\n"
+              "      show 1 - Y = (-Y) + 1 by ring,\n"
+              "      Real.Gamma_add_one (by linarith : -Y ≠ 0)]\n"
+              "    ring",
+        "tag": "[CORNER]",
+        "why": "Two honest `Real.Gamma_add_one` steps instead of one citation "
+               "of BRIEF_013 -- the identity is the same, the proof is "
+               "self-contained, and the file now rests on nothing that was "
+               "landed. That is the route-commitment cheat at the one place "
+               "BRIEF_014 actually consumes a predecessor: the correction C17 "
+               "claims this pole cancellation is what makes the corner work, "
+               "and a module that re-derives it makes that claim folklore. "
+               "Clause 2 of [CORNER] holds the citation list.",
+    },
+    {
+        "name": "G3 factor limit re-targeted at a hand-written exponential instead of `gbmCharFactor`",
+        "file": CORNER,
+        "from": "      (𝓝 (gbmCharFactor ((r - q - σ ^ 2 / 2) * τ) ((σ ^ 2 / 2) * τ) v)) := by",
+        "to": "      (𝓝 (Complex.exp (Complex.I * ((((r - q - σ ^ 2 / 2) * τ : ℝ)) : ℂ) * v -\n"
+              "        ((((σ ^ 2 / 2) * τ : ℝ)) : ℂ) * v ^ 2))) := by",
+        "tag": "[CORNER]",
+        "why": "The C1 sin one level up: a limit whose TARGET is written out "
+               "in the statement can be made true by choosing the target, and "
+               "`gbmCharFactor` is BRIEF_005's own landed GBM factor precisely "
+               "so that the corner has to land on something that already "
+               "existed. The hand-written exponential is the same function -- "
+               "that is what makes it invisible to every check but clause 3, "
+               "which reads the target.",
+    },
+    {
+        "name": "G4 route B proved by term algebra, `esscher_cgmy_shift` uncited",
+        "file": CORNER,
+        "from": "    exact (congr_fun (esscher_cgmy_shift (cgmyCornerC σ Y) G M Y (esscherThetaZero G M)) v).symm",
+        "to": "    simp [esscherExponent, cgmyExponent]",
+        "tag": "[CORNER]",
+        "why": "The whole content of route B is that the tilt IS the same "
+               "exponent at shifted rates -- at every Y, with no limiting "
+               "argument. Redoing it by term algebra inside Corner.lean makes "
+               "BRIEF_013's `esscher_cgmy_shift` decoration: true, uncited, "
+               "and unavailable to the next brief that needs to know which "
+               "landed theorem the shifted strip comes from. Clause 4 of "
+               "[CORNER] is the only reader.",
+    },
+    {
+        "name": "G5 the corner taken as a TWO-SIDED limit, `𝓝[<] 2` -> `𝓝 2`",
+        "file": CORNER,
+        "from": "      (𝓝[<] (2 : ℝ))\n"
+                "      (𝓝 (-2 * v ^ 2 + 2 * Complex.I * ((G - M : ℝ) : ℂ) * v)) := by",
+        "to": "      (𝓝 (2 : ℝ))\n"
+              "      (𝓝 (-2 * v ^ 2 + 2 * Complex.I * ((G - M : ℝ) : ℂ) * v)) := by",
+        "tag": "[CORNER]",
+        "why": "This is correction C17 itself. `Γ(−Y)` has a pole at `Y = 2`, "
+               "so a two-sided limit does not exist -- and in Lean's tag it "
+               "would not fail loudly either, since `Real.Gamma (-2)` is "
+               "DEFINED (as 0) rather than undefined, which is exactly how the "
+               "false `Y = 2` statement in the old docs survived so long. A "
+               "one-sided filter is the only thing in the statement that "
+               "says so. Clause 4 of [CORNER] reads every limit's filter.",
     },
 ]
 
