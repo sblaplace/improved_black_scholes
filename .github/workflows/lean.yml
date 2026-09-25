@@ -401,6 +401,22 @@ jobs:
           #print axioms BSM.esscher_tilted_numeraire
           #print axioms BSM.esscher_correction_invariant
           #print axioms BSM.esscher_cmPriceKernel_integrable
+          -- BRIEF_014: the normalized CGMY-to-GBM corner (BSM-2 kit item 6)
+          #print axioms BSM.cgmyCornerC_pos
+          #print axioms BSM.cgmyCornerGamma_eq
+          #print axioms BSM.cgmyCornerGamma_tendsto
+          #print axioms BSM.cgmyBracket_tendsto
+          #print axioms BSM.cgmyCornerExponent_tendsto
+          #print axioms BSM.cgmyCornerCumulant_one_tendsto
+          #print axioms BSM.cornerForward_numeraire
+          #print axioms BSM.cornerForwardFactor_numeraire
+          #print axioms BSM.cornerForwardExponent_tendsto
+          #print axioms BSM.cornerForwardFactor_tendsto
+          #print axioms BSM.cornerEsscherZero_mem
+          #print axioms BSM.cornerEsscherZero_numeraire
+          #print axioms BSM.cornerEsscherZero_exponent
+          #print axioms BSM.cornerEsscherZero_tendsto
+          #print axioms BSM.cornerEsscherBound_tendsto
           LEAN
           lake env lean /tmp/Audit.lean 2>&1 | tee lean-audit.log
           if grep -q sorryAx lean-audit.log; then

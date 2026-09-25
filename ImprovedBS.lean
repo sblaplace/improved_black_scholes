@@ -8,6 +8,7 @@ import ImprovedBS.Pricing
 import ImprovedBS.CGMY
 import ImprovedBS.NonUniqueness
 import ImprovedBS.Esscher
+import ImprovedBS.Corner
 
 /-!
 # ImprovedBS
@@ -91,6 +92,22 @@ Root module of the `ImprovedBS` library. Modules imported here are built by
   the Esscher measure by CONSUMING `cgmy_cmPriceKernel_integrable` at the
   shifted rates with the tilted condition `α + 1 < M − θ` (C14 at
   `(G+θ, M−θ)`).
+* `ImprovedBS.Corner` — BRIEF_014: BSM-2 kit item 6, the normalized CGMY → GBM
+  corner, as a ONE-SIDED limit at the characteristic-exponent level. Correction
+  C17 lives here: the bare "CGMY = GBM at `Y = 2`" statement of the old
+  `docs/03` is false — `Γ(−Y)` has a pole there, so at fixed `C` the bracket's
+  limit is multiplied by something that diverges. §1 the variance
+  normalization `C_Y = (σ²/2)(2−Y)` and the forward exponent
+  `Ψ_Y = ψ_Y + i(r−q−κ_Y(1))v` (defined from the CGMY data, not from the GBM
+  answer), §2 the pole cancellation `ε Γ(−Y) = Γ(3−Y)/(Y(Y−1))` — one
+  `Real.Gamma_add_one` past BRIEF_013's `cgmyGamma_two_sub_eq` — giving the
+  finite `C_Y Γ(−Y) → σ²/4`, §3 the pointwise bracket and exponent limits (3)
+  on the strip `−M < Im v < G`, §4 route A: the cumulant limit, the exact
+  numéraire `Ψ_Y(−i) = r−q` and the convergence (6)–(7) of the exponent and of
+  the factor to BRIEF_005's own `gbmCharFactor`, §5 route B: at the named
+  `θ₀ = (M−G−1)/2` the BRIEF_013 shift alone delivers the zero-carry GBM limit
+  (8) with no drift correction, plus the collapse (9) of the attainable
+  half-width `H` to `(σ²/2)(G+M−1)`.
 
 ## Why the module is not called `Lean.*`
 
