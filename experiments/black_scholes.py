@@ -932,6 +932,203 @@ def pareto_tail(t: float, r: float, x: float) -> float:
     return t ** r * x ** (-r)
 
 
+# ---------------------------------------------------------------------------
+# BRIEF_016: the external anchor (a published VG price table) and the
+# term-structure falsifier (the model's ATM-skew power law vs the market's).
+#
+# The anchor is Carr & Madan (1999), Section 5 / Figure 2: a published price
+# table for the Variance-Gamma model, which is CGMY at `Y = 0`. Two routes are
+# exposed on purpose, and they must agree:
+#
+#   * the VG parameterization `(sigma, nu, theta)` -- the form the paper states;
+#   * the CGMY `Y = 0` corner `(C, G, M)` -- the form this tree prices.
+#
+# `cgmy_zeroth_exponent` is written EXPLICITLY: `cgmy_gamma_neg(0)` is a pole
+# (`Real.Gamma 0 = 0` in Lean makes the raw evaluation silently the Dirac law),
+# so the corner is a LIMIT, never an evaluation of `cgmy_exponent` -- BRIEF_016
+# F3, the `Y -> 2` pattern of BRIEF_014 one corner over. `cgmy_zeroth_
+# corner_map` is the single place the F3 correspondence lives, so the corner
+# route and the test cannot drift apart (mutants M26 and M29).
+#
+# The falsifier (BRIEF_016 section 2) measures the ATM implied-vol skew
+# `psi(tau) = d sigma_BS/dk` at `k = log(K/F) = 0` for each maturity and fits
+# `log|psi| = A - alpha_fit log tau`. The published exponents that pin the
+# market side (`alpha in (0.3, 0.5)`) live in `tests/`, not here.
+# ---------------------------------------------------------------------------
+
+
+def vg_exponent(
+    sigma: float, nu: float, theta: float, tau: float, r: float, q: float, v: complex
+) -> complex:
+    """The RISK-NEUTRAL variance-gamma log-characteristic function.
+
+        psi(v) = i (r - q + omega) tau v
+                 - (tau / nu) log(1 - i theta nu v + sigma^2 nu v^2 / 2),
+        omega  = (1 / nu) log(1 - theta nu - sigma^2 nu / 2).
+
+    `omega` is the martingale correction: `psi(-i) = (r - q) tau` exactly, so
+    `E[S_T] = S e^{(r-q)tau}`. This is the `Y = 0` member of the CGMY family
+    (BRIEF_016 F3) in the paper's own parameterization; the corner route below
+    carries the same law in `(C, G, M)`, and the test asserts they agree.
+    """
+    if sigma <= 0.0 or nu <= 0.0:
+        raise ValueError("VG needs sigma > 0 and nu > 0")
+    m1 = 1.0 - theta * nu - 0.5 * sigma * sigma * nu
+    if m1 <= 0.0:
+        raise ValueError("VG moment condition violated: 1 - theta nu - sigma^2 nu/2 must be > 0")
+    omega = math.log(m1) / nu
+    w = 1.0 - 1j * theta * nu * v + 0.5 * sigma * sigma * nu * v * v
+    if w == 0:
+        raise ValueError("VG log singularity on the contour")
+    return 1j * (r - q + omega) * tau * v - (tau / nu) * cmath.log(w)
+
+
+def cgmy_zeroth_corner_map(sigma: float, nu: float, theta: float):
+    """The F3 correspondence `(sigma, nu, theta) -> (C, G, M)`:
+
+        C = 1/nu,   s = sqrt(theta^2 + 2 sigma^2 / nu),
+        G = (s + theta)/sigma^2,   M = (s - theta)/sigma^2.
+
+    `G` tempers the negative side and `M` the positive side, matching
+    `cgmy_exponent`'s `G + iv` / `M - iv` pairing; `1 < M` is the numeraire
+    condition (`cgmy_numeraire_strip`), so `u = 1` is inside the strip. The
+    map reproduces the first two cumulants exactly:
+    `C(1/M - 1/G) = theta`, `C(1/M^2 + 1/G^2) = sigma^2 + nu theta^2`.
+    """
+    if sigma <= 0.0 or nu <= 0.0:
+        raise ValueError("the corner map needs sigma > 0 and nu > 0")
+    C = 1.0 / nu
+    s = math.sqrt(theta * theta + 2.0 * sigma * sigma / nu)
+    return C, (s + theta) / (sigma * sigma), (s - theta) / (sigma * sigma)
+
+
+def cgmy_zeroth_exponent(C: float, G: float, M: float, v: complex) -> complex:
+    """`psi_0(v) = C [ log(M/(M - iv)) + log(G/(G + iv)) ]` -- the `Y -> 0` corner.
+
+    The limit of `cgmy_exponent` as `Y -> 0`: `Gamma(-Y) ~ -1/Y` cancels the
+    bracket's `Y`, leaving exactly this. Written explicitly because the landed
+    `cgmy_gamma_neg` has a pole at `0` (and Lean's `Real.Gamma 0 = 0` would
+    make a raw evaluation identically ZERO -- the Dirac law, not an error).
+    """
+    if C <= 0.0 or G <= 0.0 or M <= 0.0:
+        raise ValueError("CGMY parameters C, G, M must all be positive")
+    return C * (cmath.log(M / (M - 1j * v)) + cmath.log(G / (G + 1j * v)))
+
+
+def cgmy_zeroth_forward_exponent(
+    C: float, G: float, M: float, r: float, q: float, v: complex
+) -> complex:
+    """`Psi_0(v) = psi_0(v) + i (r - q - kappa_0(1)) v` -- the `Y = 0` value of
+    `corner_forward_exponent` (BRIEF_014 route A).
+
+    `kappa_0(1) = psi_0(-i)` is real and equals `-omega` of the VG
+    parameterization; `Psi_0(-i) = r - q` exactly, so `exp(tau Psi_0)` is a
+    martingale factor -- and, under the F3 map, the SAME function as
+    `exp(vg_exponent(...))`.
+    """
+    kappa1 = cgmy_zeroth_exponent(C, G, M, -1j)
+    if abs(kappa1.imag) > 1e-12 * max(1.0, abs(kappa1)):
+        raise ValueError("kappa_0(1) = psi_0(-i) must be real")
+    return cgmy_zeroth_exponent(C, G, M, v) + 1j * (r - q - kappa1.real) * v
+
+
+def carr_madan_by_exponent(expf, S: float, K: float, tau: float, r: float, q: float,
+                           alpha: float = 1.5, u_max: float = 2000.0, n: int = 80000) -> float:
+    """Carr-Madan contour quadrature at an ARBITRARY log-characteristic function.
+
+    The general form of the landed route: `bs_call_by_fourier_inversion` keeps
+    its own `norm_cdf`-free derivation, while this one takes any `expf` -- the
+    logarithm of the CF of `X = log(S_T/S)` -- and runs the same contour
+    `v = u - i(alpha + 1)` with `carr_madan_denom`:
+
+        e^{-r tau} S e^{-alpha k} / pi * int_0^{u_max} Re[e^{-i u k}
+            exp(expf(u - i(alpha+1))) / carr_madan_denom(alpha, u)] du,
+
+    by Simpson. The GBM exponent `i m v - (sigma^2 tau/2) v^2` is an instance.
+    """
+    if alpha <= 0.0:
+        raise ValueError("damping parameter alpha must be > 0")
+    k = math.log(K / S)
+    h = u_max / n
+
+    def integrand(u: float) -> float:
+        v = complex(u, -(alpha + 1.0))
+        return (cmath.exp(-1j * u * k) * cmath.exp(expf(v)) / carr_madan_denom(alpha, u)).real
+
+    tot = integrand(0.0) + integrand(u_max)
+    for i in range(1, n):
+        tot += integrand(i * h) * (4 if i % 2 else 2)
+    return math.exp(-r * tau) * S * math.exp(-alpha * k) / math.pi * (tot * h / 3.0)
+
+
+def implied_vol_bs(price: float, S: float, K: float, tau: float, r: float, q: float,
+                   lo: float = 1e-6, hi: float = 5.0, tol: float = 1e-12) -> float:
+    """BS implied volatility by bisection on `bs_call` (the A4 parity floor is this `tol`)."""
+    def f(s: float) -> float:
+        return bs_call(S, K, tau, r, q, s) - price
+
+    if f(lo) > 0.0 or f(hi) < 0.0:
+        raise ValueError("price not bracketed by [lo, hi] implied vols")
+    for _ in range(200):
+        mid = 0.5 * (lo + hi)
+        if f(mid) > 0.0:
+            hi = mid
+        else:
+            lo = mid
+        if hi - lo <= tol:
+            break
+    return 0.5 * (lo + hi)
+
+
+def atm_skew(exponent_family, S: float, tau: float, r: float, q: float, h: float = 0.005,
+             alpha: float = 1.5, u_max: float = 2000.0, n: int = 80000) -> float:
+    """`psi(tau) = d sigma_BS(k, tau)/dk` at `k = 0`, central difference with step `h`.
+
+    `exponent_family(tau)` returns the log-CF callable for that maturity; each
+    model price comes from `carr_madan_by_exponent`, and each implied vol from
+    `implied_vol_bs`. `k = log(K/F)` is log-moneyness (BRIEF_016 section 2).
+    """
+    F = S * math.exp((r - q) * tau)
+    exf = exponent_family(tau)
+    vols = []
+    for k in (-h, h):
+        K = F * math.exp(k)
+        call = carr_madan_by_exponent(exf, S, K, tau, r, q, alpha, u_max, n)
+        vols.append(implied_vol_bs(call, S, K, tau, r, q))
+    return (vols[1] - vols[0]) / (2.0 * h)
+
+
+def power_law_fit(taus, values) -> float:
+    """Least-squares exponent of `|values| ~ tau^(-exponent)` on `log tau`.
+
+    The fit alone, so a caller can run it on measurements this module did not
+    take (the test's canary: a prescribed `tau^(-1/2)` skew must come back as
+    `0.5`). Returns `-slope`, so `power_law_exponent` is `tau^(-a)`'s `a`.
+    """
+    xs = [math.log(t) for t in taus]
+    ys = [math.log(abs(y)) for y in values]
+    mx = sum(xs) / len(xs)
+    my = sum(ys) / len(ys)
+    num = sum((x - mx) * (y - my) for x, y in zip(xs, ys))
+    den = sum((x - mx) ** 2 for x in xs)
+    return -num / den
+
+
+def power_law_exponent(exponent_family, S: float, r: float, q: float, taus, h: float = 0.005,
+                       alpha: float = 1.5, u_max: float = 2000.0, n: int = 80000) -> float:
+    """Least-squares fit of `log|psi(tau)|` on `log tau`; returns `-slope`.
+
+    BRIEF_016's falsifier fit: the model's measured ATM-skew decay exponent,
+    compared by the test against the published market band. `taus` IS the
+    pinned window -- the short end is `h`-sensitive and is deliberately not
+    pinned (recorded in the brief).
+    """
+    return power_law_fit(
+        taus,
+        [atm_skew(exponent_family, S, t, r, q, h, alpha, u_max, n) for t in taus],
+    )
+
+
 def bs_price(S, K, T, t, r, s, q=0.0, option="call"):
     """BSM European price. Raises ValueError on illegal (tau,s).
 

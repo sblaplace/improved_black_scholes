@@ -296,6 +296,27 @@ implied-vol panel, then:
 reintroduced an elastic volatility by another name and bought nothing — that is
 anti-direction 1 below wearing a Lévy costume.
 
+**Pre-registered measurement (BRIEF_016, landed).** One term-structure
+falsifier for the direction, fixed before it was run. The ATM implied-vol skew
+`ψ(τ) = ∂σ_BS(k,τ)/∂k` at `k = ln(K/F) = 0` was measured for two witness sets
+over `τ ∈ [0.25, 5]` in a pinned quadrature (`α = 1.5`, `u_max = 2000`,
+`n = 80000`, `h = 0.005`, implied vol by bisection) and fitted as `ψ ~ τ^(−a)`:
+**a = 1.0857** at the published Carr–Madan (1999) Case-4 VG parameters and
+**a = 0.9682** at CGMY `(1, 5, 10, 0.7)`. The market's published fits decay
+like `τ^(−0.36..−0.45)` (`α ∈ (0.30, 0.50)`: El Amrani–Guyon,
+Gatheral–Jaisson–Rosenbaum 2018), so the model band `[0.90, 1.15]` and the
+market band are **disjoint by 0.40** — the direction, taken alone, fails this
+falsifier. The order parameter is right: the asymptotic rate for
+exponential-Lévy models is `O(τ^(−1))` (Figueroa-López–Forde–Jacquier), which
+the measurement agrees with, and ledger **C19** corrects the reviewer's
+`τ^(−1/2)` parenthetical — so the failure is one of *magnitude* (the missing
+mean-reverting factor of §D2), not of the exponent's form. The measurement is a
+committed test, `tests/test_bs.py::test_term_structure_anchor`, with mutants
+M26–M29; the same test carries the oracle's one genuinely external anchor (the
+published Carr–Madan Case-4 price table and that paper's failing VGPS row).
+This is the dynamic half C13 finding 4 asked for, and it is the repository's own
+statement of what the T6 direction does not buy.
+
 ### Formal target (this is T6)
 
 Stated in `ImprovedBS/Core.lean` as a comment block; the theorem to aim at is:

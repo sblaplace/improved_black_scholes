@@ -285,6 +285,46 @@ MUTANTS = [
         # assertions at t != 1 kill it, which is why the test carries them.
         ["test_pareto_witness"],
     ),
+    (
+        "M26 BRIEF_016 corner map: C = 1/nu -> nu (the Y = 0 corner is scaled by the mixing variance)",
+        "C = 1.0 / nu",
+        "C = nu",
+        # The corner route is the tree's parameterization of the SAME published
+        # law the VG route prices; a wrong `C` scales the whole corner exponent
+        # by `nu^2 = 4`, and every anchor price moves by O(1). The VG route does
+        # not read the map, so only the anchor test can see this.
+        ["test_term_structure_anchor"],
+    ),
+    (
+        "M27 BRIEF_016 VG exponent: -(tau / nu) log(.) -> -tau log(.)",
+        "return 1j * (r - q + omega) * tau * v - (tau / nu) * cmath.log(w)",
+        "return 1j * (r - q + omega) * tau * v - tau * cmath.log(w)",
+        # The `tau/nu` scaling is the law's parameterization (nu is the mixing
+        # variance, not a unit of time); dropping it moves the published anchor
+        # prices by O(1) and both witness exponents.
+        ["test_term_structure_anchor"],
+    ),
+    (
+        "M28 BRIEF_016 martingale correction sign: 1 - theta nu - sigma^2 nu/2 -> 1 + ...",
+        "m1 = 1.0 - theta * nu - 0.5 * sigma * sigma * nu",
+        "m1 = 1.0 + theta * nu + 0.5 * sigma * sigma * nu",
+        # `omega` is what makes `E[S_T] = S e^{(r-q) tau}`; the sign flip is not
+        # a crash (m1 stays positive at Case 4: 0.8625) -- it is a different,
+        # non-martingale law, so the normalization identity psi(-i) = (r-q)tau
+        # and the anchor prices both go red.
+        ["test_term_structure_anchor"],
+    ),
+    (
+        "M29 BRIEF_016 corner map: theta -> -theta (G and M swapped)",
+        "return C, (s + theta) / (sigma * sigma), (s - theta) / (sigma * sigma)",
+        "return C, (s - theta) / (sigma * sigma), (s + theta) / (sigma * sigma)",
+        # Swapping the tempering rates is the sign error of the corner's
+        # asymmetry: the first cumulant flips (C(1/M - 1/G) = -theta) and the
+        # corner-route anchor prices move by O(1), while the VG route is
+        # untouched -- BRIEF_016's F3 is exactly the statement that the two
+        # routes are the same law.
+        ["test_term_structure_anchor"],
+    ),
 ]
 
 
