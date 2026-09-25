@@ -23,8 +23,9 @@
   `Filter.Tendsto` on `𝓝[<] 2` — eventually `1 < Y < 2` — and nothing in
   this module evaluates the pole. The alternative printed in the old docs,
   `G, M → σ²/2` at fixed `Y`, is not a GBM limit either: it leaves
-  non-quadratic complex powers behind (`check_gbm_corner.py` measures the
-  failure of the Gaussian ratio `Re ψ(2)/Re ψ(1) = 4` there).
+  non-quadratic complex powers behind (`tests/test_bs.py::test_gbm_corner`
+  measures the failure of the Gaussian ratio `Re ψ(2)/Re ψ(1) = 4` there, and
+  asserts it on every oracle run — it is one of the canaries C17 is built on).
 
   The pole cancellation, which is the whole engine:
   `ε Γ(−Y) = Γ(3−Y)/(Y(Y−1))`, two `Real.Gamma_add_one` steps away from
