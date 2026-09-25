@@ -1147,7 +1147,7 @@ correction to a proposed theorem, **not** a CI verdict or a landed Lean proof.
 The old item 6 said `ψ_CGMY → ψ_GBM as Y → 2 (or G,M → σ²/2)` with no scaling
 of `C`. The first limit is **false**: `Γ(−Y) ~ 1/[2(2−Y)]`; at fixed `C=.35`,
 `G=M=3`, `v=1`, the bracket tends `−2` and `Re ψ` goes to `−∞`.
-`python3 scripts/check_gbm_corner.py` measures `Re ψ = −2.980` at `Y=1.9`
+`tests/test_bs.py::test_gbm_corner` measures `Re ψ = −2.980` at `Y=1.9`
 and `−349.411` at `Y=1.999`, with `(2−Y)Re ψ → −.35`. Taking
 `G,M → σ²/2` at fixed noninteger `Y` is not a Gaussian limit either: the
 `Y`-th complex powers remain nonquadratic (at `Y=1.5, C=.2,

@@ -373,9 +373,11 @@ Esscher family") becomes the brief's in-family uniqueness theorem. **BRIEF_014
 is ISSUED, not yet proved**: item 6, the normalized CGMY → GBM corner at
 `Y ↑ 2` with `C_Y = (σ²/2)(2−Y)` (necessary because `Γ(−Y)` has a pole),
 pointwise exponent/factor limits, and an exact zero-carry Esscher instance.
-The reproducible numerical precheck `python3 scripts/check_gbm_corner.py` has
-run with wrong-scaling, fixed-`C`, rate-only, and missing-drift canaries; it does not
-replace `lake build` or create a CGMY law. Ledger C17 records the correction
+The numerical precheck now lives as a committed oracle test,
+`tests/test_bs.py::test_gbm_corner` (it started life as
+`scripts/check_gbm_corner.py`), and runs with wrong-scaling, fixed-`C`,
+rate-only and missing-drift canaries, two of which are seeded mutants; it does
+not replace `lake build` or create a CGMY law. Ledger C17 records the correction
 of the old bare `Y → 2` / `G,M → σ²/2` wording. C13's two repair briefs
 (the Pareto witness for `Levy.lean`'s tail hypothesis, and the Haug /
 term-structure external anchor) stay queued after the kit items and are
