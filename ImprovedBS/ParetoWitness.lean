@@ -69,7 +69,13 @@ theorem paretoMeasure_Ici {t r : ℝ} (ht : 0 < t) (hr : 0 < r) {x : ℝ} (hx : 
     setLIntegral_congr_fun measurableSet_Ici (fun y hy => paretoPDF_of_le (le_trans hx hy))
   have hint : IntegrableOn (fun y : ℝ => r * t ^ r * y ^ (-(r + 1))) (Set.Ici x) := by
     have h := integrableOn_Ioi_rpow_of_lt (by linarith : -(r + 1) < -1) hx0
-    exact (integrableOn_Ici_iff_integrableOn_Ioi.mpr h).const_mul (r * t ^ r)
+    have hIci : IntegrableOn (fun y : ℝ => y ^ (-(r + 1))) (Set.Ici x) := by
+      first
+      | exact (integrableOn_Ici_iff_integrableOn_Ioi (by simp)).mpr h
+      | exact (integrableOn_Ici_iff_integrableOn_Ioi).mpr h
+      | (rw [integrableOn_Ici_iff_integrableOn_Ioi]; exact h)
+      | exact (integrableOn_Ici_iff_integrableOn_Ioi' (by simp)).mpr h
+    exact hIci.const_mul (r * t ^ r)
   have hnn : 0 ≤ᵐ[volume.restrict (Set.Ici x)]
       fun y : ℝ => r * t ^ r * y ^ (-(r + 1)) := by
     rw [EventuallyLE, ae_restrict_iff' measurableSet_Ici]
@@ -120,7 +126,7 @@ theorem pareto_tail_const_pos {t r : ℝ} (ht : 0 < t) : 0 < t ^ r :=
 — proved THROUGH `exp_moment_infinite_of_tail_lower_bound`, not re-derived. -/
 theorem pareto_exp_moment_infinite {t r : ℝ} (ht : 0 < t) (hr : 0 < r) :
     ¬ Integrable (fun y => Real.exp y) (paretoMeasure t r) := by
-  haveI := isProbabilityMeasure_paretoMeasure ht hr
+  have := isProbabilityMeasure_paretoMeasure ht hr
   exact exp_moment_infinite_of_tail_lower_bound (paretoMeasure t r) r (t ^ r) t
     (pareto_tail_const_pos ht) (pareto_tail_lower_bound ht hr)
 
@@ -128,7 +134,7 @@ theorem pareto_exp_moment_infinite {t r : ℝ} (ht : 0 < t) (hr : 0 < r) :
 theorem pareto_no_drift_makes_spot_integrable {t r : ℝ} (ht : 0 < t) (hr : 0 < r)
     (S₀ d : ℝ) (hS : 0 < S₀) :
     ¬ Integrable (fun x => S₀ * Real.exp (x + d)) (paretoMeasure t r) := by
-  haveI := isProbabilityMeasure_paretoMeasure ht hr
+  have := isProbabilityMeasure_paretoMeasure ht hr
   exact no_drift_makes_spot_integrable (paretoMeasure t r) r (t ^ r) t S₀ d hS
     (pareto_tail_const_pos ht) (pareto_tail_lower_bound ht hr)
 
@@ -182,7 +188,7 @@ theorem levy_tail_hypothesis_satisfiable_iff (α : ℝ) :
     ↔ 0 < α := by
   constructor
   · rintro ⟨μ, hμ, c, x₀, hc, htail⟩
-    haveI := hμ
+    have := hμ
     by_contra hα
     exact levy_tail_hypothesis_unsatisfiable_of_nonpos μ (not_lt.1 hα) hc htail
   · intro hα
