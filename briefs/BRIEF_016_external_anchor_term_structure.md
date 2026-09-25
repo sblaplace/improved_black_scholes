@@ -1,7 +1,7 @@
 # BRIEF_016 — the external anchor: the published Carr–Madan test case, and the term-structure falsifier (ledger C13 finding 4)
 
-- **Status:** **ISSUED** (this PR) — documentation plus a committed numeric
-  route-check. No `.lean` file, no pin, no audit entry, no lint rule and no
+- **Status:** **ISSUED** — PR [#24](https://github.com/sblaplace/improved_black_scholes/pull/24),
+  documentation plus a numeric route-check run at issue (no committed test). No `.lean` file, no pin, no audit entry, no lint rule and no
   `.github` workflow changes: the subject of this brief is the **oracle's
   agreement with the literature**, not a new Lean theorem, and there is no Lean
   module to guard. The issuance verdict is recorded in `benchmarks/LEDGER.md`
@@ -258,7 +258,7 @@ claim.
   the C19 correction (a pointer, not a rewrite; §D1's CGMY text keeps its
   landed status). **`docs/04_formal_plan.md`:** the queue row and the
   "still queued" sentence at the end of §D1's landing paragraph.
-  **`benchmarks/LEDGER.md`:** the issuance row (this PR) and correction C19.
+  **`benchmarks/LEDGER.md`:** the issuance row (PR #24) and correction C19.
   **`README.md`:** the harness counts (`22 → 23`, `26 → 30`) and a status-table
   row.
 
