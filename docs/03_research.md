@@ -183,16 +183,14 @@ one above — **in the same tree, under the same skeleton**, with all seven of:
    before issue; the deliverable landed at the factor level —
    `esscher_drift_factor` gives the tilted factor `e^{τ(r−q)}` at the
    solution, and pricing at the tilted rates consumes
-   `cgmy_cmPriceKernel_integrable` — with the
-   expectation-level twin gated on a law construction (the brief's re-scope
-   note: the tree has no CGMY law as a measure). **BRIEF_017 is issued**
-   (PR #24): the feasibility audit decides the route — Stage 1 is the family's
-   `Y = 0` member (the variance-gamma law) built from mathlib's `gammaMeasure`,
-   which lands the expectation-level twin at that member; the general-`Y` law
-   is Stage 2, the compound-Poisson truncation limit through mathlib's
-   Lévy-continuity and Prokhorov layer, specified and queued behind it.
-   **BRIEF_018** (same PR) is the Stage-1 contract: `ImprovedBS/VGLaw.lean`,
-   ~22 declarations, the `[VGLaw]` lint clauses, `test_vg_law` and M30–M33.
+   `cgmy_cmPriceKernel_integrable`. **The expectation-level twin has landed
+   as BRIEF_018** (`ImprovedBS/VGLaw.lean`, `vg_drift_identity`): at the Esscher
+   tilt `vgTilt` of the variance-gamma law — the family's `Y = 0` member, the
+   difference of two `gammaMeasure`s — `∫ x, S · exp(x) ∂(vgTilt) = S · exp((r−q)τ)`
+   whenever `vgDriftMap θ = r − q`. That is law (c) of the brief's F3, the
+   tree's Esscher measure, not the published translated martingale law
+   BRIEF_016 prices at. The general-`Y` law (Stage 2) and the complex-rate Γ
+   integral (G1) stay open; item 6's expectation-level twin waits on Stage 2.
 4. **T6's triangle holds at the new exponent.** The Carr–Madan integral
    converges absolutely on the contour, inverts to `e^{−rτ}·E[(S_T − K)⁺]`,
    and is real-valued — the full pricing claim where no closed form exists.
@@ -207,15 +205,17 @@ one above — **in the same tree, under the same skeleton**, with all seven of:
 5. **The skeleton is preserved.** Put-call parity and the no-arbitrage bounds
    hold at the new law — by *instantiation* of the model-free layer
    (`ImprovedBS/Skeleton.lean`, BRIEF_009), not by re-proof. **This item's
-   machinery has landed green** (PR #11), while GBM is still the only law in
-   the tree: parity and bounds are lifted off the closed form onto
-   `e^{−rτ}·E[(S_T − K)⁺]` for any law with the drift condition, and the GBM
+   machinery has landed green** (PR #11), and it is no longer GBM-only:
+   parity and bounds are lifted off the closed form onto
+   `e^{−rτ}·E[(S_T − K)⁺]` for any law with the drift condition, the GBM
    instance re-derives T2′ and T4 through the new layer
    (`t2_spread_via_skeleton`, `t4_call_bounds_via_skeleton`, graded to
-   consume the model-free proofs and not the closed-form ones) — so "the
-   widening preserves the skeleton" is a theorem schema now, and every later
-   law inherits T2/T4 by supplying three facts (`Integrable X`, the drift
-   condition, `0 ≤ X`) and plugging in.
+   consume the model-free proofs and not the closed-form ones), and
+   **BRIEF_018 instantiates them at the tilted variance-gamma law**
+   (`vg_modelFree_call_bounds`, `vg_modelFree_put_bounds`,
+   `vg_modelFree_parity`) — the first non-Gaussian law in the tree that
+   discharges the three facts (`Integrable X`, the drift condition, `0 ≤ X`)
+   by construction.
 6. **GBM comes back at the corner — LANDED as BRIEF_014** (PR #22, lean run
    36111570530, 2026-09-25; `ImprovedBS/Corner.lean`). For
    `1 < Y < 2`, take `C_Y = (σ²/2)(2−Y)` as `Y ↑ 2`: then

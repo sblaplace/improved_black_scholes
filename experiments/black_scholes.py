@@ -1129,6 +1129,121 @@ def power_law_exponent(exponent_family, S: float, r: float, q: float, taus, h: f
     )
 
 
+# ---------------------------------------------------------------------------
+# BRIEF_018: the variance-gamma law (the CGMY family's `Y = 0` corner).
+#
+# The numerical shadow of ImprovedBS/VGLaw.lean. The law is the difference of
+# the two Gamma laws `Gamma(C*tau, M)` and `Gamma(C*tau, G)` (BRIEF_018 F2 --
+# the Madan-Carr-Chang form, not the normal variance-mean mixture), so its mgf
+# on the landed strip `-G < u < M` is
+#
+#     M(u) = (M/(M-u))^{C tau} (G/(G+u))^{C tau} = exp(tau * kappa_0(u)),
+#     kappa_0(u) = C [ log(M/(M-u)) + log(G/(G+u)) ].
+#
+# Three conventions are pinned here because they are the three places a silent
+# error hides (BRIEF_018 F3/F5):
+#
+#   * WHICH SIDE EACH RATE TEMPERS. `M` sits on the POSITIVE side (`M - u`)
+#     and `G` on the negative side (`G + u`), matching `cgmy_exponent`'s
+#     `M - iv` / `G + iv` pairing. Reflecting `u` (M33) swaps the mean's sign.
+#   * THE CORNER IS A LIMIT, NEVER AN EVALUATION. `cgmyCumulant ... 0 u` is
+#     `Gamma(0) * 0` -- Lean's `Real.Gamma 0 = 0` makes that silently the Dirac
+#     law, not an error. So `vg_cumulant` is written EXPLICITLY (the log form
+#     above), exactly as `cgmy_zeroth_exponent` is explicit on the complex
+#     side, and the test's canary pins the Dirac's signature against it.
+#   * WHICH WAY THE TILT MOVES THE RATES. The Esscher tilt at `theta` sends
+#     `(G, M) -> (G + theta, M - theta)` (the law-level image of
+#     `esscher_cgmy_shift`); swapping the two legs (M32) prices a different law.
+#
+# `gamma_mgf` is the one-line mgf of a single Gamma law (Lean
+# `gammaMeasure_mgf`); everything else composes it. No published literal lives
+# here (BRIEF_016's rule): the Case-4 numbers stay in `tests/`.
+# ---------------------------------------------------------------------------
+
+
+def gamma_mgf(a: float, r: float, u: float) -> float:
+    """`(r/(r-u))^a` -- the mgf of `Gamma(a, r)` at `u` (Lean `gammaMeasure_mgf`).
+
+    Valid for `u < r`; the test pins the underlying Gamma integral by
+    quadrature at one shape and the rate scaling exactly.
+    """
+    if not u < r:
+        raise ValueError("Gamma mgf needs u < r")
+    return (r / (r - u)) ** a
+
+
+def vg_cumulant(C: float, G: float, M: float, u: float) -> float:
+    """`kappa_0(u) = C [log(M/(M-u)) + log(G/(G+u))]` -- the `Y = 0` real
+    cumulant (Lean `vgCumulant`), the difference of the two Gamma cumulants.
+
+    The strip `-G < u < M` is enforced: both log arguments must be positive.
+    At `u = 1` this is `-omega`, the VG parameterization's own martingale
+    correction (BRIEF_018 F3 -- the bridge between the two normalizations).
+    """
+    if not -G < u < M:
+        raise ValueError("vg_cumulant needs -G < u < M")
+    return C * (math.log(M / (M - u)) + math.log(G / (G + u)))
+
+
+def vg_mgf(C: float, G: float, M: float, tau: float, u: float) -> float:
+    """`exp(tau * kappa_0(u))` -- the mgf of `vgLaw` (Lean `vgLaw_mgf`).
+
+    The `tau` is load-bearing: the law's shape is `C*tau`, and dropping it
+    (mutant M31) prices the `tau = 1` law at every maturity.
+    """
+    return math.exp(tau * vg_cumulant(C, G, M, u))
+
+
+def vg_drift_map(C: float, G: float, M: float, theta: float) -> float:
+    """`g(theta) = kappa_0(theta+1) - kappa_0(theta)` -- the drift the tilt
+    at `theta` delivers (Lean `vgDriftMap`), the `Y = 0` value of
+    `esscher_drift_map`. Antisymmetric about `(M-G-1)/2`, strictly increasing
+    on `[-G, M-1]`, and UNBOUNDED at both edges (BRIEF_018 F4): there is no
+    out-of-range case at the corner.
+    """
+    return vg_cumulant(C, G, M, theta + 1.0) - vg_cumulant(C, G, M, theta)
+
+
+def vg_tilted_cumulant(C: float, G: float, M: float, theta: float, u: float) -> float:
+    """`kappa_0` at the SHIFTED rates `(G+theta, M-theta)` -- the tilted law
+    is the family member at those rates (Lean `vg_tilt_cumulant_shift`).
+
+    The identity `kappa(u+theta) - kappa(theta) = kappa_{(G+theta,M-theta)}(u)`
+    is what the test asserts; swapping the two legs (mutant M32) breaks it.
+    """
+    return vg_cumulant(C, G + theta, M - theta, u)
+
+
+def vg_esscher_solve(C: float, G: float, M: float, target: float,
+                     iters: int = 200):
+    """Bisection on `g(theta) = target` over the admissible interval
+    `(-G, M-1)` -- the numerical drift solve at the corner.
+
+    Unlike `esscher_solve`, the edge values are `-inf`/`+inf` (F4), so the
+    bracket is inset by `1e-12` of the width before the sign check: for every
+    finite target the inset bracket straddles it. Returns `None` only when the
+    interval itself is EMPTY (`G + M <= 1`); there is no `esscher_no_solution`
+    twin at `Y = 0`.
+    """
+    lo, hi = -G, M - 1.0
+    if not lo < hi:
+        return None
+    inset = 1e-12 * (hi - lo)
+    lo, hi = lo + inset, hi - inset
+    flo = vg_drift_map(C, G, M, lo) - target
+    fhi = vg_drift_map(C, G, M, hi) - target
+    if flo * fhi > 0.0:
+        return None
+    for _ in range(iters):
+        mid = 0.5 * (lo + hi)
+        fm = vg_drift_map(C, G, M, mid) - target
+        if flo * fm <= 0.0:
+            hi, fhi = mid, fm
+        else:
+            lo, flo = mid, fm
+    return 0.5 * (lo + hi)
+
+
 def bs_price(S, K, T, t, r, s, q=0.0, option="call"):
     """BSM European price. Raises ValueError on illegal (tau,s).
 

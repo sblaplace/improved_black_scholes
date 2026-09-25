@@ -86,8 +86,14 @@ from experiments.black_scholes import (
     esscher_solve,
     esscher_theta_zero,
     forward_by_expectation,
+    gamma_mgf,
     model_free_forward,
     model_free_prices,
+    vg_cumulant,
+    vg_drift_map,
+    vg_esscher_solve,
+    vg_mgf,
+    vg_tilted_cumulant,
     norm_cdf,
     norm_pdf,
     NONUNIQ_SPOTS,
@@ -1299,6 +1305,188 @@ def test_term_structure_anchor():
 
     flat = [atm_skew(flat_route, S, t, r, q) for t in SKEW_WINDOW]
     assert max(abs(x) for x in flat) < 1e-6, flat
+
+
+# BRIEF_018 witness sets (the brief's numeric contract; tau = 0.25, S = K = 100,
+# r = 0.05, q = 0.03 throughout):
+# (label, C, G, M, theta*, kappa0(1), mgf(1), tilted call, tilted put).
+# Witness A is the anchor's own F3 map of (sigma, nu, theta) = (0.25, 2.0, -0.10);
+# the test derives it through `cgmy_zeroth_corner_map` and pins the mapped triple.
+VG_SETS = [
+    ("A", 0.5, 2.708131845707604, 5.908131845707604, 1.463508761,
+     -0.0644164359214842, 0.9840248688965743, 2.749188832359, 2.254163399833),
+    ("B", 0.5, 5.0, 10.0, 3.095836730,
+     -0.03848052056806412, 0.9904259952806018, 1.705678682076, 1.210653249550),
+]
+VG_TAU, VG_R, VG_Q, VG_S, VG_K = 0.25, 0.05, 0.03, 100.0, 100.0
+
+
+def _gamma_integral_quad(a: float, n: int = 20000) -> float:
+    """`Gamma(a) = (1/a) int_0^inf exp(-z^(1/a)) dz` by Simpson -- the
+    `z = x^a` substitution, which removes the `x^(a-1)` singularity at the
+    origin for `a < 1`. The independent route for `gammaMeasure_mgf`'s
+    Gamma integral (the rate scaling is exact algebra, asserted alongside)."""
+    zmax = 40.0 ** a
+    h = zmax / n
+    tot = 1.0 + math.exp(-(zmax ** (1.0 / a)))
+    for i in range(1, n):
+        tot += math.exp(-((i * h) ** (1.0 / a))) * (4 if i % 2 else 2)
+    return tot * h / 3.0 / a
+
+
+def test_vg_law():
+    """BRIEF_018 (numerical shadow of `ImprovedBS/VGLaw.lean`).
+
+    Every assertion names the Lean declaration it shadows. The variance-gamma
+    law is the difference of the two Gamma laws `Gamma(C*tau, M)` and
+    `Gamma(C*tau, G)` (`vgLaw`), so its mgf on the landed strip `-G < u < M`
+    is `exp(tau * kappa_0(u))` with `kappa_0(u) = C[log(M/(M-u)) +
+    log(G/(G+u))]` (`vgLaw_mgf`, via the two-Gamma factorization); the corner
+    `psi_Y -> psi_0` is a LIMIT (`vg_corner`), never an evaluation (Lean's
+    `Real.Gamma 0 = 0` makes a raw `Y = 0` evaluation silently the Dirac law
+    -- the canary below pins its signature); the Esscher tilt at the law level
+    is the family member at the shifted rates (`vg_tilt_cumulant_shift`); and
+    at the drift solution the tilted law is a martingale law
+    (`vg_drift_identity`, item 3) whose Carr-Madan price sits inside the
+    model-free bounds (`vg_modelFree_*`, item 5) -- the first non-Gaussian law
+    in the tree that discharges BRIEF_009's hypotheses by construction.
+    """
+    tau, r, q, S, K = VG_TAU, VG_R, VG_Q, VG_S, VG_K
+
+    # --- the Gamma rung (`gammaMeasure_mgf`): quadrature at the singular
+    # shape a = 0.125 against `math.gamma`, plus the exact rate scaling
+    g = _gamma_integral_quad(0.125)
+    assert abs(g - math.gamma(0.125)) / math.gamma(0.125) <= 1e-9, g
+    assert abs(gamma_mgf(2.5, 3.0, 1.0) - (3.0 / 2.0) ** 2.5) < 1e-15
+    try:
+        gamma_mgf(1.0, 2.0, 2.0)
+        raise AssertionError("gamma_mgf must refuse u >= r")
+    except ValueError:
+        pass
+
+    # --- witness A is the anchor's Case-4 triple through the F3 map, and
+    # `kappa_0(1) = -omega` is the bridge to the VG parameterization (F3)
+    C_A, G_A, M_A = cgmy_zeroth_corner_map(0.25, 2.0, -0.10)
+    _, C_exp, G_exp, M_exp = VG_SETS[0][:4]
+    for got, exp in ((C_A, C_exp), (G_A, G_exp), (M_A, M_exp)):
+        assert abs(got - exp) < 1e-12, (got, exp)
+    omega = math.log(1.0 - (-0.10) * 2.0 - 0.5 * 0.25 * 0.25 * 2.0) / 2.0
+    assert abs(vg_cumulant(C_A, G_A, M_A, 1.0) + omega) < 1e-12, omega
+
+    for label, C, G, M, th_exp, k1_exp, m1_exp, call_exp, put_exp in VG_SETS:
+        # `vgCumulant` pinned, and real on the strip by construction
+        k1 = vg_cumulant(C, G, M, 1.0)
+        assert abs(k1 - k1_exp) < 1e-12, (label, k1)
+        # the two-Gamma factorization (`integral_prod_mul`): the law's mgf is
+        # the product of the Gamma mgfs at `u` and `-u`
+        for u in (-G + 0.05, -0.5, 0.0, 0.5, 1.0, (M - 1.0) / 2.0, M - 0.05):
+            lhs = vg_mgf(C, G, M, tau, u)
+            rhs = gamma_mgf(C * tau, M, u) * gamma_mgf(C * tau, G, -u)
+            assert abs(lhs - rhs) < 1e-14 * max(1.0, rhs), (label, u, lhs, rhs)
+        # the bridge to the complex corner (`vgCumulant_eq_corner_re` at u = 1):
+        # `exp(tau * psi_0(-i))` is real and equals the mgf at 1
+        bridge = cmath.exp(tau * cgmy_zeroth_exponent(C, G, M, -1j))
+        m1 = vg_mgf(C, G, M, tau, 1.0)
+        assert abs(bridge.imag) < 1e-14, (label, bridge)
+        assert abs(bridge.real - m1) < 1e-14, (label, bridge, m1)
+        assert abs(m1 - m1_exp) < 1e-12, (label, m1)
+        # theta0 is admissible with drift 0 (the Y = 0 reflection fixed point)
+        th0 = esscher_theta_zero(G, M)
+        assert -G < th0 < M - 1.0, label
+        assert abs(vg_drift_map(C, G, M, th0)) < 1e-12, label
+        # the drift solve: theta*, its residual, and the derived numeraire
+        th = vg_esscher_solve(C, G, M, r - q)
+        assert th is not None, label
+        assert -G < th < M - 1.0, label
+        assert abs(th - th_exp) < 1e-6, (label, th)
+        assert abs(vg_drift_map(C, G, M, th) - (r - q)) <= 1e-12, label
+        assert 1.0 < M - th, label
+        # `vg_drift_identity` (item 3): the tilted mgf at 1 is `exp(tau (r-q))`,
+        # both via the shifted cumulant and via the mgf ratio
+        target = math.exp(tau * (r - q))
+        tilted = math.exp(tau * vg_tilted_cumulant(C, G, M, th, 1.0))
+        assert abs(tilted - target) <= 1e-12, (label, tilted, target)
+        ratio = vg_mgf(C, G, M, tau, 1.0 + th) / vg_mgf(C, G, M, tau, th)
+        assert abs(ratio - target) <= 1e-12, (label, ratio, target)
+        # `vg_tilt_cumulant_shift`: the shift identity on a (theta, u) grid,
+        # and the closure at the solution
+        for theta in (th0, 0.0, th):
+            for u in (-0.5, 0.25, 1.0):
+                a = vg_tilted_cumulant(C, G, M, theta, u)
+                b = vg_cumulant(C, G, M, u + theta) - vg_cumulant(C, G, M, theta)
+                assert abs(a - b) <= 1e-12, (label, theta, u, a, b)
+        assert abs(vg_drift_map(C, G, M, th)
+                   - vg_tilted_cumulant(C, G, M, th, 1.0)) <= 1e-12, label
+        # item 5: the Carr-Madan call at the TILTED law (pinned grid), inside
+        # the model-free bounds, with the put through parity inside its own
+        lower = S * math.exp(-q * tau) - K * math.exp(-r * tau)
+        upper = S * math.exp(-q * tau)
+        putcap = K * math.exp(-r * tau)
+        assert abs(lower - 0.49502543252569353) < 1e-9, lower
+        assert abs(upper - 99.25280548191384) < 1e-9, upper
+        assert abs(putcap - 98.75778004938815) < 1e-9, putcap
+        expf = lambda v, C=C, G=G, M=M, th=th: (  # noqa: E731
+            tau * cgmy_zeroth_exponent(C, G + th, M - th, v))
+        call = carr_madan_by_exponent(expf, S, K, tau, r, q,
+                                      alpha=1.5, u_max=2000.0, n=80000)
+        assert abs(call - call_exp) < 1e-6, (label, call)
+        assert lower < call < upper, (label, call)
+        # not the silent Dirac: a raw Y = 0 evaluation (exponent identically 0)
+        # prices the discounted intrinsic 0.0 here, an O(1) miss
+        assert abs(call - 0.0) > 1.0, (label, call)
+        put = call - lower
+        assert abs(put - put_exp) < 1e-6, (label, put)
+        assert 0.0 <= put <= putcap, (label, put)
+
+    # --- `vg_corner`: |psi_Y - psi_0|/Y stays finite as Y -> 0, i.e. O(Y)
+    for C, G, M, v, lo, hi, first, last in (
+            (0.5, 5.0, 10.0, 1.0, 0.07, 0.14, 0.1343, 0.0764),
+            (0.5, 5.0, 10.0, 3.0, 0.24, 0.46, 0.4480, 0.2527),
+            (1.0, 3.0, 6.0, 1.0, 0.16, 0.29, 0.2796, 0.1734),
+            (1.0, 3.0, 6.0, 3.0, 0.65, 1.10, 1.0808, 0.6659)):
+        psi0 = cgmy_zeroth_exponent(C, G, M, complex(v))
+        prev, Y = None, 0.5
+        for _ in range(7):
+            ratio = abs(cgmy_exponent(C, G, M, Y, complex(v)) - psi0) / Y
+            assert lo < ratio < hi, (C, G, M, v, Y, ratio)
+            if prev is not None:
+                assert ratio < prev, (C, G, M, v, Y, ratio, prev)
+            prev = ratio
+            Y /= 2.0
+        assert abs(abs(cgmy_exponent(C, G, M, 0.5, complex(v)) - psi0) / 0.5
+                   - first) < 1e-3, (C, G, M, v)
+        assert abs(abs(cgmy_exponent(C, G, M, 1.0 / 128.0, complex(v)) - psi0)
+                   * 128.0 - last) < 1e-3, (C, G, M, v)
+
+    # --- the published-factor identity (F2): the law's mgf IS the no-drift VG
+    # factor `(1 - theta nu u - sigma^2 nu u^2/2)^(-tau/nu)` at witness A
+    C, G, M = C_A, G_A, M_A
+    worst = 0.0
+    for i in range(11):
+        u = -G + 0.05 + (M + G - 0.1) * i / 10.0
+        pub = (1.0 - (-0.10) * 2.0 * u - 0.5 * 0.25 * 0.25 * 2.0 * u * u) ** (-tau / 2.0)
+        got = vg_mgf(C, G, M, tau, u)
+        worst = max(worst, abs(got - pub) / abs(pub))
+    assert worst <= 1e-12, worst
+
+    # --- the strip is enforced, and the solve has no solution only when the
+    # interval itself is empty (no `esscher_no_solution` twin at Y = 0: F4)
+    try:
+        vg_cumulant(0.5, 5.0, 10.0, 10.0)
+        raise AssertionError("vg_cumulant must refuse u = M")
+    except ValueError:
+        pass
+    assert vg_esscher_solve(1.0, 0.3, 0.5, 0.05) is None
+
+    # --- canary (R1): the sigma -> 0 GBM call is the FORWARD intrinsic, pinned
+    # as an equality -- the raw-Y=0 Dirac prices the discounted intrinsic
+    # instead (0.0 at S = K), so a Y = 0 evaluation cannot pass it
+    fwd = S * math.exp(-q * tau) - K * math.exp(-r * tau)
+    assert abs(bs_call(S, K, tau, r, q, 1e-12) - fwd) < 1e-9
+    assert abs(bs_call(S, K, tau, r, q, 1e-12) - 0.49502543252569353) < 1e-9
+    fwd90 = S * math.exp(-q * tau) - 90.0 * math.exp(-r * tau)
+    assert abs(bs_call(S, 90.0, tau, r, q, 1e-12) - fwd90) < 1e-9
+    assert abs(bs_call(S, 90.0, tau, r, q, 1e-12) - 10.370803437464502) < 1e-9
 
 
 if __name__ == "__main__":

@@ -502,6 +502,35 @@ REQUIRED = {
     "levy_tail_hypothesis_satisfiable_iff": "ImprovedBS/ParetoWitness.lean",
     "dirac_tail_hypothesis_fails": "ImprovedBS/ParetoWitness.lean",
     "dirac_exp_integrable": "ImprovedBS/ParetoWitness.lean",
+    # BRIEF_018: the variance-gamma law, the family's Y = 0 member. Five defs
+    # are specifications (the law is gammaMeasure-built, the cumulant is the
+    # log form and not an evaluation at Y = 0, the tilt is a withDensity), and
+    # every one of the 24 declarations is PROTECTED. The brief's prose counted
+    # 22; the listed contract is these 24, and the landed count is what CI pins.
+    "vgLaw": "ImprovedBS/VGLaw.lean",
+    "vgCumulant": "ImprovedBS/VGLaw.lean",
+    "vgDriftMap": "ImprovedBS/VGLaw.lean",
+    "vgCornerExponent": "ImprovedBS/VGLaw.lean",
+    "vgTilt": "ImprovedBS/VGLaw.lean",
+    "gammaMeasure_mgf": "ImprovedBS/VGLaw.lean",
+    "gammaMeasure_exp_integrable": "ImprovedBS/VGLaw.lean",
+    "vgLaw_isProbabilityMeasure": "ImprovedBS/VGLaw.lean",
+    "vgLaw_exp_integrable": "ImprovedBS/VGLaw.lean",
+    "vgLaw_mgf": "ImprovedBS/VGLaw.lean",
+    "vgLaw_cgf": "ImprovedBS/VGLaw.lean",
+    "vgLaw_mgf_one": "ImprovedBS/VGLaw.lean",
+    "vgCumulant_hasDerivAt": "ImprovedBS/VGLaw.lean",
+    "vgCumulant_eq_corner_re": "ImprovedBS/VGLaw.lean",
+    "vg_corner_cumulant": "ImprovedBS/VGLaw.lean",
+    "vg_corner": "ImprovedBS/VGLaw.lean",
+    "vgTilt_isProbabilityMeasure": "ImprovedBS/VGLaw.lean",
+    "vg_tilt_numeraire": "ImprovedBS/VGLaw.lean",
+    "vg_tilt_mgf": "ImprovedBS/VGLaw.lean",
+    "vg_tilt_cumulant_shift": "ImprovedBS/VGLaw.lean",
+    "vg_drift_identity": "ImprovedBS/VGLaw.lean",
+    "vg_modelFree_call_bounds": "ImprovedBS/VGLaw.lean",
+    "vg_modelFree_put_bounds": "ImprovedBS/VGLaw.lean",
+    "vg_modelFree_parity": "ImprovedBS/VGLaw.lean",
 }
 
 # Zero deferred-proof markers allowed. The T1/T2 node per BRIEF_001; the T3/T4
@@ -796,6 +825,31 @@ PROTECTED = {
     "levy_tail_hypothesis_satisfiable_iff",
     "dirac_tail_hypothesis_fails",
     "dirac_exp_integrable",
+    # BRIEF_018: all 24 declarations of VGLaw.lean.
+    "vgLaw",
+    "vgCumulant",
+    "vgDriftMap",
+    "vgCornerExponent",
+    "vgTilt",
+    "gammaMeasure_mgf",
+    "gammaMeasure_exp_integrable",
+    "vgLaw_isProbabilityMeasure",
+    "vgLaw_exp_integrable",
+    "vgLaw_mgf",
+    "vgLaw_cgf",
+    "vgLaw_mgf_one",
+    "vgCumulant_hasDerivAt",
+    "vgCumulant_eq_corner_re",
+    "vg_corner_cumulant",
+    "vg_corner",
+    "vgTilt_isProbabilityMeasure",
+    "vg_tilt_numeraire",
+    "vg_tilt_mgf",
+    "vg_tilt_cumulant_shift",
+    "vg_drift_identity",
+    "vg_modelFree_call_bounds",
+    "vg_modelFree_put_bounds",
+    "vg_modelFree_parity",
 }
 
 # The T5 node, in dependency order, and the two citations docs/04's spine
@@ -936,6 +990,19 @@ PARETO_HEADLINE_CLAUSES = (
     (r"ENNReal\.ofReal \(c \* x \^ \(-α\)\) ≤ μ \(Set\.Ici x\)",
      "Levy.lean's tail hypothesis verbatim"),
     (r"\) ↔ 0 < α$", "the `↔ 0 < α` characterization (C7's half included)"),
+)
+
+# [VGLaw] BRIEF_018. Four clauses, one mutant each in tests/test_lint.py.
+VGLAW_LAW = "vgLaw"
+VGLAW_MGF = "gammaMeasure_mgf"
+VGLAW_TILT = "vgTilt"
+VGLAW_NUMERAIRE = "vg_tilt_numeraire"
+VGLAW_CORNER = ("vg_corner", "vg_corner_cumulant")
+# A raw evaluation is `cgmyExponent C G M 0 v` (or the cumulant twin). The
+# whole file is the scope: Real.Gamma 0 = 0 makes it silently the Dirac law.
+VGLAW_EVAL = (
+    (r"cgmyExponent\s+\S+\s+\S+\s+\S+\s+0\b", "cgmyExponent"),
+    (r"cgmyCumulant\s+\S+\s+\S+\s+\S+\s+0\b", "cgmyCumulant"),
 )
 
 # A `sorry` that survives `lake build` is an axiom. Allow none by default.
@@ -2058,6 +2125,110 @@ def main() -> int:
                 "[PARETO] the Pareto instantiations cite Levy.lean's obstruction; the "
                 "discharge is `htail` verbatim at `c = t^r, α = r, x₀ = t`; the law is "
                 "mathlib's `paretoMeasure`; the headline is `(∃ law, htail) ↔ 0 < α`"
+            )
+
+    # [VGLaw] BRIEF_018: the variance-gamma law is the family's Y = 0 member,
+    # built from gammaMeasure, named by a one-sided corner, and tilted by a
+    # density whose numeraire condition is derived. `lake build` grades that
+    # the theorems are true; this grades that they are the law the brief asked
+    # for. Bodies are comment-stripped, so the doc-comments that name the
+    # forbidden Y = 0 evaluation stay legal.
+    vglaw_path = os.path.join(ROOT, "ImprovedBS", "VGLaw.lean")
+    if not os.path.exists(vglaw_path):
+        failures.append("[VGLaw] ImprovedBS/VGLaw.lean not found")
+    else:
+        vglaw_clean = strip_comments(open(vglaw_path, encoding="utf-8").read())
+        vglaw_bodies = {name: body for _, name, _, body in declarations(vglaw_clean)}
+        vglaw_failures: list[str] = []
+
+        def vglaw_body(name: str) -> str:
+            body = vglaw_bodies.get(name, "")
+            if body == "":
+                vglaw_failures.append(f"[VGLaw] `{name}` not found")
+            return body
+
+        def vglaw_rhs(name: str) -> str:
+            body = vglaw_body(name)
+            return " ".join((body.split(":=", 1)[1] if ":=" in body else "").split())
+
+        def vglaw_stmt(name: str) -> str:
+            body = vglaw_body(name)
+            return " ".join((body.split(":=", 1)[0] if body else "").split())
+
+        # (1) the corner is a limit, never an evaluation at Y = 0
+        for pat, why in VGLAW_EVAL:
+            if re.search(pat, vglaw_clean):
+                vglaw_failures.append(
+                    f"[VGLaw] ImprovedBS/VGLaw.lean evaluates `{why}` at `Y = 0`. "
+                    "`Real.Gamma 0 = 0`, so that evaluation is silently the Dirac law, "
+                    "not an error. The corner is a `Tendsto` on `𝓝[>] 0`."
+                )
+        for node in VGLAW_CORNER:
+            stmt = vglaw_stmt(node)
+            if stmt and not re.search(r"𝓝\[>\]\s*\(?\s*0", stmt):
+                vglaw_failures.append(
+                    f"[VGLaw] `{node}` does not carry the one-sided limit `𝓝[>] 0`. "
+                    "The two-sided limit does not exist, and an equality at `Y = 0` is "
+                    "the Dirac trap."
+                )
+        # (2) the law is gammaMeasure-built, with no hand-rolled density
+        rhs = vglaw_rhs(VGLAW_LAW)
+        if rhs:
+            if not re.search(r"\bgammaMeasure\b", rhs):
+                vglaw_failures.append(
+                    "[VGLaw] `vgLaw` is not built from `gammaMeasure`. The law is the "
+                    "difference of mathlib's two Gamma laws, not a second specification."
+                )
+            if re.search(r"\bwithDensity\b", rhs):
+                vglaw_failures.append(
+                    "[VGLaw] `vgLaw` builds a law with `withDensity`: a hand-rolled VG "
+                    "density is a second specification the tree must not pin."
+                )
+        # (3) the mgf consumes the shipped Gamma integral
+        body = vglaw_body(VGLAW_MGF)
+        if body and not re.search(r"\bintegral_rpow_mul_exp_neg_mul_Ioi\b", body):
+            vglaw_failures.append(
+                "[VGLaw] `gammaMeasure_mgf` does not cite "
+                "`integral_rpow_mul_exp_neg_mul_Ioi`. The Γ integral is consumed, "
+                "not re-derived."
+            )
+        # (4) the tilt is a density over its own mgf, and the numeraire is derived
+        rhs = vglaw_rhs(VGLAW_TILT)
+        if rhs:
+            for pat, why in (
+                (r"\bwithDensity\b", "`Measure.withDensity`"),
+                (r"\bmgf\b", "its own mgf value"),
+                (r"ENNReal\.ofReal", "the exponential density `ENNReal.ofReal`"),
+            ):
+                if not re.search(pat, rhs):
+                    vglaw_failures.append(
+                        f"[VGLaw] `vgTilt` no longer carries {why} (pattern {pat!r}). "
+                        "The tilt is the exponential density over the untilted mgf, "
+                        "not a shifted `gammaMeasure`."
+                    )
+        stmt = vglaw_stmt(VGLAW_NUMERAIRE)
+        body = vglaw_body(VGLAW_NUMERAIRE)
+        if stmt and not re.search(r":\s*1\s*<\s*M\s*-\s*θ\s*$", stmt):
+            vglaw_failures.append(
+                "[VGLaw] `vg_tilt_numeraire` no longer concludes `1 < M - θ`. "
+                "The numeraire condition is a conclusion of admissibility, not a "
+                "hypothesis."
+            )
+        if body and not re.search(r"\besscher_tilted_numeraire\b", body):
+            vglaw_failures.append(
+                "[VGLaw] `vg_tilt_numeraire` does not cite `esscher_tilted_numeraire`. "
+                "The numeraire condition is inherited from BRIEF_013, not assumed "
+                "and not re-derived."
+            )
+
+        if vglaw_failures:
+            failures.extend(vglaw_failures)
+        else:
+            notes.append(
+                "[VGLaw] no Y = 0 evaluation and both corners are `𝓝[>] 0`; `vgLaw` is "
+                "`gammaMeasure`-built with no `withDensity`; `gammaMeasure_mgf` consumes "
+                "the Γ integral; the tilt is a density over its mgf and the numeraire "
+                "is cited from `esscher_tilted_numeraire`"
             )
 
     if "--write-baseline" in sys.argv:

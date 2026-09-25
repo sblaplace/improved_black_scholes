@@ -429,6 +429,29 @@ jobs:
           #print axioms BSM.levy_tail_hypothesis_satisfiable_iff
           #print axioms BSM.dirac_tail_hypothesis_fails
           #print axioms BSM.dirac_exp_integrable
+          -- BRIEF_018: the variance-gamma law (the family's Y = 0 member),
+          -- ImprovedBS/VGLaw.lean. The Gamma rung, the law and its mgf, the
+          -- one-sided corner, the tilt, and items 3 and 5 at the tilted law.
+          -- All must print [propext, Classical.choice, Quot.sound] and never sorryAx.
+          #print axioms BSM.gammaMeasure_mgf
+          #print axioms BSM.gammaMeasure_exp_integrable
+          #print axioms BSM.vgLaw_isProbabilityMeasure
+          #print axioms BSM.vgLaw_exp_integrable
+          #print axioms BSM.vgLaw_mgf
+          #print axioms BSM.vgLaw_cgf
+          #print axioms BSM.vgLaw_mgf_one
+          #print axioms BSM.vgCumulant_hasDerivAt
+          #print axioms BSM.vgCumulant_eq_corner_re
+          #print axioms BSM.vg_corner_cumulant
+          #print axioms BSM.vg_corner
+          #print axioms BSM.vgTilt_isProbabilityMeasure
+          #print axioms BSM.vg_tilt_numeraire
+          #print axioms BSM.vg_tilt_mgf
+          #print axioms BSM.vg_tilt_cumulant_shift
+          #print axioms BSM.vg_drift_identity
+          #print axioms BSM.vg_modelFree_call_bounds
+          #print axioms BSM.vg_modelFree_put_bounds
+          #print axioms BSM.vg_modelFree_parity
           LEAN
           lake env lean /tmp/Audit.lean 2>&1 | tee lean-audit.log
           if grep -q sorryAx lean-audit.log; then
@@ -454,6 +477,55 @@ jobs:
           touch lean-pins.log
           python3 scripts/pin_statements.py --elab-check 2>&1 | tee lean-pins.log
           exit ${PIPESTATUS[0]}
+
+      - name: Publish the elaborated-pin delta
+        # The general failure comment tails every log at 25k characters, which
+        # exceeds GitHub's 65536-character comment limit and is rejected (run
+        # 36149933365: lake build was green, the pin delta was in lean-pins.log,
+        # and the comment never posted). This step posts only the `elab_delta`
+        # block, which is what a toolchain-less sandbox has to merge.
+        if: failure() && github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.number }}
+          REPO: ${{ github.repository }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -uo pipefail
+          python3 - << 'PY'
+          import json, os, urllib.request
+          sha = os.environ["HEAD_SHA"][:7]
+          log = "lean-pins.log"
+          if not os.path.exists(log) or os.path.getsize(log) == 0:
+              print("no lean-pins.log; nothing to publish")
+              raise SystemExit(0)
+          text = open(log, encoding="utf-8", errors="replace").read()
+          marker = '{"elab_delta":'
+          idx = text.rfind(marker)
+          if idx < 0:
+              chunk = text[-20000:]
+              body = f"### Elaborated pins failed on {sha}\n\nNo `elab_delta` block. Tail:\n\n```\n{chunk}\n```\n"
+          else:
+              chunk = text[idx:]
+              stop = chunk.find("\n\nThe `elab_delta` block")
+              if stop > 0:
+                  chunk = chunk[:stop]
+              body = (
+                  f"### Elaborated-pin delta on {sha}\n\n"
+                  "Paste-ready `elab_delta` from `pin_statements.py --elab-check`.\n\n"
+                  "```json\n" + chunk.strip() + "\n```\n"
+              )
+          if len(body) > 60000:
+              body = body[:59990] + "\n```\n"
+          req = urllib.request.Request(
+              f"https://api.github.com/repos/{os.environ['REPO']}/issues/{os.environ['PR_NUMBER']}/comments",
+              data=json.dumps({"body": body}).encode(),
+              headers={"Authorization": f"Bearer {os.environ['GH_TOKEN']}",
+                       "Accept": "application/vnd.github+json"},
+              method="POST")
+          urllib.request.urlopen(req)
+          print(f"posted pin delta ({len(body)} chars) to PR #{os.environ['PR_NUMBER']}")
+          PY
 
       - name: Oracle ↔ Lean pointwise cross-verifier (BRIEF_002)
         # Evaluates the golden parameter grid (tests/golden_grid.json) in both

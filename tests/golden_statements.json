@@ -566,6 +566,14 @@
       "axioms": "'BSM.fourierInversion_dampedCallPrice_at' depends on axioms: [propext, Classical.choice, Quot.sound]",
       "type": "BSM.fourierInversion_dampedCallPrice_at : ∀ {f : ℝ → ℂ}, Continuous f → MeasureTheory.Integrable f MeasureTheory.volume → MeasureTheory.Integrable (FourierTransform.fourier f) MeasureTheory.volume → ∀ (k : ℝ), FourierTransformInv.fourierInv (FourierTransform.fourier f) k = f k"
     },
+    "BSM.gammaMeasure_exp_integrable": {
+      "axioms": "'BSM.gammaMeasure_exp_integrable' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.gammaMeasure_exp_integrable : ∀ (a r u : ℝ), 0 < a → 0 < r → u < r → MeasureTheory.Integrable (fun x => Real.exp (u * x)) (ProbabilityTheory.gammaMeasure a r)"
+    },
+    "BSM.gammaMeasure_mgf": {
+      "axioms": "'BSM.gammaMeasure_mgf' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.gammaMeasure_mgf : ∀ (a r u : ℝ), 0 < a → 0 < r → u < r → ProbabilityTheory.mgf id (ProbabilityTheory.gammaMeasure a r) u = (r / (r - u)) ^ a"
+    },
     "BSM.gbmCharFactor": {
       "axioms": "'BSM.gbmCharFactor' depends on axioms: [propext, Classical.choice, Quot.sound]",
       "type": "BSM.gbmCharFactor : ℝ → ℝ → ℂ → ℂ"
@@ -957,6 +965,94 @@
     "BSM.undamped_dampedCallPrice": {
       "axioms": "'BSM.undamped_dampedCallPrice' depends on axioms: [propext, Classical.choice, Quot.sound]",
       "type": "BSM.undamped_dampedCallPrice : ∀ (S K tau r q sigma : ℝ), 0 < S → 0 < K → 0 < tau → 0 < sigma → ∀ (v : NNReal), ↑v = sigma ^ 2 * tau → ∀ (alpha : ℝ), Real.exp (-alpha * Real.log (K / S)) * BSM.dampedCallPrice S v ((r - q - sigma ^ 2 / 2) * tau) r tau alpha (Real.log (K / S)) = BSM.bsCall S K tau r q sigma"
+    },
+    "BSM.vgCornerExponent": {
+      "axioms": "'BSM.vgCornerExponent' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.vgCornerExponent : ℝ → ℝ → ℝ → ℂ → ℂ"
+    },
+    "BSM.vgCumulant": {
+      "axioms": "'BSM.vgCumulant' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.vgCumulant : ℝ → ℝ → ℝ → ℝ → ℝ"
+    },
+    "BSM.vgCumulant_eq_corner_re": {
+      "axioms": "'BSM.vgCumulant_eq_corner_re' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.vgCumulant_eq_corner_re : ∀ (C G M u : ℝ), 0 < G → 0 < M → -G < u → u < M → BSM.vgCumulant C G M u = (BSM.vgCornerExponent C G M (-↑u * Complex.I)).re"
+    },
+    "BSM.vgCumulant_hasDerivAt": {
+      "axioms": "'BSM.vgCumulant_hasDerivAt' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.vgCumulant_hasDerivAt : ∀ (C G M u : ℝ), 0 < G → 0 < M → -G < u → u < M → HasDerivAt (BSM.vgCumulant C G M) (C * (1 / (M - u) - 1 / (G + u))) u"
+    },
+    "BSM.vgDriftMap": {
+      "axioms": "'BSM.vgDriftMap' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.vgDriftMap : ℝ → ℝ → ℝ → ℝ → ℝ"
+    },
+    "BSM.vgLaw": {
+      "axioms": "'BSM.vgLaw' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.vgLaw : ℝ → ℝ → ℝ → ℝ → MeasureTheory.Measure ℝ"
+    },
+    "BSM.vgLaw_cgf": {
+      "axioms": "'BSM.vgLaw_cgf' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.vgLaw_cgf : ∀ (C G M τ u : ℝ), 0 < C → 0 < τ → 0 < G → 0 < M → -G < u → u < M → ProbabilityTheory.cgf id (BSM.vgLaw C G M τ) u = τ * BSM.vgCumulant C G M u"
+    },
+    "BSM.vgLaw_exp_integrable": {
+      "axioms": "'BSM.vgLaw_exp_integrable' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.vgLaw_exp_integrable : ∀ (C G M τ u : ℝ), 0 < C → 0 < τ → 0 < G → 0 < M → -G < u → u < M → MeasureTheory.Integrable (fun x => Real.exp (u * x)) (BSM.vgLaw C G M τ)"
+    },
+    "BSM.vgLaw_isProbabilityMeasure": {
+      "axioms": "'BSM.vgLaw_isProbabilityMeasure' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.vgLaw_isProbabilityMeasure : ∀ (C G M τ : ℝ), 0 < C → 0 < τ → 0 < G → 0 < M → MeasureTheory.IsProbabilityMeasure (BSM.vgLaw C G M τ)"
+    },
+    "BSM.vgLaw_mgf": {
+      "axioms": "'BSM.vgLaw_mgf' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.vgLaw_mgf : ∀ (C G M τ u : ℝ), 0 < C → 0 < τ → 0 < G → 0 < M → -G < u → u < M → ProbabilityTheory.mgf id (BSM.vgLaw C G M τ) u = Real.exp (τ * BSM.vgCumulant C G M u)"
+    },
+    "BSM.vgLaw_mgf_one": {
+      "axioms": "'BSM.vgLaw_mgf_one' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.vgLaw_mgf_one : ∀ (C G M τ : ℝ), 0 < C → 0 < τ → 0 < G → 1 < M → ProbabilityTheory.mgf id (BSM.vgLaw C G M τ) 1 = Real.exp (τ * BSM.vgCumulant C G M 1)"
+    },
+    "BSM.vgTilt": {
+      "axioms": "'BSM.vgTilt' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.vgTilt : ℝ → ℝ → ℝ → ℝ → ℝ → MeasureTheory.Measure ℝ"
+    },
+    "BSM.vgTilt_isProbabilityMeasure": {
+      "axioms": "'BSM.vgTilt_isProbabilityMeasure' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.vgTilt_isProbabilityMeasure : ∀ (C G M τ θ : ℝ), 0 < C → 0 < τ → 0 < G → 0 < M → θ ∈ Set.Ioo (-G) (M - 1) → MeasureTheory.IsProbabilityMeasure (BSM.vgTilt C G M τ θ)"
+    },
+    "BSM.vg_corner": {
+      "axioms": "'BSM.vg_corner' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.vg_corner : ∀ (C G M : ℝ) (v : ℂ), 0 < G → 0 < M → -M < v.im → v.im < G → Filter.Tendsto (fun Y => BSM.cgmyExponent C G M Y v) (nhdsWithin 0 (Set.Ioi 0)) (nhds (BSM.vgCornerExponent C G M v))"
+    },
+    "BSM.vg_corner_cumulant": {
+      "axioms": "'BSM.vg_corner_cumulant' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.vg_corner_cumulant : ∀ (C G M u : ℝ), 0 < G → 0 < M → -G < u → u < M → Filter.Tendsto (fun Y => BSM.cgmyCumulant C G M Y u) (nhdsWithin 0 (Set.Ioi 0)) (nhds (BSM.vgCumulant C G M u))"
+    },
+    "BSM.vg_drift_identity": {
+      "axioms": "'BSM.vg_drift_identity' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.vg_drift_identity : ∀ (C G M τ θ S r q : ℝ), 0 < C → 0 < τ → 0 < G → 0 < M → θ ∈ Set.Ioo (-G) (M - 1) → BSM.vgDriftMap C G M θ = r - q → ∫ (x : ℝ), S * Real.exp x ∂BSM.vgTilt C G M τ θ = S * Real.exp ((r - q) * τ)"
+    },
+    "BSM.vg_modelFree_call_bounds": {
+      "axioms": "'BSM.vg_modelFree_call_bounds' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.vg_modelFree_call_bounds : ∀ (C G M τ θ S K r q : ℝ), 0 < C → 0 < τ → 0 < G → 0 < M → θ ∈ Set.Ioo (-G) (M - 1) → BSM.vgDriftMap C G M θ = r - q → 0 ≤ K → 0 ≤ S → max (S * Real.exp (-q * τ) - K * Real.exp (-r * τ)) 0 ≤ BSM.modelFreeCall (BSM.vgTilt C G M τ θ) (fun x => S * Real.exp x) K r τ ∧ BSM.modelFreeCall (BSM.vgTilt C G M τ θ) (fun x => S * Real.exp x) K r τ ≤ S * Real.exp (-q * τ)"
+    },
+    "BSM.vg_modelFree_parity": {
+      "axioms": "'BSM.vg_modelFree_parity' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.vg_modelFree_parity : ∀ (C G M τ θ S K r q : ℝ), 0 < C → 0 < τ → 0 < G → 0 < M → θ ∈ Set.Ioo (-G) (M - 1) → BSM.vgDriftMap C G M θ = r - q → BSM.modelFreeCall (BSM.vgTilt C G M τ θ) (fun x => S * Real.exp x) K r τ - BSM.modelFreePut (BSM.vgTilt C G M τ θ) (fun x => S * Real.exp x) K r τ = S * Real.exp (-q * τ) - K * Real.exp (-r * τ)"
+    },
+    "BSM.vg_modelFree_put_bounds": {
+      "axioms": "'BSM.vg_modelFree_put_bounds' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.vg_modelFree_put_bounds : ∀ (C G M τ θ S K r q : ℝ), 0 < C → 0 < τ → 0 < G → 0 < M → θ ∈ Set.Ioo (-G) (M - 1) → BSM.vgDriftMap C G M θ = r - q → 0 ≤ K → 0 ≤ S → max (K * Real.exp (-r * τ) - S * Real.exp (-q * τ)) 0 ≤ BSM.modelFreePut (BSM.vgTilt C G M τ θ) (fun x => S * Real.exp x) K r τ ∧ BSM.modelFreePut (BSM.vgTilt C G M τ θ) (fun x => S * Real.exp x) K r τ ≤ K * Real.exp (-r * τ)"
+    },
+    "BSM.vg_tilt_cumulant_shift": {
+      "axioms": "'BSM.vg_tilt_cumulant_shift' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.vg_tilt_cumulant_shift : ∀ (C G M θ u : ℝ), 0 < G → 0 < M → -G < θ → θ < M → -(G + θ) < u → u < M - θ → BSM.vgCumulant C G M (u + θ) - BSM.vgCumulant C G M θ = BSM.vgCumulant C (G + θ) (M - θ) u"
+    },
+    "BSM.vg_tilt_mgf": {
+      "axioms": "'BSM.vg_tilt_mgf' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.vg_tilt_mgf : ∀ (C G M τ θ u : ℝ), 0 < C → 0 < τ → 0 < G → 0 < M → θ ∈ Set.Ioo (-G) (M - 1) → -(G + θ) < u → u < M - θ → ProbabilityTheory.mgf id (BSM.vgTilt C G M τ θ) u = ProbabilityTheory.mgf id (BSM.vgLaw C G M τ) (u + θ) / ProbabilityTheory.mgf id (BSM.vgLaw C G M τ) θ"
+    },
+    "BSM.vg_tilt_numeraire": {
+      "axioms": "'BSM.vg_tilt_numeraire' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.vg_tilt_numeraire : ∀ (G M θ : ℝ), θ ∈ Set.Ioo (-G) (M - 1) → 1 < M - θ"
     },
     "BSM.witnessA_bounds": {
       "axioms": "'BSM.witnessA_bounds' depends on axioms: [propext, Classical.choice, Quot.sound]",
@@ -1782,6 +1878,16 @@
       "kind": "theorem",
       "pin": "theorem fourierInversion_dampedCallPrice_at {f : ℝ → ℂ} (hcont : Continuous f) (hint : Integrable f) (hFint : Integrable (𝓕 f)) (k : ℝ) : 𝓕⁻ (𝓕 f) k = f k"
     },
+    "BSM.gammaMeasure_exp_integrable": {
+      "file": "ImprovedBS/VGLaw.lean",
+      "kind": "theorem",
+      "pin": "theorem gammaMeasure_exp_integrable (a r u : ℝ) (ha : 0 < a) (hr : 0 < r) (hu : u < r) : Integrable (fun x => Real.exp (u * x)) (gammaMeasure a r)"
+    },
+    "BSM.gammaMeasure_mgf": {
+      "file": "ImprovedBS/VGLaw.lean",
+      "kind": "theorem",
+      "pin": "theorem gammaMeasure_mgf (a r u : ℝ) (ha : 0 < a) (hr : 0 < r) (hu : u < r) : mgf id (gammaMeasure a r) u = (r / (r - u)) ^ a"
+    },
     "BSM.gbmCharFactor": {
       "file": "ImprovedBS/Fourier.lean",
       "kind": "def",
@@ -2271,6 +2377,116 @@
       "file": "ImprovedBS/Inversion.lean",
       "kind": "theorem",
       "pin": "theorem undamped_dampedCallPrice (S K tau r q sigma : ℝ) (hS : 0 < S) (hK : 0 < K) (htau : 0 < tau) (hsigma : 0 < sigma) (v : NNReal) (hv : (v : ℝ) = sigma ^ 2 * tau) (alpha : ℝ) : Real.exp (-alpha * Real.log (K / S)) * dampedCallPrice S v ((r - q - sigma ^ 2 / 2) * tau) r tau alpha (Real.log (K / S)) = bsCall S K tau r q sigma"
+    },
+    "BSM.vgCornerExponent": {
+      "file": "ImprovedBS/VGLaw.lean",
+      "kind": "def",
+      "pin": "noncomputable def vgCornerExponent (C G M : ℝ) (v : ℂ) : ℂ := (C : ℂ) * (Complex.log ((M : ℂ) / ((M : ℂ) - Complex.I * v)) + Complex.log ((G : ℂ) / ((G : ℂ) + Complex.I * v)))"
+    },
+    "BSM.vgCumulant": {
+      "file": "ImprovedBS/VGLaw.lean",
+      "kind": "def",
+      "pin": "noncomputable def vgCumulant (C G M u : ℝ) : ℝ := C * (Real.log (M / (M - u)) + Real.log (G / (G + u)))"
+    },
+    "BSM.vgCumulant_eq_corner_re": {
+      "file": "ImprovedBS/VGLaw.lean",
+      "kind": "theorem",
+      "pin": "theorem vgCumulant_eq_corner_re (C G M u : ℝ) (hG : 0 < G) (hM : 0 < M) (h₁ : -G < u) (h₂ : u < M) : vgCumulant C G M u = (vgCornerExponent C G M (-(u : ℂ) * Complex.I)).re"
+    },
+    "BSM.vgCumulant_hasDerivAt": {
+      "file": "ImprovedBS/VGLaw.lean",
+      "kind": "theorem",
+      "pin": "theorem vgCumulant_hasDerivAt (C G M u : ℝ) (hG : 0 < G) (hM : 0 < M) (h₁ : -G < u) (h₂ : u < M) : HasDerivAt (vgCumulant C G M) (C * (1 / (M - u) - 1 / (G + u))) u"
+    },
+    "BSM.vgDriftMap": {
+      "file": "ImprovedBS/VGLaw.lean",
+      "kind": "def",
+      "pin": "noncomputable def vgDriftMap (C G M θ : ℝ) : ℝ := vgCumulant C G M (θ + 1) - vgCumulant C G M θ"
+    },
+    "BSM.vgLaw": {
+      "file": "ImprovedBS/VGLaw.lean",
+      "kind": "def",
+      "pin": "noncomputable def vgLaw (C G M τ : ℝ) : Measure ℝ := ((gammaMeasure (C * τ) M).prod (gammaMeasure (C * τ) G)).map (fun p : ℝ × ℝ => p.1 - p.2)"
+    },
+    "BSM.vgLaw_cgf": {
+      "file": "ImprovedBS/VGLaw.lean",
+      "kind": "theorem",
+      "pin": "theorem vgLaw_cgf (C G M τ u : ℝ) (hC : 0 < C) (hτ : 0 < τ) (hG : 0 < G) (hM : 0 < M) (h₁ : -G < u) (h₂ : u < M) : cgf id (vgLaw C G M τ) u = τ * vgCumulant C G M u"
+    },
+    "BSM.vgLaw_exp_integrable": {
+      "file": "ImprovedBS/VGLaw.lean",
+      "kind": "theorem",
+      "pin": "theorem vgLaw_exp_integrable (C G M τ u : ℝ) (hC : 0 < C) (hτ : 0 < τ) (hG : 0 < G) (hM : 0 < M) (h₁ : -G < u) (h₂ : u < M) : Integrable (fun x => Real.exp (u * x)) (vgLaw C G M τ)"
+    },
+    "BSM.vgLaw_isProbabilityMeasure": {
+      "file": "ImprovedBS/VGLaw.lean",
+      "kind": "theorem",
+      "pin": "theorem vgLaw_isProbabilityMeasure (C G M τ : ℝ) (hC : 0 < C) (hτ : 0 < τ) (hG : 0 < G) (hM : 0 < M) : IsProbabilityMeasure (vgLaw C G M τ)"
+    },
+    "BSM.vgLaw_mgf": {
+      "file": "ImprovedBS/VGLaw.lean",
+      "kind": "theorem",
+      "pin": "theorem vgLaw_mgf (C G M τ u : ℝ) (hC : 0 < C) (hτ : 0 < τ) (hG : 0 < G) (hM : 0 < M) (h₁ : -G < u) (h₂ : u < M) : mgf id (vgLaw C G M τ) u = Real.exp (τ * vgCumulant C G M u)"
+    },
+    "BSM.vgLaw_mgf_one": {
+      "file": "ImprovedBS/VGLaw.lean",
+      "kind": "theorem",
+      "pin": "theorem vgLaw_mgf_one (C G M τ : ℝ) (hC : 0 < C) (hτ : 0 < τ) (hG : 0 < G) (h₁ : 1 < M) : mgf id (vgLaw C G M τ) 1 = Real.exp (τ * vgCumulant C G M 1)"
+    },
+    "BSM.vgTilt": {
+      "file": "ImprovedBS/VGLaw.lean",
+      "kind": "def",
+      "pin": "noncomputable def vgTilt (C G M τ θ : ℝ) : Measure ℝ := (vgLaw C G M τ).withDensity (fun x => ENNReal.ofReal (Real.exp (θ * x) / mgf id (vgLaw C G M τ) θ))"
+    },
+    "BSM.vgTilt_isProbabilityMeasure": {
+      "file": "ImprovedBS/VGLaw.lean",
+      "kind": "theorem",
+      "pin": "theorem vgTilt_isProbabilityMeasure (C G M τ θ : ℝ) (hC : 0 < C) (hτ : 0 < τ) (hG : 0 < G) (hM : 0 < M) (hθ : θ ∈ Ioo (-G) (M - 1)) : IsProbabilityMeasure (vgTilt C G M τ θ)"
+    },
+    "BSM.vg_corner": {
+      "file": "ImprovedBS/VGLaw.lean",
+      "kind": "theorem",
+      "pin": "theorem vg_corner (C G M : ℝ) (v : ℂ) (hG : 0 < G) (hM : 0 < M) (hv₁ : -M < v.im) (hv₂ : v.im < G) : Tendsto (fun Y => cgmyExponent C G M Y v) (𝓝[>] (0 : ℝ)) (𝓝 (vgCornerExponent C G M v))"
+    },
+    "BSM.vg_corner_cumulant": {
+      "file": "ImprovedBS/VGLaw.lean",
+      "kind": "theorem",
+      "pin": "theorem vg_corner_cumulant (C G M u : ℝ) (hG : 0 < G) (hM : 0 < M) (h₁ : -G < u) (h₂ : u < M) : Tendsto (fun Y => cgmyCumulant C G M Y u) (𝓝[>] (0 : ℝ)) (𝓝 (vgCumulant C G M u))"
+    },
+    "BSM.vg_drift_identity": {
+      "file": "ImprovedBS/VGLaw.lean",
+      "kind": "theorem",
+      "pin": "theorem vg_drift_identity (C G M τ θ S r q : ℝ) (hC : 0 < C) (hτ : 0 < τ) (hG : 0 < G) (hM : 0 < M) (hθ : θ ∈ Ioo (-G) (M - 1)) (hdrift : vgDriftMap C G M θ = r - q) : ∫ x, S * Real.exp x ∂(vgTilt C G M τ θ) = S * Real.exp ((r - q) * τ)"
+    },
+    "BSM.vg_modelFree_call_bounds": {
+      "file": "ImprovedBS/VGLaw.lean",
+      "kind": "theorem",
+      "pin": "theorem vg_modelFree_call_bounds (C G M τ θ S K r q : ℝ) (hC : 0 < C) (hτ : 0 < τ) (hG : 0 < G) (hM : 0 < M) (hθ : θ ∈ Ioo (-G) (M - 1)) (hdrift : vgDriftMap C G M θ = r - q) (hK : 0 ≤ K) (hS : 0 ≤ S) : max (S * Real.exp (-q * τ) - K * Real.exp (-r * τ)) 0 ≤ modelFreeCall (vgTilt C G M τ θ) (fun x => S * Real.exp x) K r τ ∧ modelFreeCall (vgTilt C G M τ θ) (fun x => S * Real.exp x) K r τ ≤ S * Real.exp (-q * τ)"
+    },
+    "BSM.vg_modelFree_parity": {
+      "file": "ImprovedBS/VGLaw.lean",
+      "kind": "theorem",
+      "pin": "theorem vg_modelFree_parity (C G M τ θ S K r q : ℝ) (hC : 0 < C) (hτ : 0 < τ) (hG : 0 < G) (hM : 0 < M) (hθ : θ ∈ Ioo (-G) (M - 1)) (hdrift : vgDriftMap C G M θ = r - q) : modelFreeCall (vgTilt C G M τ θ) (fun x => S * Real.exp x) K r τ - modelFreePut (vgTilt C G M τ θ) (fun x => S * Real.exp x) K r τ = S * Real.exp (-q * τ) - K * Real.exp (-r * τ)"
+    },
+    "BSM.vg_modelFree_put_bounds": {
+      "file": "ImprovedBS/VGLaw.lean",
+      "kind": "theorem",
+      "pin": "theorem vg_modelFree_put_bounds (C G M τ θ S K r q : ℝ) (hC : 0 < C) (hτ : 0 < τ) (hG : 0 < G) (hM : 0 < M) (hθ : θ ∈ Ioo (-G) (M - 1)) (hdrift : vgDriftMap C G M θ = r - q) (hK : 0 ≤ K) (hS : 0 ≤ S) : max (K * Real.exp (-r * τ) - S * Real.exp (-q * τ)) 0 ≤ modelFreePut (vgTilt C G M τ θ) (fun x => S * Real.exp x) K r τ ∧ modelFreePut (vgTilt C G M τ θ) (fun x => S * Real.exp x) K r τ ≤ K * Real.exp (-r * τ)"
+    },
+    "BSM.vg_tilt_cumulant_shift": {
+      "file": "ImprovedBS/VGLaw.lean",
+      "kind": "theorem",
+      "pin": "theorem vg_tilt_cumulant_shift (C G M θ u : ℝ) (hG : 0 < G) (hM : 0 < M) (hθlo : -G < θ) (hθhi : θ < M) (hu₁ : -(G + θ) < u) (hu₂ : u < M - θ) : vgCumulant C G M (u + θ) - vgCumulant C G M θ = vgCumulant C (G + θ) (M - θ) u"
+    },
+    "BSM.vg_tilt_mgf": {
+      "file": "ImprovedBS/VGLaw.lean",
+      "kind": "theorem",
+      "pin": "theorem vg_tilt_mgf (C G M τ θ u : ℝ) (hC : 0 < C) (hτ : 0 < τ) (hG : 0 < G) (hM : 0 < M) (hθ : θ ∈ Ioo (-G) (M - 1)) (hu₁ : -(G + θ) < u) (hu₂ : u < M - θ) : mgf id (vgTilt C G M τ θ) u = mgf id (vgLaw C G M τ) (u + θ) / mgf id (vgLaw C G M τ) θ"
+    },
+    "BSM.vg_tilt_numeraire": {
+      "file": "ImprovedBS/VGLaw.lean",
+      "kind": "theorem",
+      "pin": "theorem vg_tilt_numeraire (G M θ : ℝ) (hθ : θ ∈ Ioo (-G) (M - 1)) : 1 < M - θ"
     },
     "BSM.witnessA_bounds": {
       "file": "ImprovedBS/NonUniqueness.lean",
