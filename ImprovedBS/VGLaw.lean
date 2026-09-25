@@ -99,10 +99,12 @@ theorem gammaMeasure_exp_integrable (a r u : ℝ) (ha : 0 < a) (hr : 0 < r) (hu 
   have hbase : IntegrableOn (fun t : ℝ => Real.exp (-t) * t ^ (a - 1)) (Ioi 0) :=
     Real.GammaIntegral_convergent ha
   have hcomp : IntegrableOn (fun t => Real.exp (-(ρ * t)) * (ρ * t) ^ (a - 1)) (Ioi 0) :=
-    (integrableOn_Ioi_comp_mul_left_iff (fun t => Real.exp (-t) * t ^ (a - 1)) 0 hρ).mpr hbase
+    (integrableOn_Ioi_comp_mul_left_iff (fun t => Real.exp (-t) * t ^ (a - 1)) 0 hρ).mpr
+      (by simpa [mul_zero] using hbase)
   have heq : EqOn (fun t => Real.exp (-(ρ * t)) * (ρ * t) ^ (a - 1))
       (fun t => ρ ^ (a - 1) * (t ^ (a - 1) * Real.exp (-(ρ * t)))) (Ioi 0) := by
     intro t ht
+    dsimp only [ρ]
     rw [Real.mul_rpow hρ.le ht.le]
     ring
   have hmul : IntegrableOn (fun t => ρ ^ (a - 1) * (t ^ (a - 1) * Real.exp (-(ρ * t))))
@@ -113,7 +115,6 @@ theorem gammaMeasure_exp_integrable (a r u : ℝ) (ha : 0 < a) (hr : 0 < r) (hu 
     unfold IntegrableOn at hmul ⊢
     exact (integrable_const_mul_iff (IsUnit.mk0 _ hc) _).mp hmul
   have hIoi : IntegrableOn (fun x => Real.exp (u * x) * gammaPDFReal a r x) (Ioi 0) := by
-    unfold IntegrableOn at htarget ⊢
     refine (htarget.const_mul (r ^ a / Real.Gamma a)).congr_fun ?_ measurableSet_Ioi
     intro x hx
     simp only [gammaPDFReal, if_pos hx.le]
@@ -163,6 +164,7 @@ theorem gammaMeasure_mgf (a r u : ℝ) (ha : 0 < a) (hr : 0 < r) (hu : u < r) :
     intro x
     simp [gammaPDF]
   unfold mgf
+  simp only [id_eq]
   rw [gammaMeasure, integral_withDensity_eq_integral_toReal_smul hmeas (ae_of_all _ hlt)]
   simp_rw [smul_eq_mul, gammaPDF, ENNReal.toReal_ofReal (gammaPDFReal_nonneg ha hr _)]
   have hae : (fun x => gammaPDFReal a r x * Real.exp (u * x)) =ᵐ[volume]
@@ -205,8 +207,11 @@ theorem gammaMeasure_mgf (a r u : ℝ) (ha : 0 < a) (hr : 0 < r) (hu : u < r) :
 measure. Both Gamma laws are one by `isProbabilityMeasure_gammaMeasure`. -/
 theorem vgLaw_isProbabilityMeasure (C G M τ : ℝ) (hC : 0 < C) (hτ : 0 < τ) (hG : 0 < G)
     (hM : 0 < M) : IsProbabilityMeasure (vgLaw C G M τ) := by
-  rw [isProbabilityMeasure_iff, vgLaw,
-    Measure.map_apply (measurable_fst.sub measurable_snd) MeasurableSet.univ]
+  rw [isProbabilityMeasure_iff, vgLaw]
+  have hsub : (fun p : ℝ × ℝ => p.1 - p.2) = Prod.fst - Prod.snd := by
+    ext p
+    simp
+  rw [hsub, Measure.map_apply (measurable_fst.sub measurable_snd) MeasurableSet.univ]
   have hpre : (fun p : ℝ × ℝ => p.1 - p.2) ⁻¹' univ = univ := by
     ext p
     simp
@@ -230,6 +235,7 @@ theorem vgLaw_exp_integrable (C G M τ u : ℝ) (hC : 0 < C) (hτ : 0 < τ) (hG 
     (measurable_fst.sub measurable_snd).aemeasurable
   rw [vgLaw, integrable_map_measure
     ((measurable_const_mul u).exp.aestronglyMeasurable) hmap]
+  simp only [Function.comp_def]
   have hfun : (fun p : ℝ × ℝ => Real.exp (u * (p.1 - p.2))) =
       fun p => Real.exp (u * p.1) * Real.exp (-(u * p.2)) := by
     ext p
@@ -259,7 +265,8 @@ theorem vgLaw_mgf (C G M τ u : ℝ) (hC : 0 < C) (hτ : 0 < τ) (hG : 0 < G) (h
     congr 1
     ring
   unfold mgf
-  rw [hfun, integral_prod_mul]
+  simp only [id_eq]
+  rw [hfun, integral_prod_mul (μ := gammaMeasure (C * τ) M) (ν := gammaMeasure (C * τ) G)]
   have h1 := gammaMeasure_mgf (C * τ) M u hCτ hM h₂
   have h2 := gammaMeasure_mgf (C * τ) G (-u) hCτ hG (by linarith)
   unfold mgf at h1 h2
@@ -297,32 +304,30 @@ theorem vgCumulant_hasDerivAt (C G M u : ℝ) (hG : 0 < G) (hM : 0 < M) (h₁ : 
   have hGpos : 0 < G / (G + u) := div_pos hG (by linarith)
   have hdSub : HasDerivAt (fun x => M - x) (-1) u := by
     convert ((hasDerivAt_const u M).sub (hasDerivAt_id u)) using 1
-    · ext x
-      simp [id]
-    ring
+    ext x
+    simp [id]
   have hdAdd : HasDerivAt (fun x => G + x) 1 u := by
     convert ((hasDerivAt_const u G).add (hasDerivAt_id u)) using 1
-    · ext x
-      simp [id]
-    ring
+    ext x
+    simp [id]
   have hdDivM : HasDerivAt (fun x => M / (M - x)) (M / (M - u) ^ 2) u := by
     convert ((hasDerivAt_const u M).div hdSub hMu) using 1
-    ring
+    ring_nf
   have hdDivG : HasDerivAt (fun x => G / (G + x)) (-G / (G + u) ^ 2) u := by
     convert ((hasDerivAt_const u G).div hdAdd hGu) using 1
-    ring
+    ring_nf
   have hdLogM : HasDerivAt (fun x => Real.log (M / (M - x))) (1 / (M - u)) u := by
     open Real in
     convert hdDivM.log hMpos.ne' using 1
     field_simp
-    ring
+    ring_nf
   have hdLogG : HasDerivAt (fun x => Real.log (G / (G + x))) (-(1 / (G + u))) u := by
     open Real in
     convert hdDivG.log hGpos.ne' using 1
     field_simp
-    ring
+    ring_nf
   convert (hdLogM.add hdLogG).const_mul C using 1
-  ring
+  ring_nf
 
 /-! ## §4 the corner, as a limit -/
 
@@ -337,18 +342,13 @@ theorem vgCumulant_eq_corner_re (C G M u : ℝ) (hG : 0 < G) (hM : 0 < M) (h₁ 
   unfold vgCumulant vgCornerExponent
   have hbaseM : (M : ℂ) - Complex.I * (-(u : ℂ) * Complex.I) = (M - u : ℝ) := by
     push_cast
-    ring
+    ring_nf
   have hbaseG : (G : ℂ) + Complex.I * (-(u : ℂ) * Complex.I) = (G + u : ℝ) := by
     push_cast
-    ring
-  rw [hbaseM, hbaseG]
-  have hdivM : ((M : ℂ) / (M - u : ℂ)) = ((M / (M - u) : ℝ) : ℂ) := by
-    push_cast
-    ring
-  have hdivG : ((G : ℂ) / (G + u : ℂ)) = ((G / (G + u) : ℝ) : ℂ) := by
-    push_cast
-    ring
-  rw [hdivM, hdivG, Complex.ofReal_log (div_pos hM hMu).le, Complex.ofReal_log (div_pos hG hGu).le]
+    ring_nf
+  rw [hbaseM, hbaseG, ← Complex.ofReal_div (by linarith : M - u ≠ 0),
+    ← Complex.ofReal_div (by linarith : G + u ≠ 0),
+    Complex.ofReal_log (div_pos hM hMu).le, Complex.ofReal_log (div_pos hG hGu).le]
   push_cast
   simp [Complex.ofReal_re, Complex.add_re, Complex.mul_re]
   ring
@@ -412,9 +412,10 @@ theorem vg_corner (C G M : ℝ) (v : ℂ) (hG : 0 < G) (hM : 0 < M) (hv₁ : -M 
     refine Filter.Tendsto.congr' ?_ hexp.tendsto_slope_zero_right
     filter_upwards [self_mem_nhdsWithin] with t ht
     have ht0 : t ≠ 0 := ne_of_gt ht
-    simp only [zero_add, Complex.exp_zero]
-    rw [Complex.cpow_def_of_ne_zero hc, mul_comm (Complex.log c), smul_eq_mul,
-      Complex.ofReal_inv ht0]
+    simp only [zero_add]
+    rw [Complex.real_smul, Complex.ofReal_inv ht0, Complex.exp_zero,
+      mul_comm (Complex.log c), ← Complex.cpow_def_of_ne_zero hc]
+    ring
   have hdiff (c d : ℂ) (hc : c ≠ 0) (hd : d ≠ 0) :
       Tendsto (fun t : ℝ => (t : ℂ)⁻¹ * (c ^ (t : ℂ) - d ^ (t : ℂ))) (𝓝[>] (0 : ℝ))
         (𝓝 (Complex.log c - Complex.log d)) := by
@@ -434,15 +435,21 @@ theorem vg_corner (C G M : ℝ) (v : ℂ) (hG : 0 < G) (hM : 0 < M) (hv₁ : -M 
       Real.Gamma_one]
     norm_num
   have hΓcont : ContinuousAt (fun Y : ℝ => Real.Gamma (2 - Y)) 0 := by
-    refine ContinuousAt.comp ?_ ((continuous_const.sub continuous_id).continuousAt)
-    exact (Real.differentiableAt_Gamma (s := (2 : ℝ)) (by
+    have hne : ∀ m : ℕ, (2 : ℝ) ≠ -(m : ℝ) := by
       intro m hm
       have hm0 : (0 : ℝ) ≤ m := Nat.cast_nonneg m
-      linarith)).continuousAt
+      linarith
+    have hcomp := ContinuousAt.comp (Real.differentiableAt_Gamma hne).continuousAt
+      ((continuous_const.sub continuous_id).continuousAt (x := (0 : ℝ)))
+    simpa [Function.comp_def] using hcomp
   have hΓlim : Tendsto (fun Y => Real.Gamma (2 - Y)) (𝓝[>] (0 : ℝ)) (𝓝 (1 : ℝ)) := by
-    simpa [sub_zero, hΓ2] using hΓcont.continuousWithinAt.tendsto
-  have hden : Tendsto (fun Y : ℝ => 1 - Y) (𝓝[>] (0 : ℝ)) (𝓝 (1 : ℝ)) :=
-    (continuous_const.sub continuous_id).continuousAt.continuousWithinAt.tendsto
+    have htend := hΓcont.continuousWithinAt (s := Ioi (0 : ℝ)).tendsto
+    simpa [sub_zero, hΓ2] using htend
+  have hden : Tendsto (fun Y : ℝ => 1 - Y) (𝓝[>] (0 : ℝ)) (𝓝 (1 : ℝ)) := by
+    have htend :=
+      ((show Continuous (fun Y : ℝ => 1 - Y) from continuous_const.sub continuous_id).continuousAt
+        (x := 0)).continuousWithinAt (s := Ioi (0 : ℝ)).tendsto
+    simpa using htend
   have hquot : Tendsto (fun Y => -Real.Gamma (2 - Y) / (1 - Y)) (𝓝[>] (0 : ℝ))
       (𝓝 (-1 : ℝ)) := by
     have h := hΓlim.neg.div hden (by norm_num : (1 : ℝ) ≠ 0)
@@ -563,7 +570,6 @@ theorem vgTilt_isProbabilityMeasure (C G M τ θ : ℝ) (hC : 0 < C) (hτ : 0 < 
   have heq : vgTilt C G M τ θ = (vgLaw C G M τ).tilted (fun x => θ * x) := by
     unfold vgTilt Measure.tilted mgf
     simp only [id_eq]
-    rfl
   rw [heq]
   exact isProbabilityMeasure_tilted hint
 
@@ -582,12 +588,12 @@ theorem vg_tilt_mgf (C G M τ θ u : ℝ) (hC : 0 < C) (hτ : 0 < τ) (hG : 0 < 
   have heq : vgTilt C G M τ θ = (vgLaw C G M τ).tilted (fun x => θ * x) := by
     unfold vgTilt Measure.tilted mgf
     simp only [id_eq]
-    rfl
   rw [heq]
   simp only [mgf, id_eq]
   rw [integral_exp_tilted (fun x => θ * x) (fun x => u * x)]
-  congr 1
-  ext x
+  refine congrArg (fun t => t / ∫ x, Real.exp (θ * x) ∂(vgLaw C G M τ)) ?_
+  refine integral_congr_ae ?_
+  filter_upwards with x
   simp only [Pi.add_apply]
   ring
 
@@ -608,12 +614,20 @@ theorem vg_tilt_cumulant_shift (C G M θ u : ℝ) (hG : 0 < G) (hM : 0 < M) (hθ
   unfold vgCumulant
   have hMstep : Real.log (M / (M - (u + θ))) - Real.log (M / (M - θ)) =
       Real.log ((M - θ) / (M - θ - u)) := by
-    rw [Real.log_div hM0 hMu, Real.log_div hM0 hMθ, ← Real.log_div hMθ hMθu]
-    ring
+    rw [Real.log_div hM0 hMu, Real.log_div hM0 hMθ]
+    have hrearr : Real.log M - Real.log (M - (u + θ)) - (Real.log M - Real.log (M - θ)) =
+        Real.log (M - θ) - Real.log (M - θ - u) := by
+      rw [show M - (u + θ) = M - θ - u by ring]
+      ring
+    rw [hrearr, ← Real.log_div hMθ hMθu]
   have hGstep : Real.log (G / (G + (u + θ))) - Real.log (G / (G + θ)) =
       Real.log ((G + θ) / (G + θ + u)) := by
-    rw [Real.log_div hG0 hGu, Real.log_div hG0 hGθ, ← Real.log_div hGθ hGθu]
-    ring
+    rw [Real.log_div hG0 hGu, Real.log_div hG0 hGθ]
+    have hrearr : Real.log G - Real.log (G + (u + θ)) - (Real.log G - Real.log (G + θ)) =
+        Real.log (G + θ) - Real.log (G + θ + u) := by
+      rw [show G + (u + θ) = G + θ + u by ring]
+      ring
+    rw [hrearr, ← Real.log_div hGθ hGθu]
   have hsum : (Real.log (M / (M - (u + θ))) + Real.log (G / (G + (u + θ)))) -
       (Real.log (M / (M - θ)) + Real.log (G / (G + θ))) =
       Real.log ((M - θ) / (M - θ - u)) + Real.log ((G + θ) / (G + θ + u)) := by
@@ -633,7 +647,7 @@ theorem vg_drift_identity (C G M τ θ S r q : ℝ) (hC : 0 < C) (hτ : 0 < τ) 
   have hu₁ : -(G + θ) < (1 : ℝ) := by linarith [hθ.1, hG]
   have hu₂ : (1 : ℝ) < M - θ := vg_tilt_numeraire G M θ hθ
   have hθM : θ < M := by linarith [hθ.2]
-  have hθ1 : θ + 1 < M := by linarith [hθ.2]
+  have hθ1 : 1 + θ < M := by linarith [hθ.2]
   have hmgf := vg_tilt_mgf C G M τ θ 1 hC hτ hG hM hθ hu₁ hu₂
   have hlaw1 := vgLaw_mgf C G M τ (1 + θ) hC hτ hG hM (by linarith [hθ.1]) hθ1
   have hlawθ := vgLaw_mgf C G M τ θ hC hτ hG hM hθ.1 hθM
@@ -669,7 +683,6 @@ theorem vg_modelFree_call_bounds (C G M τ θ S K r q : ℝ) (hC : 0 < C) (hτ :
     have heq : vgTilt C G M τ θ = (vgLaw C G M τ).tilted (fun x => θ * x) := by
       unfold vgTilt Measure.tilted mgf
       simp only [id_eq]
-      rfl
     have hint : Integrable (fun x => Real.exp (θ * x)) (vgLaw C G M τ) :=
       vgLaw_exp_integrable C G M τ θ hC hτ hG hM hθ.1 (by linarith [hθ.2])
     rw [heq, integrable_tilted_iff hint]
@@ -697,7 +710,6 @@ theorem vg_modelFree_put_bounds (C G M τ θ S K r q : ℝ) (hC : 0 < C) (hτ : 
     have heq : vgTilt C G M τ θ = (vgLaw C G M τ).tilted (fun x => θ * x) := by
       unfold vgTilt Measure.tilted mgf
       simp only [id_eq]
-      rfl
     have hint : Integrable (fun x => Real.exp (θ * x)) (vgLaw C G M τ) :=
       vgLaw_exp_integrable C G M τ θ hC hτ hG hM hθ.1 (by linarith [hθ.2])
     rw [heq, integrable_tilted_iff hint]
@@ -722,7 +734,6 @@ theorem vg_modelFree_parity (C G M τ θ S K r q : ℝ) (hC : 0 < C) (hτ : 0 < 
     have heq : vgTilt C G M τ θ = (vgLaw C G M τ).tilted (fun x => θ * x) := by
       unfold vgTilt Measure.tilted mgf
       simp only [id_eq]
-      rfl
     have hint : Integrable (fun x => Real.exp (θ * x)) (vgLaw C G M τ) :=
       vgLaw_exp_integrable C G M τ θ hC hτ hG hM hθ.1 (by linarith [hθ.2])
     rw [heq, integrable_tilted_iff hint]
