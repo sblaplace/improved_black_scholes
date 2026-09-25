@@ -157,6 +157,13 @@ against.
 | — | `static_skeleton_does_not_select_measure`, `witness_equivalent`, `martingale_set_param`, `martingale_set_call_eq` (+ `witnessMeasureA`/`witnessMeasureB`, the three-point law `trinomialMeasure`) | two equivalent probability laws on the spots `(1/2, 1, 2)` at `S = K = τ = 1`, `r = q = 0`, both with the drift, both satisfying BRIEF_009's parity and bounds *as instantiated*, pricing the call at `1/4` and `1/8`; the whole martingale set is the segment `(p₁, 1 − 3p₁/2, p₁/2)` and the call on it is exactly `p₁/2` | BSM-2 kit item 7: the static layer does not select the measure | **LANDED GREEN** (BRIEF_012) — run 36052072620; correction C16 (the brief's canary mean and its literal M18) |
 | — | `esscher_cgmy_shift`, `esscher_tilt_factorization`, `cgmyCumulant_eq_strip`, `esscher_exists_unique_of_mem_range`, `esscher_no_solution_of_outside_range`, `esscher_theta_zero_unique`, `esscher_drift_factor`, `esscher_cmPriceKernel_integrable` (+ `esscherExponent`, `cgmyCumulant`, `esscherDriftMap`, `esscherThetaZero`, `esscherDriftBound`) | the Esscher shift keeps CGMY inside the family (`(G, M) ↦ (G+θ, M−θ)`), the cumulant `κ` is strictly convex on the strip (`κ″ = CΓ(2−Y)[(M−u)^{Y−2} + (G+u)^{Y−2}] > 0`), so the drift equation `κ(θ+1) − κ(θ) = r − q` has a unique `θ ∈ (−G, M−1)` exactly when `|r−q|` is below the edge-value bound `H = |CΓ(−Y)|·|(G+M)^Y − (G+M−1)^Y − 1|`, the tilted factor equals `e^{τ(r−q)}` at the solution, and the pricing kernel stays integrable on the shifted contour | BSM-2 kit item 3: the drift fixed at a named pricing measure | **LANDED GREEN** (BRIEF_013) — run 36072416203 |
 
+**Next — ISSUED, not proved:** [BRIEF_014](briefs/BRIEF_014_gbm_corner.md)
+specifies the normalized `Y ↑ 2` CGMY → GBM exponent/factor limit, including
+the zero-carry Esscher instance. Its numeric route-check against an
+independently expanded polynomial target (`python3 scripts/check_gbm_corner.py`)
+passes with four negative controls;
+there is **no Lean theorem or price-convergence claim for this corner yet**.
+
 T1–T4 are the warm-up tier, and all four are now machine-checked. T4 turned
 out to be less routine than "algebra and monotonicity": its lower bound is the
 positivity of the call and the put, which needs `Φ` as an *integral* of `φ`
@@ -179,7 +186,9 @@ contour has no moment strip to sit in. The obstruction is at the moment step,
 not the kernel step. The direction is viable only in **tempered** form
 (CGMY / Boyarchenko–Levendorskii), where an `e^{−λ|x|}` damping of the Lévy
 measure restores the exponential moment, keeps algebraic tails at option
-tenors, and recovers both α-stable (λ→0) and GBM (α→2) as limits. Proving the
+tenors, and offers an α-stable (λ→0) corner and a **normalized** GBM
+(`Y ↑ 2`, `C_Y = (σ²/2)(2−Y)`) corner. Holding `C` fixed at `Y = 2` would
+hit a pole, not a Gaussian limit (BRIEF_014, ledger C17). Proving the
 obstruction itself — a concrete divergent integral, no finance in it — is the
 cheapest high-value theorem in the research tier. Details in docs/03 §D1.
 
@@ -358,6 +367,7 @@ python3 tests/test_pins.py        # 12/12 — and the pins that back it parse re
 python3 scripts/lean_lint.py      #  OK   — no sorry in the protected node, ratchet, independence, pins, spine, skeleton, contour, cgmy, nonuniq, esscher (12 files, 291 declarations)
 python3 scripts/pin_statements.py --check   # 240 statements match tests/golden_statements.json
 python3 tests/test_crosscheck.py    #  6/6  — grid + oracle self-consistency, both T3 sides, input-source routing (the cross-check itself needs lake)
+python3 scripts/check_gbm_corner.py # BRIEF_014 numeric pre-brief check (NOT a Lean proof)
 # or, with pytest installed:
 pytest tests/
 ```

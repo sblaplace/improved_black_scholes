@@ -369,10 +369,15 @@ brief's re-scope note, BRIEF_010's move one level down). The requirement it is
 written against is proved: item 7 went first deliberately — C13's words are
 that the witness "is what obliges item 3's 'named'" — and C13's monotonicity
 remark ("non-uniqueness lives across selection principles, not within the
-Esscher family") becomes the brief's in-family uniqueness theorem. **BRIEF_014+
-not yet issued**: item 6, the corner recovery of GBM at `Y → 2`, has a pole to
-deal with (`Γ(−Y)` at `Y = 2`) that items 3 and 7 did not; C13's two repair
-briefs (the Pareto witness for `Levy.lean`'s tail hypothesis, and the Haug /
+Esscher family") becomes the brief's in-family uniqueness theorem. **BRIEF_014
+is ISSUED, not yet proved**: item 6, the normalized CGMY → GBM corner at
+`Y ↑ 2` with `C_Y = (σ²/2)(2−Y)` (necessary because `Γ(−Y)` has a pole),
+pointwise exponent/factor limits, and an exact zero-carry Esscher instance.
+The reproducible numerical precheck `python3 scripts/check_gbm_corner.py` has
+run with wrong-scaling, fixed-`C`, rate-only, and missing-drift canaries; it does not
+replace `lake build` or create a CGMY law. Ledger C17 records the correction
+of the old bare `Y → 2` / `G,M → σ²/2` wording. C13's two repair briefs
+(the Pareto witness for `Levy.lean`'s tail hypothesis, and the Haug /
 term-structure external anchor) stay queued after the kit items and are
 numbered at issue (C13's provisional "013/014" assignment for them is
 superseded — recorded in BRIEF_013's numbering note). Items 1–2 landed as

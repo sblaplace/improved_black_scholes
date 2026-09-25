@@ -80,7 +80,10 @@ with `Y = α ∈ (0,2)` the tail index and `G, M > 0` the two tempering rates.
 Tempering restores every exponential moment on the interior of the strip, so an
 equivalent martingale measure exists once the drift is fixed by the usual
 exponent condition; algebraic tails survive at the scale that matters for
-option tenors; and the α-stable law is recovered as `G, M → 0`, GBM as `Y → 2`.
+option tenors; and the α-stable law is recovered as `G, M → 0`. The **GBM
+corner** requires a different, normalized limit: `Y ↑ 2` **and**
+`C_Y = (σ²/2)(2−Y)`, with the log-drift fixed separately — a bare `Y → 2`
+at fixed `C` diverges because `Γ(−Y)` has a pole (BRIEF_014, ledger C17).
 The price paid is parameters: GBM has one (σ), CGMY has four (C, G, M, Y).
 That is exactly what falsifier (a) below is for.
 
@@ -203,9 +206,20 @@ one above — **in the same tree, under the same skeleton**, with all seven of:
    widening preserves the skeleton" is a theorem schema now, and every later
    law inherits T2/T4 by supplying three facts (`Integrable X`, the drift
    condition, `0 ≤ X`) and plugging in.
-6. **GBM comes back at the corner.** `ψ_CGMY → ψ_GBM` as `Y → 2` (or
-   `G, M → σ²/2`), at least pointwise in the exponent. Convergence of prices
-   is a recorded deferral, not a hostage.
+6. **GBM comes back at the corner — BRIEF_014 ISSUED, not yet proved.** For
+   `1 < Y < 2`, take `C_Y = (σ²/2)(2−Y)` as `Y ↑ 2`: then
+   `C_Y Γ(−Y) → σ²/4` and the **uncorrected** CGMY exponent converges
+   pointwise on the strip to `−(σ²/2)v² + i(σ²/2)(G−M)v`. A separately
+   labelled *algebraic forward normalization* `i(r−q−κ_Y(1))v` gives the GBM
+   risk-neutral exponent; at `r=q`, the **named Esscher selection**
+   `θ₀=(M−G−1)/2` gives the same GBM limit and satisfies the numéraire
+   condition for every `Y`. BRIEF_014 specifies both without conflating them.
+   The old bare `Y → 2` with fixed `C` **diverges** (the `Γ(−Y)` pole), and
+   `G,M → σ²/2` is **not** an alternative Gaussian limit; correction C17
+   records the error and the numerical counterexample. No limit is yet a
+   Lean theorem. Convergence of prices, or a CGMY probability measure to
+   connect this exponent to expectations, is a recorded deferral, not a
+   consequence of pointwise convergence.
 7. **The selection principle's necessity is a theorem.** The tree contains a
    machine-checked non-uniqueness witness: two distinct probability measures,
    both satisfying the drift condition, giving *different* call prices —

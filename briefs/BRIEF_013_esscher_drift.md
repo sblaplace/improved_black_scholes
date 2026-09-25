@@ -1,17 +1,16 @@
 # BRIEF_013 — the Esscher drift: BSM-2 kit item 3, the named pricing measure at CGMY
 
-- **Status:** **ISSUED** 2026-09-24 — not yet implemented; nothing in
-  `ImprovedBS/Esscher.lean` exists yet and no pin has moved. This is **item 3**
-  of the BSM-2 kit in `docs/03` §D1 and the successor `docs/04`'s queue names
-  once item 7 landed: *"item 7 went first deliberately … so item 3 can now be
-  written against a proved requirement rather than an assertion."* That
-  requirement is now proved — BRIEF_012's
-  `static_skeleton_does_not_select_measure` (row 12) — and this brief supplies
-  the name it obliges: **the Esscher transform**. One line of scope: the
-  exponent shift `ψ^θ(v) = ψ(v − iθ) − ψ(−iθ)` is algebra on what BRIEF_011
-  landed, the drift condition picks `θ`, and the strip theorem says when such a
-  `θ` exists — and the route-check (§"The numeric route-check") measured all
-  three before this brief was written.
+- **Status: LANDED GREEN** — PR [#20](https://github.com/sblaplace/improved_black_scholes/pull/20),
+  lean run 36072416203; 30 audited declarations in `ImprovedBS/Esscher.lean`,
+  statement pins 210 → 240 in both layers, `benchmarks/LEDGER.md` row 13.
+  **The remaining plan and numeric route-check below are the issuance-time
+  record (2026-09-24), not a claim that the module is still missing.** This
+  is **item 3** of the BSM-2 kit in `docs/03` §D1, written against
+  BRIEF_012's proved `static_skeleton_does_not_select_measure`: the Esscher
+  shift `ψ^θ(v) = ψ(v − iθ) − ψ(−iθ)` is algebra on BRIEF_011, its strictly
+  monotone drift map chooses `θ`, and the strip theorem decides when that
+  `θ` exists. The route-check (§"The numeric route-check") measured all
+  three before the Lean implementation.
 - **Numbering note.** Ledger C13's repair queue provisionally assigned
   "BRIEF_013" to the Pareto witness for `Levy.lean`'s tail hypothesis and
   "BRIEF_014" to the Haug/term-structure anchor. The queue in `docs/04`
