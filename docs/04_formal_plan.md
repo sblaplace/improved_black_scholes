@@ -370,7 +370,7 @@ the exact `θ₀ = (M−G−1)/2`. Item 3 lands at the factor level — the tree
 CGMY law as a measure, so the expectation-level twin of
 `integral_spot_mul_phi_eq_forward` stays gated on a law construction (the
 brief's re-scope note, BRIEF_010's move one level down). **BRIEF_017 is issued**
-(PR #25): the feasibility brief decides the route in two stages — Stage 1 is
+(PR #24): the feasibility brief decides the route in two stages — Stage 1 is
 the family's `Y = 0` member (the variance-gamma law) built from mathlib's
 `gammaMeasure` and the Γ-integral identity, which lands the expectation-level
 twins at that member (items 3 and 5, at the first non-Gaussian law in the

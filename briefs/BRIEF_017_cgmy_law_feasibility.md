@@ -1,7 +1,9 @@
 # BRIEF_017 — the CGMY law: feasibility, the reachable core, and the route (the audit the note asked for)
 
-- **Status:** **ISSUED** — PR [#25](https://github.com/sblaplace/improved_black_scholes/pull/25),
-  documentation plus a numeric route-check run at issue (no committed test).
+- **Status:** **ISSUED** — PR [#24](https://github.com/sblaplace/improved_black_scholes/pull/24)
+  (the same issuance PR as BRIEF_016: one branch, one PR; the two briefs are
+  separate commits, anchor first), documentation plus a numeric route-check run
+  at issue (no committed test).
   This is the **feasibility brief** the queue asked for before any law
   construction: it audits mathlib at the pinned rev, prices the candidate
   routes, makes the route call, and specifies the first implementation brief.

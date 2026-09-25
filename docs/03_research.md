@@ -186,7 +186,7 @@ one above — **in the same tree, under the same skeleton**, with all seven of:
    `cgmy_cmPriceKernel_integrable` — with the
    expectation-level twin gated on a law construction (the brief's re-scope
    note: the tree has no CGMY law as a measure). **BRIEF_017 is issued**
-   (PR #25): the feasibility audit decides the route — Stage 1 is the family's
+   (PR #24): the feasibility audit decides the route — Stage 1 is the family's
    `Y = 0` member (the variance-gamma law) built from mathlib's `gammaMeasure`,
    which lands the expectation-level twin at that member; the general-`Y` law
    is Stage 2, the compound-Poisson truncation limit through mathlib's
