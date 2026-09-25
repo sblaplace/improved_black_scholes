@@ -183,7 +183,15 @@ measure restores the exponential moment, keeps algebraic tails at option
 tenors, and offers an α-stable (λ→0) corner and a **normalized** GBM
 (`Y ↑ 2`, `C_Y = (σ²/2)(2−Y)`) corner. Holding `C` fixed at `Y = 2` would
 hit a pole, not a Gaussian limit (BRIEF_014, ledger C17 — now a landed one-sided
-theorem at the normalized scale). Proving the
+theorem at the normalized scale). The **dynamic** half of the same warning is
+issued as BRIEF_016: a pure exponential-Lévy smile decays like `τ^(−1)` (the
+model's measured ATM-skew exponent is `1.0857` at the published Carr–Madan VG
+test case, `0.9682` at a CGMY witness) while the market's published power-law
+fits decay like `τ^(−0.36..−0.45)` (ledger C19, which corrects the reviewer's
+`τ^(−1/2)`) — disjoint bands at the two witness sets, no universality claim over
+the family. That claim's falsifier, and the oracle's one genuinely external
+anchor, are specified in BRIEF_016 and land in docs/02 §5 at implementation.
+Proving the
 obstruction itself — a concrete divergent integral, no finance in it — is the
 cheapest high-value theorem in the research tier. Details in docs/03 §D1.
 

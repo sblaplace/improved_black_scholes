@@ -37,6 +37,8 @@ Verdict discipline:
 | — | *(brief issuance, no theorem)* BRIEF_015 issued: the Pareto witness for `Levy.lean`'s tail hypothesis (C13 finding 3, the first queued repair brief) | arena-ai-coding-agent | [#23](https://github.com/sblaplace/improved_black_scholes/pull/23) | **GREEN** — lean run 36118090090 on the documentation commit; documentation only: no `.lean` file, pin, lint rule, oracle function or test changed. Findings at issue: **F1** mathlib already ships `ProbabilityTheory.paretoMeasure` at rev `5ed2965` (read via the GitHub API), so C13's hand-rolled `withDensity` law is superseded and the only new analysis is the tail `μ[x,∞) = t^r·x^(−r)`; **F2** that tail meets `htail` *with equality* at `c = t^r, α = r, x₀ = t`, so together with C7 the headline is `levy_tail_hypothesis_satisfiable_iff : (∃ law, htail) ↔ 0 < α`, and C7's prose becomes a theorem; **F3** an `r = 3` instance puts C7 correction 1 on record. Route-check (scratch quadrature, 12 laws): normalization worst `3.6e-9`, tail closed form worst rel `5.7e-8` on 96 points, `htail` margin `2.2e-16` (equality), exponential and Gaussian canaries fail `htail` with finite `E[e^X]`, and one **weak mutant** found (`c = t^(−r)` still satisfies the inequality at `t > 1`), which is why the oracle test must assert the tail with equality. Specifies `[PARETO]` (4 clauses, lint mutants 40 → 44), oracle M24/M25, pins 257 → 268, audit 226 → 237. |
 | 15 | BRIEF_015 (the Pareto witness for `Levy.lean`'s tail hypothesis — C13 finding 3) | arena-ai-coding-agent | [#23](https://github.com/sblaplace/improved_black_scholes/pull/23) | **GREEN** @ `df470d1`, lean run 36119639468 (oracle lane 36119639528) — `lake build` + `#print axioms` audit (237 entries: the 226 previous plus the 11 new theorems, every one on `[propext, Classical.choice, Quot.sound]`, no `sorryAx`) + statement pins (source 268, elab 268; the 257 pre-existing entries byte-identical, `added 11, changed 0`) + `lint` (incl. `[PARETO]`, 44 mutants / 5 controls) + `oracle` (incl. `test_pareto_witness`, M24/M25 killed by it). `ImprovedBS/ParetoWitness.lean`: the Pareto tail `paretoMeasure t r (Ici x) = ofReal (t^r · x^(−r))` for mathlib's own law (F1), `htail` discharged with equality, `exp_moment_infinite_of_tail_lower_bound` / `no_drift_makes_spot_integrable` instantiated by citation (incl. `r = 3`, F3), C7's `α ≤ 0` remark proved (`levy_tail_hypothesis_unsatisfiable_of_nonpos`, via `tendsto_cdf_atTop`), the headline `levy_tail_hypothesis_satisfiable_iff : (∃ law, htail) ↔ 0 < α`, and the Dirac discriminator. Green on the 3rd lean run; see the CI history. |
 
+| — | *(brief issuance, no theorem)* BRIEF_016 issued: the external anchor (the published Carr–Madan 1999 test case) and the term-structure falsifier (C13 finding 4, the second and last queued repair brief) | arena-ai-coding-agent | (this PR) | **GREEN** — documentation only: no `.lean` file, pin, lint rule, audit entry or workflow changed. **Findings at issue:** **F1** the anchor is public and is this repository's own method (Carr & Madan 1999 §5, Table 1, Case 4: `σ = .25, ν = 2.0, θ = −.10, τ = .25`, `S = 100`, `r = .05`, `q = .03`); **F2** the published three-strike row is the **put** price (the call at `K = 77` is `≈23.84`), and the paper prints its own **wrong** VGPS row at the same strikes — a free negative control; **F3** the Case-4 parameters are exactly CGMY at `Y = 0` (`C = 1/ν`, `s = √(θ² + 2σ²/ν)`, `G, M = (s ± θ)/σ²` ⇒ `C = .5`, `G = 2.708…`, `M = 5.908…`, `1 < M`), where `Γ(−Y)` has a pole so the corner exponent must be written explicitly; **F4** C13's parenthetical decay `τ^(−1/2)` is wrong — the cited exponential-Lévy large-time rate is `O(τ^(−1))` (Figueroa-López–Forde–Jacquier), the measurement agrees, and correcting it *widens* the RED; **F5** the market side is a published exponent table with a regime change (El Amrani–Guyon: `α = 0.43/0.44/0.45` for SPX/SX5E/DAX above three weeks; `0.19/0.04/0.08` below; Gatheral–Jaisson–Rosenbaum `α ∈ (0.3, 0.5)`, SPX fit `τ^(−0.44)`). **Route-check** (Python stdlib only, the router's own `carr_madan_denom` at `α = 1.5`, `u_max = 2000`, `n = 80000`): puts `0.635631 / 0.678705 / 0.724436` vs published `.6356 / .6787 / .7244` (`|diff|` `3.1e−5 / 4.9e−6 / 3.6e−5`); the wrong VGPS row rejected by `0.3929 / 0.4488 / 0.8140`; VG → GBM as `ν ↓ 0` at `err/ν → 2.31`; ATM skew `−1.33362, −0.68164, −0.32191, −0.14639, −0.05267` (VG Case 4) and `−0.17869, −0.09335, −0.04797, −0.02437, −0.00985` (CGMY `1,5,10,.7`) at `τ = .25…5`, giving the pre-registered bands `[0.90, 1.15]` (model) vs `(0.30, 0.50)` (market) — **disjoint**, the RED. Specifies the oracle primitives, `test_term_structure_anchor`, mutants M26–M29, tests 22 → 23 and mutants 26 → 30, with pins/audit/lint **unchanged** at 268/237/44. **One transcription caveat on record:** the three literals were read from a PDF text extraction with mangled leading characters, so the implementer must verify them against the paper's rendering before pinning; the identification itself is established (the computed puts match to four decimals and fail the VGPS row). |
+
 ## Corrections and co-recorded changes to the ask
 
 Briefs are committed in-repo up front, so a correction is recorded here rather
@@ -1246,3 +1248,40 @@ two changes.
 | 2 | `8d950f0` (run 36119192150) | the auto-param passed explicitly (`(… (by simp)).mpr h`) | RED by design on pins: `lake build` + `#print axioms` audit **GREEN** (all 237), and the empty `elab` block for the 11 new names printed as `elab_delta` |
 | 3 | `df470d1` (run 36119639468) | the delta merged verbatim (`added 11, changed 0, elab now 268`), dead `first` alternatives removed | **GREEN** — every lane |
 
+
+
+### C19 — the cited Lévy skew decay is `τ^(−1)`, not `τ^(−1/2)` (BRIEF_016 issuance)
+
+**Date:** 2026-09-25. **Trigger:** issuing the external-anchor / term-structure
+brief (ledger C13 finding 4), whose text restated the reviewer's parenthetical
+"decay like `τ^(−1/2)` at long ones" as part of the falsifier's rationale. This
+is a correction to the reviewer's reasoning as the ledger transcribed it, **not**
+a CI verdict; it is recorded because the falsifier's pre-registered band depends
+on which rate is the cited one.
+
+The cited large-maturity rate for the ATM implied-vol skew of an
+exponential-Lévy model is `O(τ^(−1))`: Figueroa-López, Forde and Jacquier,
+*The large-time smile and skew for exponential Lévy models*, prove
+`∂_x[σ̂_t(x)²·t] → a₀(0) = 8(p₀ − 1/2)` (Proposition 4.1) — the derivative of the
+dimensionless variance settles to a finite constant, so the skew in
+log-moneyness dies like `1/τ`. `τ^(−1/2)` is the rate of the *standardized
+skewness* in the Edgeworth expansion, not of this object; it is not what the
+literature quotes for the skew, and it is not what the model does. Measured for
+the brief, with `ψ = ∂σ_BS/∂k` at `k = 0` by central difference (`h = .005`)
+and a log-log fit over `τ ∈ [.25, 5]`:
+
+| witness | `α_model` | `|ψ|·τ` over the window |
+|---|---|
+| VG at Carr–Madan Case 4 (`r = .05`, `q = .03`) | **1.0857** | `.263 … .341` |
+| CGMY `C = 1, G = 5, M = 10, Y = .7`, `r = q = 0` | **0.9682** | `.0447 … .0493` |
+
+Both sit at `≈ 1/τ`, consistently with the citation. `|ψ|·√τ` on the same
+window *decreases* (`CGMY`: `.0893 → .0220`), which is the `τ^(−1/2)` form being
+falsified by the model itself. The correction does not soften the RED — it
+*tightens* it: the family decays like `1/τ` while the market's published fits
+decay like `τ^(−0.36..−0.45)` (El Amrani–Guyon `0.43/0.44/0.45` for SPX/SX5E/DAX
+above three weeks; Gatheral–Jaisson–Rosenbaum `α ∈ (0.3, 0.5)`), so the family —
+not the market — is on the wrong side of the conventional stochastic-vol rate.
+The pre-registered bands are `[0.90, 1.15]` (model) against `(0.30, 0.50)`
+(market): disjoint by `≥ 0.40`. The brief's `docs/02` RED is to be phrased as a
+**magnitude** failure with a theory-correct rate, not as a wrong exponent form.
