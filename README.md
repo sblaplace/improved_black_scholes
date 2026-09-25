@@ -367,7 +367,6 @@ python3 tests/test_pins.py        # 12/12 — and the pins that back it parse re
 python3 scripts/lean_lint.py      #  OK   — no sorry in the protected node, ratchet, independence, pins, spine, skeleton, contour, cgmy, nonuniq, esscher (12 files, 291 declarations)
 python3 scripts/pin_statements.py --check   # 240 statements match tests/golden_statements.json
 python3 tests/test_crosscheck.py    #  6/6  — grid + oracle self-consistency, both T3 sides, input-source routing (the cross-check itself needs lake)
-python3 scripts/check_gbm_corner.py # BRIEF_014 numeric pre-brief check (NOT a Lean proof)
 # or, with pytest installed:
 pytest tests/
 ```

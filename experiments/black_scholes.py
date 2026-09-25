@@ -671,6 +671,62 @@ def esscher_solve(C: float, G: float, M: float, Y: float, target: float,
     return 0.5 * (lo + hi)
 
 
+# ------------------------------------------------------- BRIEF_014: GBM corner
+
+# The numerical shadow of ImprovedBS/Corner.lean (BRIEF_014). Two conventions
+# are pinned here because they are the two places a silent scale/drift error
+# hides, and neither is visible in a residual that is merely small:
+#
+#   * WHICH SCALE THE CORNER RUNS ON. `corner_scale` is `(σ²/2)(2−Y)` (the
+#     Lean `cgmyCornerC`) -- a HALF-variance times the distance to the pole,
+#     not `σ²(2−Y)`. Doubling it delivers twice the intended variance, and a
+#     `C` that does not vanish like `2 − Y` does not converge at all: `Γ(−Y)`
+#     has a pole at `Y = 2`, so at fixed `C` the exponent diverges (ledger
+#     C17). Both failures are seeded -- the doubled scale is mutant M22.
+#   * WHICH DRIFT THE FORWARD NORMALIZATION SUBTRACTS.
+#     `corner_forward_exponent` is `ψ_Y(v) + i(r−q−κ_Y(1))v` (the Lean
+#     `cornerForwardExponent`), with `κ_Y(1)` the REAL cumulant and not the
+#     complex exponent at `v = −i`. Dropping the `−κ_Y(1)` leaves the
+#     tempering asymmetry `G − M` inside the limit, which is mutant M23.
+#
+# The GBM TARGET these routes are compared against lives in the test, not
+# here: it is an independently expanded polynomial, and putting both sides of
+# one comparison in the same module is how an oracle stops being a falsifier.
+
+
+def corner_scale(sigma: float, Y: float) -> float:
+    """`C_Y = (σ²/2)·(2−Y)` -- the Lean `cgmyCornerC`.
+
+    The scale the pole cancellation runs on: `C_Y Γ(−Y) → σ²/4`, so the
+    bracket's `−2v²` becomes `−(σ²/2)v²` and the diffusion variance is `σ²`.
+    Two ways to get it wrong, both of them quiet:
+
+      * `σ²(2−Y)` (no half) -- twice the variance, same finite limit;
+      * any `C` not vanishing like `2−Y` -- `Re ψ` diverges as `Y ↑ 2`.
+
+    `Y < 2` is enforced, as everywhere in this oracle: `Y = 2` is the pole,
+    and `Gamma(-2)` is not a value this file will produce.
+    """
+    if not Y < 2.0:
+        raise ValueError("the corner approaches Y = 2 from BELOW; Y = 2 is a pole of Gamma(-Y)")
+    return (sigma * sigma / 2.0) * (2.0 - Y)
+
+
+def corner_forward_exponent(C: float, G: float, M: float, Y: float, r: float, q: float,
+                            v: complex) -> complex:
+    """`Ψ_Y(v) = ψ_Y(v) + i(r−q−κ_Y(1))v` -- the Lean `cornerForwardExponent`.
+
+    A deterministic linear correction of the CGMY exponent, chosen so that
+    `Ψ_Y(−i) = r − q` EXACTLY at every `Y` (the Lean
+    `cornerForward_numeraire`) -- which is what the test asserts as a
+    tolerance-free identity, and what makes route A an algebraic
+    normalization rather than an Esscher tilt. `κ_Y(1)` is the real cumulant
+    of BRIEF_013, i.e. the value of `ψ_Y` on the strip, not a second complex
+    evaluation.
+    """
+    return cgmy_exponent(C, G, M, Y, v) + 1j * (r - q - cgmy_cumulant(C, G, M, Y, 1.0)) * v
+
+
 def cgmy_levy_near_zero_mass(Y: float, M: float, x_min: float = 1e-9, n: int = 20000) -> float:
     """`int_{x_min}^1 x^{1-Y} e^{-M x} dx` -- the truncated `x^2` piece at 0.
 

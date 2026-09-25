@@ -242,6 +242,32 @@ MUTANTS = [
         # committed contract carries both.
         ["test_esscher_drift"],
     ),
+    (
+        "M22 CORNER scale doubled: `cgmyCornerC` as sigma^2 (2 - Y), not (sigma^2/2)(2 - Y)",
+        "return (sigma * sigma / 2.0) * (2.0 - Y)",
+        "return sigma * sigma * (2.0 - Y)",
+        # The doubled scale still cancels the pole -- `C_Y Gamma(-Y) -> sigma^2/2`
+        # is finite -- so nothing diverges and nothing looks broken. What it
+        # delivers is TWICE the intended variance: the limit exponent is
+        # `-sigma^2 v^2 + i sigma^2 (G-M) v` instead of the half-variance one,
+        # and the drift correction `kappa(1)` is out by a factor of two as
+        # well. The canary measures it at 1.257 against a tolerance of 1e-3.
+        ["test_gbm_corner"],
+    ),
+    (
+        "M23 CORNER drift correction dropped: Psi_Y = psi_Y + i (r - q) v",
+        "return cgmy_exponent(C, G, M, Y, v) + 1j * (r - q - cgmy_cumulant(C, G, M, Y, 1.0)) * v",
+        "return cgmy_exponent(C, G, M, Y, v) + 1j * (r - q) * v",
+        # Route A's whole content is the `-kappa_Y(1)`: without it the
+        # tempering asymmetry `G - M` survives the limit and the exponent is
+        # NOT the risk-neutral GBM exponent at any carry. It is a *small*
+        # error (0.563 at the canary point, O(sigma^2) in general) -- far below
+        # what a loose tolerance would notice, and it does not shrink with
+        # epsilon, which is why the test asserts the shrinkage and not just a
+        # final residual. This is the mutant the brief's "seed mutants for at
+        # least doubled scaling and missing drift correction" asks for.
+        ["test_gbm_corner"],
+    ),
 ]
 
 

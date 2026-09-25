@@ -113,7 +113,6 @@ theorem cgmyCornerGamma_eq (Y : ℝ) (hY₁ : 1 < Y) (hY₂ : Y < 2) :
     exact Real.Gamma_add_one (by linarith : 2 - Y ≠ 0)
   rw [hthree, htwo]
   field_simp [hYY]
-  ring
 
 /-- The finite limit of the normalized pole coefficient: `C_Y Γ(−Y) → σ²/4`.
 Not a value of `Γ(−2)` — the limit is taken through `𝓝[<] 2`, i.e. eventually
@@ -140,7 +139,8 @@ theorem cgmyCornerGamma_tendsto (σ : ℝ) :
       linarith)).continuousAt
   have hΓ0 : Tendsto (fun Y : ℝ => Real.Gamma (3 - Y)) (𝓝[<] (2 : ℝ))
       (𝓝 (Real.Gamma ((fun Y : ℝ => 3 - Y) (2 : ℝ)))) := by
-    have hf : ContinuousAt (fun Y : ℝ => 3 - Y) (2 : ℝ) := by continuity
+    have hf : ContinuousAt (fun Y : ℝ => 3 - Y) (2 : ℝ) :=
+      continuousAt_const.sub continuousAt_id
     have hg : ContinuousAt Real.Gamma ((fun Y : ℝ => 3 - Y) (2 : ℝ)) := by
       convert hΓcont using 1
       norm_num
@@ -150,7 +150,8 @@ theorem cgmyCornerGamma_tendsto (σ : ℝ) :
     norm_num
   have hden0 : Tendsto (fun Y : ℝ => Y * (Y - 1)) (𝓝[<] (2 : ℝ))
       (𝓝 ((fun Y : ℝ => Y * (Y - 1)) (2 : ℝ))) := by
-    have hc : ContinuousAt (fun Y : ℝ => Y * (Y - 1)) (2 : ℝ) := by continuity
+    have hc : ContinuousAt (fun Y : ℝ => Y * (Y - 1)) (2 : ℝ) :=
+      continuousAt_id.mul (continuousAt_id.sub continuousAt_const)
     exact hc.continuousWithinAt.tendsto
   have hden : Tendsto (fun Y : ℝ => Y * (Y - 1)) (𝓝[<] (2 : ℝ)) (𝓝 (2 : ℝ)) := by
     convert hden0 using 1
@@ -158,7 +159,6 @@ theorem cgmyCornerGamma_tendsto (σ : ℝ) :
   have hquot : Tendsto (fun Y : ℝ => Real.Gamma (3 - Y) / (Y * (Y - 1))) (𝓝[<] (2 : ℝ))
       (𝓝 (Real.Gamma 1 / 2)) := by
     convert hΓ.div hden (by norm_num : (2 : ℝ) ≠ 0) using 1
-    norm_num
   have hlim : Tendsto (fun Y : ℝ => (σ ^ 2 / 2) * (Real.Gamma (3 - Y) / (Y * (Y - 1))))
       (𝓝[<] (2 : ℝ)) (𝓝 ((σ ^ 2 / 2) * (Real.Gamma 1 / 2))) :=
     tendsto_const_nhds.mul hquot
@@ -177,7 +177,6 @@ right half plane" (hence off the branch cut, hence a nonzero base). -/
 private theorem corner_base_left_re (M : ℝ) (v : ℂ) :
     ((M : ℂ) - Complex.I * v).re = M + v.im := by
   simp [Complex.sub_re, Complex.mul_re]
-  ring
 
 /-- `Re (G + iv) = G − Im v`: the negative-tail base's real part, positive
 exactly when `Im v < G`. -/
@@ -264,10 +263,14 @@ theorem cgmyCornerExponent_tendsto (σ G M : ℝ) (hG : 0 < G) (hM : 1 < M) (v :
       (𝓝 (-((σ ^ 2 / 2 : ℝ) : ℂ) * v ^ 2 +
         Complex.I * ((σ ^ 2 / 2 : ℝ) : ℂ) * ((G - M : ℝ) : ℂ) * v)) := by
   have hcoefR := cgmyCornerGamma_tendsto σ
+  -- The coefficient crosses into ℂ as the coercion of a REAL product, whereas
+  -- `cgmyExponent` carries the split form `↑C_Y * ↑(Γ(−Y))`: `Function.comp_def`
+  -- unfolds the transport and `Complex.ofReal_mul` pushes the cast through the
+  -- product. Both are needed -- `simpa` alone leaves the composed function alone.
   have hcoef : Tendsto (fun Y : ℝ => (cgmyCornerC σ Y : ℂ) * (Real.Gamma (-Y) : ℂ))
       (𝓝[<] (2 : ℝ)) (𝓝 (((σ ^ 2 / 4 : ℝ) : ℂ))) := by
     have h := (Complex.continuous_ofReal.tendsto (σ ^ 2 / 4)).comp hcoefR
-    simpa using h
+    simpa [Function.comp_def, Complex.ofReal_mul] using h
   have hbr := cgmyBracket_tendsto G M hG (by linarith : 0 < M) v hv₁ hv₂
   have hprod := hcoef.mul hbr
   have hmain : Tendsto (fun Y : ℝ => cgmyExponent (cgmyCornerC σ Y) G M Y v) (𝓝[<] (2 : ℝ))
@@ -526,16 +529,20 @@ theorem cornerEsscherBound_tendsto (σ G M : ℝ) (hGM : 1 < G + M) :
       (𝓝 (2 * (G + M - 1))) := by
     have hn : Tendsto (fun Y : ℝ => ‖(G + M) ^ Y - (G + M - 1) ^ Y - 1‖) (𝓝[<] (2 : ℝ))
         (𝓝 (‖(G + M) ^ (2 : ℝ) - (G + M - 1) ^ (2 : ℝ) - 1‖)) := hinner.norm
-    have hval : ‖(G + M) ^ (2 : ℝ) - (G + M - 1) ^ (2 : ℝ) - 1‖ = 2 * (G + M - 1) := by
-      rw [Real.norm_eq_abs]
-      simp only [Real.rpow_two]
+    -- Two shapes matter here, and both are decided by what `simp` does to the
+    -- goal before this `have` is used as a rewrite rule: the real NORM is
+    -- simplified to `| |`, and `Real.rpow_two` is a simp lemma, so the limit
+    -- value arrives as `|(G+M)^2 − (G+M−1)^2 − 1|` with a NATURAL power.
+    -- An `hval` phrased with `‖ ‖` or with `^ (2 : ℝ)` therefore does not match
+    -- the very goal it was written to discharge.
+    have hval : |(G + M) ^ 2 - (G + M - 1) ^ 2 - 1| = 2 * (G + M - 1) := by
       have hiden : (G + M) ^ 2 - (G + M - 1) ^ 2 - 1 = 2 * (G + M - 1) := by ring
       have hpos : 0 < (G + M) ^ 2 - (G + M - 1) ^ 2 - 1 := by
         rw [hiden]
         linarith
       rw [abs_of_pos hpos]
       ring
-    simpa [hval] using hn
+    simpa [Real.norm_eq_abs, hval] using hn
   have hprod := hcoef.mul hbr
   have hmain : Tendsto (fun Y : ℝ => esscherDriftBound (cgmyCornerC σ Y) G M Y) (𝓝[<] (2 : ℝ))
       (𝓝 ((σ ^ 2 / 4) * (2 * (G + M - 1)))) := by

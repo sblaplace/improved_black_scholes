@@ -66,6 +66,8 @@ from experiments.black_scholes import (
     cgmy_tempered_constant,
     cgmy_tempered_correction,
     cgmy_tempered_rate,
+    corner_forward_exponent,
+    corner_scale,
     esscher_drift_bound,
     esscher_drift_map,
     esscher_exponent,
@@ -812,6 +814,204 @@ def test_esscher_drift():
     assert abs(th4 - 4.8271) < 1e-3, th4
     assert abs((M - th4) - 5.1729) < 1e-3, M - th4
     assert abs((M - th4 - 1.0) - 4.1729) < 1e-3
+
+
+# (G, M, sigma, r, q, alpha, tau) for BRIEF_014. Every case satisfies the
+# corner's hypotheses: 0 < G, 1 < M, 0 < sigma, 0 < alpha, alpha + 1 < M, and
+# 1 < G + M (the shifted rates satisfy alpha + 1 < M' too -- checked inside).
+CORNER_CASES = (
+    (3.0, 3.0, 0.20, 0.05, 0.02, 0.30, 0.8),
+    (0.5, 1.8, 0.65, -0.01, 0.02, 0.20, 1.2),
+    (5.0, 8.0, 0.37, 0.05, 0.00, 0.40, 2.0),
+)
+# Y approaches 2 from BELOW. Nothing here evaluates the pole.
+CORNER_EPSILONS = (0.1, 0.01, 0.001, 0.0001)
+
+
+def _corner_uncorrected(sigma: float, G: float, M: float, v: complex) -> complex:
+    """`−(σ²/2)v² + i(σ²/2)(G−M)v` -- expanded from `B₂(v) = −2v² + 2i(G−M)v`.
+
+    The bracket at `Y = 2`, by hand: NOT a CGMY evaluation, so the comparison
+    has two independent sides.
+    """
+    half = sigma * sigma / 2.0
+    return 1j * half * (G - M) * v - half * v * v
+
+
+def _corner_gbm(sigma: float, carry: float, v: complex) -> complex:
+    """The risk-neutral GBM log exponent `i(carry − σ²/2)v − (σ²/2)v²`.
+
+    Independent of the CGMY oracle: it is the polynomial the corner is
+    supposed to land on, written down from the model, not from `cgmy_exponent`.
+    """
+    half = sigma * sigma / 2.0
+    return 1j * (carry - half) * v - half * v * v
+
+
+def _corner_rel(actual: complex, expected: complex) -> float:
+    return abs(actual - expected) / (1.0 + abs(expected))
+
+
+def test_gbm_corner():
+    """BRIEF_014 (numerical shadow of `ImprovedBS/Corner.lean`).
+
+    The corner is a ONE-SIDED limit at a scale, and this test is built so
+    that all three ways of getting it wrong are loud:
+
+      * the bare corner (`Y -> 2` at fixed `C`) DIVERGES, because `Γ(−Y)` has
+        a pole there (ledger C17) -- asserted below as a canary, and the
+        reason `corner_scale` exists at all;
+      * the scale must be `(σ²/2)(2−Y)` (`cgmyCornerC`, oracle
+        `corner_scale`): doubling it gives twice the variance (mutant M22);
+      * the forward normalization must subtract the cumulant
+        (`cornerForwardExponent`, oracle `corner_forward_exponent`): without
+        it the tempering asymmetry `G − M` survives the limit (mutant M23).
+
+    What is asserted, per Lean declaration:
+
+      `cgmyCornerGamma_eq` / `cgmyCornerGamma_tendsto`
+          the stable recurrence `ε Γ(−Y) = Γ(3−Y)/(Y(Y−1))` agrees with the
+          oracle's own reflection-form `Γ(−Y)` (no `sin(πY)` in the stable
+          route), and `C_Y Γ(−Y) → σ²/4` at the measured rate;
+      `cgmyCornerExponent_tendsto` / `cornerForwardExponent_tendsto` /
+      `cornerForwardFactor_tendsto`
+          the raw, normalized and factorized routes converge to their
+          independently expanded targets, with the error shrinking in `ε`;
+      `cornerForward_numeraire` / `cornerForwardFactor_numeraire`
+          `Ψ_Y(−i) = r − q` and `exp(τ Ψ_Y(−i)) = exp(τ(r−q))` EXACTLY at
+          every `Y` (tolerance-free up to Float round-off);
+      `cornerEsscherZero_numeraire` / `cornerEsscherZero_exponent` /
+      `cornerEsscherZero_tendsto`
+          `θ₀ = (M−G−1)/2` solves the Esscher equation exactly at every `Y`,
+          the tilted exponent vanishes at `v = −i`, the shift equals the
+          exponent at the shifted rates, and the tilted route converges to
+          the ZERO-CARRY GBM exponent with no drift correction at all;
+      `cornerEsscherBound_tendsto`
+          `H → (σ²/2)(G+M−1)`.
+
+    Measured, not assumed: the residuals shrink ~O(ε) on this grid (worst
+    1.0e-4 at ε = 1e-4, from the range route), which a wrong scale or a
+    missing drift correction cannot do -- those sit at O(1)·|v|.
+    """
+    results = []
+    for eps in CORNER_EPSILONS:
+        Y = 2.0 - eps
+        worst = dict(coefficient=0.0, uncorrected=0.0, kappa1=0.0, gbm=0.0,
+                     factor=0.0, esscher_zero=0.0, esscher_range=0.0, closure=0.0)
+        for G, M, sigma, r, q, alpha, tau in CORNER_CASES:
+            assert G > 0.0 and M > 1.0 and sigma > 0.0 and alpha > 0.0
+            assert alpha + 1.0 < M and G + M > 1.0
+            C = corner_scale(sigma, Y)          # `cgmyCornerC`, the scale under test
+            half = sigma * sigma / 2.0
+            carry = r - q
+
+            # --- `cgmyCornerGamma_eq`: reflection form vs the two recurrences,
+            # evaluated WITHOUT sin(pi Y) on the stable side.
+            prefactor = C * cgmy_gamma_neg(Y)
+            stable_prefactor = half * math.gamma(3.0 - Y) / (Y * (Y - 1.0))
+            worst["coefficient"] = max(worst["coefficient"],
+                                       _corner_rel(prefactor, stable_prefactor))
+
+            # --- `cgmyCornerCumulant_one_tendsto`: the REAL cumulant route
+            kappa1 = cgmy_cumulant(C, G, M, Y, 1.0)
+            worst["kappa1"] = max(worst["kappa1"],
+                                  _corner_rel(kappa1, half * (G - M + 1.0)))
+            # `cgmy_numeraire_strip` / `cgmyExponent_strip`: u = 1 needs 1 < M
+            assert abs(cgmy_exponent(C, G, M, Y, -1j) - kappa1) < 1e-10
+
+            # --- route B: theta0 is EXACTLY the zero-drift parameter at every Y
+            theta0 = esscher_theta_zero(G, M)
+            assert -G < theta0 < M - 1.0
+            assert abs(esscher_drift_map(C, G, M, Y, theta0)) < 1e-10
+            tilted_G, tilted_M = G + theta0, M - theta0
+            assert tilted_G > 0.0 and tilted_M > 1.0
+            worst["esscher_range"] = max(
+                worst["esscher_range"],
+                _corner_rel(esscher_drift_bound(C, G, M, Y), half * (G + M - 1.0)))
+
+            points = (0j, 1 + 0j, -2 + 0j, 1.25 - 0.8j, -1j,
+                      cgmy_pricing_contour_v(alpha, 1.1))
+            for v in points:
+                assert -M < v.imag < G and -tilted_M < v.imag < tilted_G
+                raw = cgmy_exponent(C, G, M, Y, v)
+                worst["uncorrected"] = max(worst["uncorrected"],
+                                           _corner_rel(raw, _corner_uncorrected(sigma, G, M, v)))
+                # route A: the forward normalization, from the oracle so that
+                # a dropped `-kappa(1)` (M23) is reachable from this test.
+                normalized = corner_forward_exponent(C, G, M, Y, r, q, v)
+                target = _corner_gbm(sigma, carry, v)
+                worst["gbm"] = max(worst["gbm"], _corner_rel(normalized, target))
+                worst["factor"] = max(worst["factor"],
+                                      _corner_rel(cmath.exp(tau * normalized),
+                                                  cmath.exp(tau * target)))
+                # route B: no drift correction, carry 0
+                esscher = esscher_exponent(C, G, M, Y, theta0, v)
+                worst["esscher_zero"] = max(
+                    worst["esscher_zero"],
+                    _corner_rel(esscher, _corner_gbm(sigma, 0.0, v)))
+                worst["closure"] = max(
+                    worst["closure"],
+                    _corner_rel(esscher, cgmy_exponent(C, tilted_G, tilted_M, Y, v)))
+
+            # --- `cornerForward_numeraire` / `cornerForwardFactor_numeraire`:
+            # exact at every Y, on the ORIGINAL (unshifted) exponent.
+            norm_num = corner_forward_exponent(C, G, M, Y, r, q, -1j)
+            assert abs(norm_num - carry) < 1e-10, (eps, norm_num)
+            assert abs(cmath.exp(tau * norm_num) - math.exp(tau * carry)) < 1e-10
+            # --- `cornerEsscherZero_exponent` / `_numeraire`: exact at every Y
+            assert abs(esscher_exponent(C, G, M, Y, theta0, -1j)) < 1e-10
+            assert abs(cgmy_char_factor(C, tilted_G, tilted_M, Y, tau, -1j) - 1.0) < 1e-10
+        results.append(worst)
+
+    # Convergence has a measurable rate on this grid; a wrong scale or a
+    # missing drift correction sits at O(1) and does not shrink.
+    for key in ("uncorrected", "kappa1", "gbm", "factor", "esscher_zero",
+                "esscher_range"):
+        assert results[-1][key] < 0.15 * results[-2][key], (key, results[-1][key])
+    assert results[-1]["uncorrected"] < 1e-3, results[-1]["uncorrected"]
+    assert results[-1]["gbm"] < 1e-3, results[-1]["gbm"]
+    assert results[-1]["esscher_zero"] < 1e-3, results[-1]["esscher_zero"]
+    # `cgmyCornerGamma_eq` is an identity, and the shift is term algebra.
+    assert max(row["coefficient"] for row in results) < 1e-9
+    assert max(row["closure"] for row in results) < 1e-9
+
+    # --- the pole is not a value. `Y = 2` must stay outside the domain.
+    try:
+        cgmy_exponent(0.1, 3.0, 3.0, 2.0, 1 + 0j)
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("the oracle evaluated Gamma(-2) at its pole")
+
+    # --- CANARY 1: at FIXED C the bare corner diverges (ledger C17). With
+    # G = M the bracket tends to -2, so Re psi(1) ~ -C/(2-Y).
+    fixed_C = 0.35
+    wide = cgmy_exponent(fixed_C, 3.0, 3.0, 1.9, 1 + 0j).real
+    near = cgmy_exponent(fixed_C, 3.0, 3.0, 1.999, 1 + 0j).real
+    assert near < 20 * wide < 0.0, (wide, near)
+    assert abs(0.001 * near + fixed_C) < 1e-3, near
+
+    # --- CANARY 2: sending G, M to sigma^2/2 at fixed Y is NOT the corner.
+    # With G = M the real part of any Gaussian exponent scales like v^2, so
+    # the ratio at frequencies 2 and 1 would be exactly 4, whatever the drift.
+    rate = 1.5 ** 2 / 2.0                      # 1.125 > 1: the numeraire fits
+    at_one = cgmy_exponent(0.2, rate, rate, 1.5, 1 + 0j).real
+    at_two = cgmy_exponent(0.2, rate, rate, 1.5, 2 + 0j).real
+    assert abs(at_two / at_one - 4.0) > 0.2, at_two / at_one
+
+    # --- CANARY 3: the two seeded cheats, measured. Doubling the scale
+    # doubles the variance; omitting -kappa(1) leaves G - M in the drift.
+    G = M = 3.0
+    sigma, carry, v, eps = 0.75, 0.03, 2 + 0j, 0.0001
+    Y = 2.0 - eps
+    C = corner_scale(sigma, Y)
+    target = _corner_gbm(sigma, carry, v)
+    correct = corner_forward_exponent(C, G, M, Y, carry, 0.0, v)
+    doubled = corner_forward_exponent(2.0 * C, G, M, Y, carry, 0.0, v)
+    uncorrected = cgmy_exponent(C, G, M, Y, v) + 1j * carry * v
+    assert abs(correct - target) < 1e-3, abs(correct - target)
+    assert abs(doubled - target) > 0.8, abs(doubled - target)
+    assert abs(uncorrected - target) > 0.4, abs(uncorrected - target)
 
 
 if __name__ == "__main__":
