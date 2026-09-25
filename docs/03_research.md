@@ -185,7 +185,12 @@ one above — **in the same tree, under the same skeleton**, with all seven of:
    solution, and pricing at the tilted rates consumes
    `cgmy_cmPriceKernel_integrable` — with the
    expectation-level twin gated on a law construction (the brief's re-scope
-   note: the tree has no CGMY law as a measure).
+   note: the tree has no CGMY law as a measure). **BRIEF_017 is issued**
+   (PR #25): the feasibility audit decides the route — Stage 1 is the family's
+   `Y = 0` member (the variance-gamma law) built from mathlib's `gammaMeasure`,
+   which lands the expectation-level twin at that member; the general-`Y` law
+   is Stage 2, the compound-Poisson truncation limit through mathlib's
+   Lévy-continuity and Prokhorov layer, specified and queued behind it.
 4. **T6's triangle holds at the new exponent.** The Carr–Madan integral
    converges absolutely on the contour, inverts to `e^{−rτ}·E[(S_T − K)⁺]`,
    and is real-valued — the full pricing claim where no closed form exists.

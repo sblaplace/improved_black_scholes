@@ -191,6 +191,19 @@ fits decay like `τ^(−0.36..−0.45)` (ledger C19, which corrects the reviewer
 `τ^(−1/2)`) — disjoint bands at the two witness sets, no universality claim over
 the family. That claim's falsifier, and the oracle's one genuinely external
 anchor, are specified in BRIEF_016 and land in docs/02 §5 at implementation.
+**The law side is issued as BRIEF_017.** Every CGMY declaration the tree has is
+about the characteristic *exponent*; the expectation-level twins of items 3 and
+5 need an actual `Measure ℝ`, and the feasibility audit (mathlib at the pinned
+tag has no Lévy–Khintchine, no infinite divisibility, no stable laws, no
+Bochner — but it does ship the Gamma law, the Γ-integral identities, the
+`mgf`/`complexMGF` layer and the Lévy-continuity/Prokhorov layer) decides the
+route in two stages: **Stage 1** is the family's `Y = 0` member, the
+variance-gamma law as the difference of two `gammaMeasure`s — the published law
+of BRIEF_016's anchor — which lands the first non-Gaussian martingale law in
+the tree; **Stage 2** is the general-`Y` law as the compound-Poisson truncation
+limit. Two traps are named in the brief: `Real.Gamma 0 = 0` (and `Gamma (−1)`)
+makes a raw evaluation at `Y = 0` or `Y = 1` *silently* the Dirac law, and the
+landed Esscher range `H_Y` degenerates at the corner (`H_Y ~ C/Y → ∞`).
 Proving the
 obstruction itself — a concrete divergent integral, no finance in it — is the
 cheapest high-value theorem in the research tier. Details in docs/03 §D1.
