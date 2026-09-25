@@ -4,7 +4,7 @@
 
   In one line: the compound-Poisson law of a *probability* jump law `ρ` at rate
   `λ` — the Poisson mixture of convolution powers `∑ₙ pₙ ρ^{*n}` — is a
-  probability measure whose characteristic function is `exp (λ (φ_ρ − 1))`; and
+  probability measure whose characteristic function is `exp (lam (φ_ρ − 1))`; and
   truncating the landed CGMY Levy density to the *symmetric* set
   `{x | ε ≤ |x|}` gives a probability jump law whose compound-Poisson marginal
   at time `τ` has, as exponent, the honest Bochner integral
@@ -43,8 +43,8 @@ noncomputable section
 
 namespace BSM
 
-open MeasureTheory Filter Set ProbabilityTheory
-open scoped Topology ENNReal
+open MeasureTheory Filter Set ProbabilityTheory Complex
+open scoped Topology ENNReal NNReal
 
 /-!
 ---------------------------------------------------------------------------
@@ -62,12 +62,12 @@ noncomputable def convPow (ρ : Measure ℝ) : ℕ → Measure ℝ
   | n + 1 => Measure.conv (convPow ρ n) ρ
 
 /-- **The compound-Poisson law** of the jump law `ρ` at rate `λ`: the Poisson
-mixture of the convolution powers, weighted by `poissonPMFReal λ n`. The rate
+mixture of the convolution powers, weighted by `poissonPMFReal lam n`. The rate
 is an `ℝ≥0`, matching `poissonMeasure`/`poissonPMFReal`; the jump law is an
 arbitrary measure, and `cpLaw_isProbabilityMeasure` needs it to be a
 probability measure and nothing else. -/
-noncomputable def cpLaw (λ : ℝ≥0) (ρ : Measure ℝ) : Measure ℝ :=
-  Measure.sum (fun n => ENNReal.ofReal (poissonPMFReal λ n) • convPow ρ n)
+noncomputable def cpLaw (lam : ℝ≥0) (ρ : Measure ℝ) : Measure ℝ :=
+  Measure.sum (fun n => ENNReal.ofReal (poissonPMFReal lam n) • convPow ρ n)
 
 /-- The convolution powers of a probability measure are probability measures:
 `δ₀` is one, and the additive convolution of two is one by mathlib's instance
@@ -103,33 +103,33 @@ theorem charFun_convPow (ρ : Measure ℝ) (hρ : IsProbabilityMeasure ρ) (t : 
       haveI hρf : IsFiniteMeasure ρ := ⟨by rw [measure_univ]; exact ENNReal.one_lt_top⟩
       rw [convPow, charFun_conv, charFun_convPow ρ hρ t n, pow_succ]
 
-/-- The mass of the compound-Poisson law is `∑' n, poissonPMFReal λ n = 1`: the
+/-- The mass of the compound-Poisson law is `∑' n, poissonPMFReal lam n = 1`: the
 `Measure.sum` mass is the tsum of the summands' masses (`Measure.sum_apply`), the
 scalar is `Measure.smul_apply`, each convolution power has mass one, and the
 `ℝ≥0∞` tsum of the weights is the cast of the real tsum
 (`ENNReal.ofReal_tsum_of_nonneg`), which mathlib's `hasSum_one_poissonMeasure`
 evaluates. -/
-theorem cpLaw_apply_univ (λ : ℝ≥0) (ρ : Measure ℝ) (hρ : IsProbabilityMeasure ρ) :
-    cpLaw λ ρ Set.univ = 1 := by
+theorem cpLaw_apply_univ (lam : ℝ≥0) (ρ : Measure ℝ) (hρ : IsProbabilityMeasure ρ) :
+    cpLaw lam ρ Set.univ = 1 := by
   haveI : ∀ n, IsProbabilityMeasure (convPow ρ n) := convPow_isProbabilityMeasure ρ hρ
-  have hsum : HasSum (fun n => poissonPMFReal λ n) 1 := by
-    simpa only [poissonPMFReal] using hasSum_one_poissonMeasure λ
+  have hsum : HasSum (fun n => poissonPMFReal lam n) 1 := by
+    simpa only [poissonPMFReal] using hasSum_one_poissonMeasure lam
   rw [cpLaw, Measure.sum_apply _ MeasurableSet.univ]
   simp only [Measure.smul_apply, smul_eq_mul, measure_univ, mul_one]
   rw [← ENNReal.ofReal_tsum_of_nonneg (fun n =>
-      show (0 : ℝ) ≤ poissonPMFReal λ n from poissonPMFReal_nonneg) hsum.summable,
+      show (0 : ℝ) ≤ poissonPMFReal lam n from poissonPMFReal_nonneg) hsum.summable,
     hsum.tsum_eq, ENNReal.ofReal_one]
 
 /-- **The compound-Poisson law is a probability measure**: `IsProbabilityMeasure`
 is a class whose only field is the mass identity. -/
-theorem cpLaw_isProbabilityMeasure (λ : ℝ≥0) (ρ : Measure ℝ) (hρ : IsProbabilityMeasure ρ) :
-    IsProbabilityMeasure (cpLaw λ ρ) :=
-  ⟨cpLaw_apply_univ λ ρ hρ⟩
+theorem cpLaw_isProbabilityMeasure (lam : ℝ≥0) (ρ : Measure ℝ) (hρ : IsProbabilityMeasure ρ) :
+    IsProbabilityMeasure (cpLaw lam ρ) :=
+  ⟨cpLaw_apply_univ lam ρ hρ⟩
 
 /-- **The compound-Poisson law's characteristic function**: for every
 probability jump law `ρ`,
 
-    `charFun (cpLaw λ ρ) t = exp (λ (charFun ρ t − 1))`.
+    `charFun (cpLaw lam ρ) t = exp (λ (charFun ρ t − 1))`.
 
 The sum/integral exchange is `integral_sum_measure` (every summand is a finite
 measure and the integrand has modulus one, so the mixed sum is summable), the
@@ -138,35 +138,35 @@ series identity `∑ₙ pₙ zⁿ = exp (λ (z − 1))`. Mathlib's
 `charFun_map_cast_poissonMeasure` is the `ρ = δ₁` case of exactly this
 statement, and the series is evaluated the same way there:
 `NormedSpace.expSeries_div_hasSum_exp`, then `exp (−λ) * exp (λ z) = exp (λ (z − 1))`. -/
-theorem charFun_cpLaw (λ : ℝ≥0) (ρ : Measure ℝ) (hρ : IsProbabilityMeasure ρ) (t : ℝ) :
-    charFun (cpLaw λ ρ) t = Complex.exp ((λ : ℂ) * (charFun ρ t - 1)) := by
+theorem charFun_cpLaw (lam : ℝ≥0) (ρ : Measure ℝ) (hρ : IsProbabilityMeasure ρ) (t : ℝ) :
+    charFun (cpLaw lam ρ) t = Complex.exp ((lam : ℂ) * (charFun ρ t - 1)) := by
   haveI hprob : ∀ n, IsProbabilityMeasure (convPow ρ n) := convPow_isProbabilityMeasure ρ hρ
-  have hsum : HasSum (fun n => poissonPMFReal λ n) 1 := by
-    simpa only [poissonPMFReal] using hasSum_one_poissonMeasure λ
-  have htsum : ∀ z : ℂ, ∑' n, (poissonPMFReal λ n : ℂ) * z ^ n
-      = Complex.exp ((λ : ℂ) * (z - 1)) := by
+  have hsum : HasSum (fun n => poissonPMFReal lam n) 1 := by
+    simpa only [poissonPMFReal] using hasSum_one_poissonMeasure lam
+  have htsum : ∀ z : ℂ, ∑' n, (poissonPMFReal lam n : ℂ) * z ^ n
+      = Complex.exp ((lam : ℂ) * (z - 1)) := by
     intro z
-    calc ∑' n, (poissonPMFReal λ n : ℂ) * z ^ n
-        = ∑' n, (Real.exp (-(λ : ℝ)) : ℂ) * (((λ : ℂ) * z) ^ n / (n ! : ℂ)) := by
+    calc ∑' n, (poissonPMFReal lam n : ℂ) * z ^ n
+        = ∑' n, (Real.exp (-(lam : ℝ)) : ℂ) * (((lam : ℂ) * z) ^ n / (n ! : ℂ)) := by
           congr with n
           rw [poissonPMFReal]
           push_cast
           rw [mul_pow]
           ring_nf
-      _ = (Real.exp (-(λ : ℝ)) : ℂ) * ∑' n, (((λ : ℂ) * z) ^ n / (n ! : ℂ)) :=
+      _ = (Real.exp (-(lam : ℝ)) : ℂ) * ∑' n, (((lam : ℂ) * z) ^ n / (n ! : ℂ)) :=
           tsum_mul_left
-      _ = (Real.exp (-(λ : ℝ)) : ℂ) * Complex.exp ((λ : ℂ) * z) := by
-          rw [(NormedSpace.expSeries_div_hasSum_exp ((λ : ℂ) * z)).tsum_eq,
+      _ = (Real.exp (-(lam : ℝ)) : ℂ) * Complex.exp ((lam : ℂ) * z) := by
+          rw [(NormedSpace.expSeries_div_hasSum_exp ((lam : ℂ) * z)).tsum_eq,
             ← Complex.exp_eq_exp_ℂ]
-      _ = Complex.exp ((λ : ℂ) * (z - 1)) := by
+      _ = Complex.exp ((lam : ℂ) * (z - 1)) := by
           rw [Complex.ofReal_exp, ← Complex.exp_add]
           congr 1
           push_cast
           ring
-  have hint : Integrable (fun x : ℝ => Complex.exp (t * x * I)) (cpLaw λ ρ) := by
+  have hint : Integrable (fun x : ℝ => Complex.exp (t * x * I)) (cpLaw lam ρ) := by
     rw [cpLaw]
     refine integrable_sum_measure (fun n => ?_) ?_
-    · haveI hf : IsFiniteMeasure (ENNReal.ofReal (poissonPMFReal λ n) • convPow ρ n) :=
+    · haveI hf : IsFiniteMeasure (ENNReal.ofReal (poissonPMFReal lam n) • convPow ρ n) :=
         ⟨by rw [Measure.smul_apply, smul_eq_mul, measure_univ, mul_one]
             exact ENNReal.ofReal_lt_top⟩
       refine Integrable.of_bound ?_ 1 (ae_of_all _ fun x => ?_)
@@ -179,7 +179,7 @@ theorem charFun_cpLaw (λ : ℝ≥0) (ρ : Measure ℝ) (hρ : IsProbabilityMeas
         rw [Complex.norm_exp, hre]
         simp
     · have hterm : ∀ n, ∫ x : ℝ, ‖Complex.exp (t * x * I)‖
-            ∂(ENNReal.ofReal (poissonPMFReal λ n) • convPow ρ n) = poissonPMFReal λ n := by
+            ∂(ENNReal.ofReal (poissonPMFReal lam n) • convPow ρ n) = poissonPMFReal lam n := by
         intro n
         haveI : IsFiniteMeasure (convPow ρ n) := convPow_isFiniteMeasure ρ hρ n
         have hone : (∫ x : ℝ, ‖Complex.exp (t * x * I)‖ ∂(convPow ρ n)) = 1 := by
@@ -190,18 +190,18 @@ theorem charFun_cpLaw (λ : ℝ≥0) (ρ : Measure ℝ) (hρ : IsProbabilityMeas
           rw [hcongr, integral_const, measureReal_def, measure_univ, ENNReal.toReal_one,
             one_smul]
         rw [integral_smul_measure,
-          ENNReal.toReal_ofReal (show (0 : ℝ) ≤ poissonPMFReal λ n from poissonPMFReal_nonneg),
+          ENNReal.toReal_ofReal (show (0 : ℝ) ≤ poissonPMFReal lam n from poissonPMFReal_nonneg),
           smul_eq_mul, hone, mul_one]
       simp_rw [hterm]
       exact hsum.summable
   rw [cpLaw, charFun_apply_real, integral_sum_measure hint]
   have hterm : ∀ n, (∫ x : ℝ, Complex.exp (t * x * I)
-        ∂(ENNReal.ofReal (poissonPMFReal λ n) • convPow ρ n))
-      = (poissonPMFReal λ n : ℂ) * charFun ρ t ^ n := by
+        ∂(ENNReal.ofReal (poissonPMFReal lam n) • convPow ρ n))
+      = (poissonPMFReal lam n : ℂ) * charFun ρ t ^ n := by
     intro n
     haveI : IsFiniteMeasure (convPow ρ n) := convPow_isFiniteMeasure ρ hρ n
     rw [integral_smul_measure,
-      ENNReal.toReal_ofReal (show (0 : ℝ) ≤ poissonPMFReal λ n from poissonPMFReal_nonneg),
+      ENNReal.toReal_ofReal (show (0 : ℝ) ≤ poissonPMFReal lam n from poissonPMFReal_nonneg),
       Complex.real_smul, ← charFun_apply_real, charFun_convPow ρ hρ t n]
   simp_rw [hterm]
   exact htsum (charFun ρ t)
@@ -258,12 +258,12 @@ theorem cgmyJumpMass_lt_top (C G M Y : ℝ) (ε : ℝ≥0) (hC : 0 < C) (hG : 0 
   have hpos : IntegrableOn (fun x : ℝ => cgmyLevyDensity C G M Y x) (Ioi 1) :=
     hfarM.congr_fun_ae (by
       filter_upwards [ae_restrict_mem measurableSet_Ioi] with x hx
-      rw [cgmyLevyDensity_pos_of_pos hx]
+      rw [cgmyLevyDensity_pos_of_pos (lt_trans zero_lt_one (mem_Ioi.mp hx))]
       ring)
   have hneg : IntegrableOn (fun x : ℝ => cgmyLevyDensity C G M Y x) (Iic (-1)) :=
     hmirror.congr_fun_ae (by
       filter_upwards [ae_restrict_mem measurableSet_Iic] with x hx
-      have hx0 : x < 0 := by simpa using hx
+      have hx0 : x < 0 := lt_of_le_of_lt (by simpa using hx) (by norm_num)
       rw [cgmyLevyDensity_neg_of_neg hx0]
       have harg : G * x = -G * (-x) := by ring
       rw [harg]
@@ -335,15 +335,15 @@ theorem cgmyJumpMass_lt_top (C G M Y : ℝ) (ε : ℝ≥0) (hC : 0 < C) (hG : 0 
         (({x : ℝ | (ε : ℝ) ≤ |x|} ∩ Icc (-1) 1) ∪
           ({x : ℝ | (ε : ℝ) ≤ |x|} ∩ Iic (-1))) := by
     intro x hx
-    rcases le_or_lt 0 x with hx0 | hx0
-    · rw [abs_of_nonneg hx0] at hx
-      rcases le_or_lt x 1 with hx1 | hx1
-      · exact Or.inr (Or.inl ⟨hx, ⟨by linarith [NNReal.coe_nonneg ε], hx1⟩)
-      · exact Or.inl ⟨hx, hx1⟩
+    rcases lt_or_ge x 0 with hx0 | hx0
     · rw [abs_of_neg hx0] at hx
-      rcases lt_or_ge x (-1) with hx1 | hx1
-      · exact Or.inr (Or.inr ⟨hx, hx1.le⟩)
-      · exact Or.inr (Or.inl ⟨hx, ⟨hx1, by linarith [hx0.le]⟩⟩)
+      rcases lt_or_le (-1) x with hx1 | hx1
+      · exact Or.inr (Or.inl ⟨hx, ⟨hx1.le, by linarith⟩⟩)
+      · exact Or.inr (Or.inr ⟨hx, hx1⟩)
+    · rw [abs_of_nonneg hx0] at hx
+      rcases lt_or_le 1 x with hx1 | hx1
+      · exact Or.inl ⟨hx, hx1⟩
+      · exact Or.inr (Or.inl ⟨hx, ⟨by linarith [NNReal.coe_nonneg ε], hx1⟩⟩)
   calc ∫⁻ x in {x : ℝ | (ε : ℝ) ≤ |x|}, ENNReal.ofReal (cgmyLevyDensity C G M Y x)
       ≤ ∫⁻ x in ({x : ℝ | (ε : ℝ) ≤ |x|} ∩ Ioi 1) ∪
           (({x : ℝ | (ε : ℝ) ≤ |x|} ∩ Icc (-1) 1) ∪
@@ -462,7 +462,9 @@ theorem cgmyTruncatedExponent_integrable (C G M Y : ℝ) (ε : ℝ≥0) (hC : 0 
     ⟨hd_meas.aestronglyMeasurable,
       (hasFiniteIntegral_iff_ofReal (ae_of_all _ fun x => cgmyLevyDensity_nonneg hC.le x)).mpr
         hmass⟩
-  have hcont : Continuous fun x : ℝ => Complex.exp ((v : ℂ) * (x : ℂ) * I) := by fun_prop
+  have hcont : Continuous fun x : ℝ => Complex.exp ((v : ℂ) * (x : ℂ) * I) :=
+    Complex.continuous_exp.comp
+      (Continuous.mul (continuous_const.mul Complex.continuous_ofReal) continuous_const)
   have hf_meas : Measurable fun x : ℝ =>
       (Complex.exp ((v : ℂ) * (x : ℂ) * I) - 1) * (cgmyLevyDensity C G M Y x : ℂ) :=
     (hcont.measurable.sub measurable_const).mul
@@ -531,8 +533,10 @@ theorem charFun_cgmyCpLaw (C G M Y : ℝ) (ε : ℝ≥0) (hC : 0 < C) (hG : 0 < 
   haveI : IsFiniteMeasure (cgmyJumpMeasure C G M Y ε) := ⟨hmass_lt⟩
   have hint : Integrable (fun x : ℝ => Complex.exp (t * x * I)) (cgmyJumpMeasure C G M Y ε) := by
     refine Integrable.of_bound ?_ 1 (ae_of_all _ fun x => ?_)
-    · have hcont : Continuous fun x : ℝ => Complex.exp (t * x * I) := by fun_prop
-      exact hcont.measurable.aestronglyMeasurable
+    · have hinner : Continuous fun x : ℝ => t * x * I := by
+        refine Continuous.mul ?_ continuous_const
+        exact Complex.continuous_ofReal.comp (continuous_const.mul continuous_id)
+      exact (Complex.continuous_exp.comp hinner).measurable.aestronglyMeasurable
     · have hre : (t * x * I).re = 0 := by simp [Complex.mul_re, Complex.mul_im]
       show ‖Complex.exp (t * x * I)‖ ≤ 1
       rw [Complex.norm_exp, hre]
