@@ -156,23 +156,29 @@ theorem charFun_cpLaw (lam : ℝ≥0) (ρ : Measure ℝ) (hρ : IsProbabilityMea
         rw [convPow, charFun_conv, ih, pow_succ]
   have htsum : ∀ z : ℂ, ∑' n, (poissonPMFReal lam n : ℂ) * z ^ n
       = Complex.exp ((lam : ℂ) * (z - 1)) := by
+    -- the pmf in the `exp * power / factorial` shape the exponential series wants
+    have hpmf : ∀ n : ℕ, poissonPMFReal lam n
+        = Real.exp (-(lam : ℝ)) * (lam : ℝ) ^ n / (Nat.factorial n : ℝ) := by
+      intro n
+      rw [poissonPMFReal, NNReal.coe_pow]
+      ring
     intro z
     calc ∑' n, (poissonPMFReal lam n : ℂ) * z ^ n
-        = ∑' n, (Real.exp (-(lam : ℝ)) : ℂ) * (((lam : ℂ) * z) ^ n / (n ! : ℂ)) := by
-          congr with n
-          rw [poissonPMFReal]
-          push_cast
-          rw [mul_pow]
-          ring_nf
-      _ = (Real.exp (-(lam : ℝ)) : ℂ) * ∑' n, (((lam : ℂ) * z) ^ n / (n ! : ℂ)) :=
+        = ∑' n, Complex.exp (-(lam : ℂ)) *
+            (((lam : ℂ) * z) ^ n / (Nat.factorial n : ℂ)) := by
+          refine tsum_congr fun n => ?_
+          rw [hpmf n, Complex.ofReal_div, Complex.ofReal_mul, Complex.ofReal_pow,
+            Complex.ofReal_natCast, Complex.ofReal_exp, Complex.ofReal_neg, mul_pow]
+          ring
+      _ = Complex.exp (-(lam : ℂ)) *
+            ∑' n, (((lam : ℂ) * z) ^ n / (Nat.factorial n : ℂ)) :=
           tsum_mul_left
-      _ = (Real.exp (-(lam : ℝ)) : ℂ) * Complex.exp ((lam : ℂ) * z) := by
+      _ = Complex.exp (-(lam : ℂ)) * Complex.exp ((lam : ℂ) * z) := by
           rw [(NormedSpace.expSeries_div_hasSum_exp ((lam : ℂ) * z)).tsum_eq,
-            ← Complex.exp_eq_exp_ℂ]
+            Complex.exp_eq_exp_ℂ]
       _ = Complex.exp ((lam : ℂ) * (z - 1)) := by
-          rw [Complex.ofReal_exp, ← Complex.exp_add]
+          rw [← Complex.exp_add]
           congr 1
-          push_cast
           ring
   have hint : Integrable (fun x : ℝ => Complex.exp (t * x * I)) (cpLaw lam ρ) := by
     rw [cpLaw]
@@ -184,7 +190,7 @@ theorem charFun_cpLaw (lam : ℝ≥0) (ρ : Measure ℝ) (hρ : IsProbabilityMea
       refine Integrable.of_bound ?_ 1 (ae_of_all _ fun x => ?_)
       · have hinner : Continuous fun x : ℝ => t * x * I := by
           refine Continuous.mul ?_ continuous_const
-          exact Complex.continuous_ofReal.comp (continuous_const.mul continuous_id)
+          exact Continuous.mul continuous_const Complex.continuous_ofReal
         exact (Complex.continuous_exp.comp hinner).measurable.aestronglyMeasurable
       · have hre : (t * x * I).re = 0 := by simp [Complex.mul_re, Complex.mul_im]
         show ‖Complex.exp (t * x * I)‖ ≤ 1
@@ -194,6 +200,7 @@ theorem charFun_cpLaw (lam : ℝ≥0) (ρ : Measure ℝ) (hρ : IsProbabilityMea
             ∂(ENNReal.ofReal (poissonPMFReal lam n) • convPow ρ n) = poissonPMFReal lam n := by
         intro n
         haveI : IsFiniteMeasure (convPow ρ n) := convPow_isFiniteMeasure ρ hρ n
+        haveI : IsProbabilityMeasure (convPow ρ n) := hprob n
         have hone : (∫ x : ℝ, ‖Complex.exp (t * x * I)‖ ∂(convPow ρ n)) = 1 := by
           have hcongr : (fun x : ℝ => ‖Complex.exp (t * x * I)‖) = fun _ : ℝ => (1 : ℝ) := by
             funext x
@@ -263,20 +270,24 @@ theorem cgmyJumpMass_lt_top (C G M Y : ℝ) (ε : ℝ≥0) (hC : 0 < C) (hG : 0 
     simpa only [sub_zero] using cgmy_levy_far_moment C M Y 0 hC hY hM
   have hfarM_nn : ∀ᵐ x ∂(volume.restrict (Ioi 1)),
       0 ≤ C * (Real.exp (-M * x) * x ^ (-1 - Y)) := by
-    filter_upwards [ae_restrict_mem measurableSet_Ioi] with x _hx
-    exact mul_nonneg hC.le (mul_nonneg (Real.exp_nonneg _) (Real.rpow_nonneg (abs_nonneg x) _))
+    filter_upwards [ae_restrict_mem measurableSet_Ioi] with x hx
+    exact mul_nonneg hC.le (mul_nonneg (Real.exp_nonneg _)
+      (Real.rpow_nonneg (lt_trans zero_lt_one hx).le _))
   have p₁ : ∫⁻ x in {x : ℝ | (ε : ℝ) ≤ |x|} ∩ Ioi 1,
       ENNReal.ofReal (cgmyLevyDensity C G M Y x) < ⊤ := by
     calc ∫⁻ x in {x : ℝ | (ε : ℝ) ≤ |x|} ∩ Ioi 1,
           ENNReal.ofReal (cgmyLevyDensity C G M Y x)
-        ≤ ∫⁻ x in Ioi 1,
+        ≤ ∫⁻ x in {x : ℝ | (ε : ℝ) ≤ |x|} ∩ Ioi 1,
             ENNReal.ofReal (C * (Real.exp (-M * x) * x ^ (-1 - Y))) := by
           refine lintegral_mono_ae ?_
           filter_upwards [ae_restrict_mem (hset.inter measurableSet_Ioi)] with x hx
           have hx0 : 0 < x := lt_trans zero_lt_one hx.2
           refine ENNReal.ofReal_le_ofReal ?_
           rw [cgmyLevyDensity_pos_of_pos hx0]
-          ring
+          exact le_of_eq (by ring)
+      _ ≤ ∫⁻ x in Ioi 1,
+            ENNReal.ofReal (C * (Real.exp (-M * x) * x ^ (-1 - Y))) :=
+          lintegral_mono_set (Set.inter_subset_right)
       _ = ENNReal.ofReal (∫ x in Ioi 1, C * (Real.exp (-M * x) * x ^ (-1 - Y))) :=
           (ofReal_integral_eq_lintegral_ofReal hfarM hfarM_nn).symm
       _ < ⊤ := ENNReal.ofReal_lt_top
@@ -284,12 +295,13 @@ theorem cgmyJumpMass_lt_top (C G M Y : ℝ) (ε : ℝ≥0) (hC : 0 < C) (hG : 0 
   have hmir : IntegrableOn (fun x : ℝ => C * Real.exp (G * x)) (Iic (-1)) :=
     (integrableOn_exp_mul_Iic hG (-1)).const_mul C
   have hmir_nn : ∀ᵐ x ∂(volume.restrict (Iic (-1))), 0 ≤ C * Real.exp (G * x) :=
-    ae_of_all _ fun x => mul_nonneg hC.le (Real.exp_nonneg x)
+    ae_of_all _ fun x => mul_nonneg hC.le (Real.exp_nonneg (G * x))
   have p₃ : ∫⁻ x in {x : ℝ | (ε : ℝ) ≤ |x|} ∩ Iic (-1),
       ENNReal.ofReal (cgmyLevyDensity C G M Y x) < ⊤ := by
     calc ∫⁻ x in {x : ℝ | (ε : ℝ) ≤ |x|} ∩ Iic (-1),
           ENNReal.ofReal (cgmyLevyDensity C G M Y x)
-        ≤ ∫⁻ x in Iic (-1), ENNReal.ofReal (C * Real.exp (G * x)) := by
+        ≤ ∫⁻ x in {x : ℝ | (ε : ℝ) ≤ |x|} ∩ Iic (-1),
+            ENNReal.ofReal (C * Real.exp (G * x)) := by
           refine lintegral_mono_ae ?_
           filter_upwards [ae_restrict_mem (hset.inter measurableSet_Iic)] with x hx
           have hx0 : x < 0 := lt_of_le_of_lt hx.2 (by norm_num)
@@ -301,6 +313,8 @@ theorem cgmyJumpMass_lt_top (C G M Y : ℝ) (ε : ℝ≥0) (hC : 0 < C) (hG : 0 
                   (Real.rpow_le_one_of_one_le_of_nonpos (by linarith) (by linarith))
                   (mul_nonneg hC.le (Real.exp_nonneg _))
             _ = C * Real.exp (G * x) := by ring
+      _ ≤ ∫⁻ x in Iic (-1), ENNReal.ofReal (C * Real.exp (G * x)) :=
+          lintegral_mono_set (Set.inter_subset_right)
       _ = ENNReal.ofReal (∫ x in Iic (-1), C * Real.exp (G * x)) :=
           (ofReal_integral_eq_lintegral_ofReal hmir hmir_nn).symm
       _ < ⊤ := ENNReal.ofReal_lt_top
@@ -349,15 +363,16 @@ theorem cgmyJumpMass_lt_top (C G M Y : ℝ) (ε : ℝ≥0) (hC : 0 < C) (hG : 0 
         (({x : ℝ | (ε : ℝ) ≤ |x|} ∩ Icc (-1) 1) ∪
           ({x : ℝ | (ε : ℝ) ≤ |x|} ∩ Iic (-1))) := by
     intro x hx
+    have hxabs : (ε : ℝ) ≤ |x| := by simpa using hx
     rcases lt_or_ge x 0 with hx0 | hx0
-    · rw [abs_of_neg hx0] at hx
+    · rw [abs_of_neg hx0] at hxabs
       rcases lt_or_le (-1) x with hx1 | hx1
       · exact Or.inr (Or.inl ⟨hx, ⟨hx1.le, by linarith⟩⟩)
       · exact Or.inr (Or.inr ⟨hx, hx1⟩)
-    · rw [abs_of_nonneg hx0] at hx
+    · rw [abs_of_nonneg hx0] at hxabs
       rcases lt_or_le 1 x with hx1 | hx1
       · exact Or.inl ⟨hx, hx1⟩
-      · exact Or.inr (Or.inl ⟨hx, ⟨by linarith [NNReal.coe_nonneg ε], hx1⟩⟩)
+      · exact Or.inr (Or.inl ⟨hx, ⟨by linarith, hx1⟩⟩)
   calc ∫⁻ x in {x : ℝ | (ε : ℝ) ≤ |x|}, ENNReal.ofReal (cgmyLevyDensity C G M Y x)
       ≤ ∫⁻ x in ({x : ℝ | (ε : ℝ) ≤ |x|} ∩ Ioi 1) ∪
           (({x : ℝ | (ε : ℝ) ≤ |x|} ∩ Icc (-1) 1) ∪
@@ -376,7 +391,7 @@ theorem cgmyJumpMass_lt_top (C G M Y : ℝ) (ε : ℝ≥0) (hC : 0 < C) (hG : 0 
             ENNReal.ofReal (cgmyLevyDensity C G M Y x)) +
           ∫⁻ x in {x : ℝ | (ε : ℝ) ≤ |x|} ∩ Iic (-1),
             ENNReal.ofReal (cgmyLevyDensity C G M Y x)) :=
-        add_le_add_left (lintegral_union_le _ _ _) _
+        add_le_add le_rfl (lintegral_union_le _ _ _)
     _ < ⊤ := ENNReal.add_lt_top.mpr ⟨p₁, ENNReal.add_lt_top.mpr ⟨p₂, p₃⟩⟩
 
 /-- **The truncated mass `λ_ε = ν_ε(ℝ)` is positive.** The density is positive
@@ -418,9 +433,9 @@ theorem cgmyJumpMass_pos (C G M Y : ℝ) (ε : ℝ≥0) (hC : 0 < C) (hM : 0 < M
         refine lintegral_mono_set ?_
         intro x hx
         simp only [mem_Ioc] at hx
-        simp only [mem_setOf_eq]
+        show (ε : ℝ) ≤ |x|
         rw [abs_of_pos (lt_of_le_of_lt (NNReal.coe_nonneg ε) hx.1)]
-        exact hx.1
+        exact hx.1.le
 
 /-- **The truncated jump law is a probability measure**: the mass of a scalar
 multiple is the scalar times the mass (`Measure.smul_apply`), which is
@@ -549,7 +564,7 @@ theorem charFun_cgmyCpLaw (C G M Y : ℝ) (ε : ℝ≥0) (hC : 0 < C) (hG : 0 < 
     refine Integrable.of_bound ?_ 1 (ae_of_all _ fun x => ?_)
     · have hinner : Continuous fun x : ℝ => t * x * I := by
         refine Continuous.mul ?_ continuous_const
-        exact Complex.continuous_ofReal.comp (continuous_const.mul continuous_id)
+        exact Continuous.mul continuous_const Complex.continuous_ofReal
       exact (Complex.continuous_exp.comp hinner).measurable.aestronglyMeasurable
     · have hre : (t * x * I).re = 0 := by simp [Complex.mul_re, Complex.mul_im]
       show ‖Complex.exp (t * x * I)‖ ≤ 1
@@ -580,6 +595,9 @@ theorem charFun_cgmyCpLaw (C G M Y : ℝ) (ε : ℝ≥0) (hC : 0 < C) (hG : 0 < 
         (ae_of_all _ fun x => ENNReal.ofReal_lt_top),
       cgmyTruncatedExponent]
     refine integral_congr_ae (Eventually.of_forall fun x => ?_)
+    show (ENNReal.ofReal (cgmyLevyDensity C G M Y x)).toReal •
+        (Complex.exp (t * x * I) - 1)
+      = (Complex.exp (t * x * I) - 1) * (cgmyLevyDensity C G M Y x : ℂ)
     rw [ENNReal.toReal_ofReal (cgmyLevyDensity_nonneg hC.le x), Complex.real_smul]
     ring
   -- splitting the integral at `e^{itx} = 1`: mass plus the honest integrand
