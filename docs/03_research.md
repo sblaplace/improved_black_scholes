@@ -49,7 +49,10 @@ below by `c·x^(−α)` has no finite exponential moment
 (`BSM.spot_not_integrable_of_tail_lower_bound`), and that no shift of the
 log-drift repairs it (`BSM.no_drift_makes_spot_integrable`): drift cannot move
 a tail index. Two corrections to how this section states the obstruction,
-recorded in `benchmarks/LEDGER.md` C7 and in the brief's own correction record:
+recorded in `benchmarks/LEDGER.md` C7 and in the brief's own correction record: (the hypothesis
+is now *witnessed*, not only assumed: BRIEF_015's `ImprovedBS/ParetoWitness.lean`
+proves `levy_tail_hypothesis_satisfiable_iff : (∃ law, htail) ↔ 0 < α` at
+mathlib's Pareto law and instantiates the obstruction there by citation):
 
 * **The index range is not `α < 2`.** The theorem holds for every real `α`.
   The divergent object is `exp` against `rpow`, and a genuine power tail —

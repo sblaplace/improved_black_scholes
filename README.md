@@ -208,9 +208,10 @@ cheapest high-value theorem in the research tier. Details in docs/03 §D1.
 | Lean theorems | BSM-2 kit item 7: the static skeleton does not select the measure — two mutually absolutely continuous three-point martingale laws satisfying BRIEF_009's parity and bounds *by instantiation* and pricing the same call at `1/4` and `1/8`; the martingale set on those spots parametrized as a segment with the call exactly `p₁/2` on it (`ImprovedBS/NonUniqueness.lean`, 45 declarations) | **GREEN** — `lake build` (no warnings on the module) + `#print axioms` audit (186 entries) + statement pins (elab, 210), run 36052072620; `benchmarks/LEDGER.md` row 12, correction C16 |
 | Lean theorems | BSM-2 kit item 3: the Esscher drift at CGMY — the exponent shift `ψ^θ(v) = ψ(v − iθ) − ψ(−iθ)` keeps the family (`(G, M) ↦ (G+θ, M−θ)`), the cumulant's strict convexity makes the drift map strictly increasing, `θ₀ = (M−G−1)/2` is its unique zero, in-range targets solve uniquely and out-of-range ones have no solution, the tilted numeraire condition `1 < M − θ` holds on the strip, and pricing at the tilted rates consumes `cgmy_cmPriceKernel_integrable` (`ImprovedBS/Esscher.lean`, 30 declarations) | **GREEN** — `lake build` + `#print axioms` audit (211 entries) + statement pins (elab, 240), run 36072416203; `benchmarks/LEDGER.md` row 13 |
 | Lean theorems | BSM-2 kit item 6: the normalized CGMY → GBM corner — at the scale `C_Y = (σ²/2)(2−Y)` the Γ pole cancels and `ψ_Y(v) → −(σ²/2)v² + i(σ²/2)(G−M)v` **pointwise** on `−M < Im v < G`, as a one-sided `Y → 2⁻` limit; route A's algebraic forward normalization `Ψ_Y(v) = ψ_Y(v) + i(r−q−κ_Y(1))v` (numéraire exact at every `Y`, consuming `cgmyExponent_strip`) lands it on the risk-neutral GBM exponent and its factor on `gbmCharFactor`, route B's named `θ₀ = (M−G−1)/2` lands it on the zero-carry GBM exponent with no correction at all (consuming `esscher_cgmy_shift` at the shifted rates), and the drift half-width collapses to `(σ²/2)(G+M−1)` (`ImprovedBS/Corner.lean`, 17 declarations) | **GREEN** — `lake build` + `#print axioms` audit (226 entries) + statement pins (elab, 257), run 36111570530; `benchmarks/LEDGER.md` row 14, correction C17 |
+| Lean theorems | the obstruction's tail hypothesis is non-vacuous — mathlib's Pareto law has `μ[x,∞) = t^r·x^(−r)`, so `htail` holds with equality and `Levy.lean`'s obstruction is instantiated at a real law by citation; C7's `α ≤ 0` remark is a theorem, giving `(∃ law, htail) ↔ 0 < α`, and a Dirac mass shows the hypothesis can fail (`ImprovedBS/ParetoWitness.lean`, 11 theorems) | **GREEN** — `lake build` + `#print axioms` audit (237 entries) + statement pins (elab, 268), run 36119639468; `benchmarks/LEDGER.md` row 15 |
 | Deferred | *(nothing)* | ratcheted at 0 `sorry`s — `deferred: {}` |
-| Lint is a falsifier | `tests/test_lint.py`: 40 seeded cheats each killed by a named check, 5 legitimate edits green, 1 residual gap asserted open | verified — 7/7 tests |
-| Pinned claims | `tests/golden_statements.json`: 257 declarations — theorem statements, definition bodies | machine-checked (source 257, elab 257); `#check`/axioms layer verified in build job |
+| Lint is a falsifier | `tests/test_lint.py`: 44 seeded cheats each killed by a named check, 5 legitimate edits green, 1 residual gap asserted open | verified — 7/7 tests |
+| Pinned claims | `tests/golden_statements.json`: 268 declarations — theorem statements, definition bodies | machine-checked (source 268, elab 268); `#check`/axioms layer verified in build job |
 | Grading lane | briefs/ + benchmarks/ + 2 CI workflows + toolchain-free lint + pins | standing |
 | First brief | BRIEF_001, re-scoped to what is actually checkable | see briefs/ |
 
@@ -356,12 +357,12 @@ is the formal, machine-checked restatement and the widening question.
 All five harnesses are dependency-free Python; none needs a Lean toolchain.
 
 ```sh
-python3 tests/test_bs.py          # 21/21 — the oracle satisfies the claimed identities
-python3 tests/test_mutants.py     #  4/4  — and those tests can actually fail (24 mutants)
-python3 tests/test_lint.py        #  7/7  — the linter can fail too (40 cheats, 5 controls)
+python3 tests/test_bs.py          # 22/22 — the oracle satisfies the claimed identities
+python3 tests/test_mutants.py     #  4/4  — and those tests can actually fail (26 mutants)
+python3 tests/test_lint.py        #  7/7  — the linter can fail too (44 cheats, 5 controls)
 python3 tests/test_pins.py        # 12/12 — and the pins that back it parse real CI output, and the delta/merge path works
-python3 scripts/lean_lint.py      #  OK   — no sorry in the protected node, ratchet, independence, pins, spine, skeleton, contour, cgmy, nonuniq, esscher, corner (13 files, 310 declarations)
-python3 scripts/pin_statements.py --check   # 257 statements match tests/golden_statements.json
+python3 scripts/lean_lint.py      #  OK   — no sorry in the protected node, ratchet, independence, pins, spine, skeleton, contour, cgmy, nonuniq, esscher, corner, pareto (14 files, 321 declarations)
+python3 scripts/pin_statements.py --check   # 268 statements match tests/golden_statements.json
 python3 tests/test_crosscheck.py    #  6/6  — grid + oracle self-consistency, both T3 sides, input-source routing (the cross-check itself needs lake)
 # or, with pytest installed:
 pytest tests/

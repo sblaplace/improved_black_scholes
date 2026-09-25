@@ -1,8 +1,14 @@
 # BRIEF_015 — the Pareto witness: the obstruction's tail hypothesis, satisfied (ledger C13 finding 3)
 
-- **Status:** **ISSUED**, documentation only. No `.lean` file, pin, lint rule,
-  oracle function or test changes in the issuing commit. The theorem's verdict
-  gets its own ledger row when the implementation is graded.
+- **Status:** **LANDED GREEN** @ `df470d1` — lean run 36119639468 (oracle lane run
+  36119639528), PR [#23](https://github.com/sblaplace/improved_black_scholes/pull/23):
+  `lake build` (`Built ImprovedBS.ParetoWitness`) + the `#print axioms` audit on
+  all 237 entries (the 226 previous plus this brief's 11 theorems, every one on
+  `[propext, Classical.choice, Quot.sound]`) + **statement pins (elab, all
+  268)** + `lint` (incl. `[PARETO]`, 44 lint mutants, 5 controls) + `oracle`
+  (incl. `test_pareto_witness`, mutants M24/M25) all green, on the 3rd lean run
+  (`benchmarks/LEDGER.md` row 15 and its CI history). Issued in the same PR
+  (documentation commit `259462a`).
 - **What this is.** The first of the two **repair briefs** ledger C13 queued
   after the BSM-2 kit. The other one, the Haug / term-structure external
   anchor (C13 finding 4), stays queued and gets its number when it is issued.
