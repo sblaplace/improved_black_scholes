@@ -68,6 +68,8 @@ from experiments.black_scholes import (
     cgmy_tempered_rate,
     corner_forward_exponent,
     corner_scale,
+    pareto_pdf,
+    pareto_tail,
     esscher_drift_bound,
     esscher_drift_map,
     esscher_exponent,
@@ -1012,6 +1014,75 @@ def test_gbm_corner():
     assert abs(correct - target) < 1e-3, abs(correct - target)
     assert abs(doubled - target) > 0.8, abs(doubled - target)
     assert abs(uncorrected - target) > 0.4, abs(uncorrected - target)
+
+
+
+def _log_quad(f, a: float, b: float, n: int = 40000) -> float:
+    """Trapezoid rule in `u = log x` on `[a, b]`, `a > 0` -- resolves power tails."""
+    la, lb = math.log(a), math.log(b)
+    h = (lb - la) / n
+    total = 0.0
+    for i in range(n + 1):
+        x = math.exp(la + i * h)
+        w = 0.5 if i in (0, n) else 1.0
+        total += w * f(x) * x
+    return total * h
+
+
+def test_pareto_witness():
+    """BRIEF_015 (numerical shadow of `ImprovedBS/ParetoWitness.lean`).
+
+    Asserted, per Lean declaration:
+
+      upstream `lintegral_paretoPDF_eq_one`
+          the density integrates to 1 (quadrature to 1e6 t + the analytic tail);
+      `paretoMeasure_Ici`
+          a quadrature of `pareto_pdf` over `[x, inf)` equals the independent
+          closed form `pareto_tail` -- to relative 1e-5, at `t != 1` included;
+      `pareto_tail_lower_bound`
+          `htail` at `c = t^r, alpha = r, x0 = t` holds WITH EQUALITY. Equality,
+          not `>=`: at `t = 2` the constant swap `t^r -> t^(-r)` still satisfies
+          the inequality (gap +0.875), so only equality kills mutant M25;
+      `pareto_exp_moment_infinite` (via Levy.lean)
+          the lower-bound sequence `e^x (t/x)^r` at `x = 2^k` and the partial
+          moments `int_t^R e^x pdf` are unbounded, including at `r = 3` (F3);
+      `dirac_tail_hypothesis_fails` / `dirac_exp_integrable` (the species)
+          exponential and Gaussian laws have finite `E[e^X]` and FAIL `htail`.
+    """
+    grid = [(t, r) for t in (0.5, 1.0, 2.0) for r in (0.5, 1.0, 1.5, 3.0)]
+    for t, r in grid:
+        B = t * 1e6
+        mass = _log_quad(lambda x: pareto_pdf(t, r, x), t, B) + pareto_tail(t, r, B)
+        assert abs(mass - 1.0) < 1e-6, (t, r, mass)
+        for k in (0, 2, 5):
+            x = 1.37 * t * 2 ** k
+            q = _log_quad(lambda y: pareto_pdf(t, r, y), x, x * 1e6, 20000) + pareto_tail(t, r, x * 1e6)
+            closed = pareto_tail(t, r, x)
+            assert abs(q - closed) / closed < 1e-5, (t, r, x, q, closed)
+            # htail with equality at c = t^r, alpha = r, x0 = t
+            assert abs(pareto_tail(t, r, x) - t ** r * x ** (-r)) < 1e-12
+        assert pareto_tail(t, r, t) == 1.0 or abs(pareto_tail(t, r, t) - 1.0) < 1e-12
+    # equality at t != 1 is what the weak mutant cannot fake
+    for t in (0.5, 2.0):
+        for x in (t, 3 * t, 10 * t):
+            assert abs(pareto_tail(t, 1.5, x) - t ** 1.5 * x ** (-1.5)) < 1e-12
+
+    # divergence: the Levy.lean lower bound and the partial moments
+    for t, r in ((1.0, 0.5), (1.0, 3.0)):
+        lb = [math.exp(2 ** k) * pareto_tail(t, r, 2 ** k) for k in range(3, 7)]
+        assert all(b > a for a, b in zip(lb, lb[1:])) and lb[-1] > 1e20, lb
+    partial = [_log_quad(lambda x: math.exp(x) * pareto_pdf(1.0, 1.5, x), 1.0, R, 20000)
+               for R in (10.0, 20.0, 40.0)]
+    assert partial[0] < partial[1] < partial[2] and partial[2] > 1e12, partial
+
+    # canaries: finite exponential moment AND htail fails
+    for lam in (2.0, 5.0):
+        assert abs(_log_quad(lambda x: math.exp(x) * lam * math.exp(-lam * x), 1e-9, 60.0)
+                   - lam / (lam - 1.0)) < 1e-3
+        assert math.exp(-lam * 100.0) < 1e-6 * 100.0 ** (-3.0)
+    gauss_tail = 0.5 * math.erfc(20.0 / math.sqrt(2.0))
+    assert gauss_tail < 1e-60 * 20.0 ** (-10.0)
+
 
 
 if __name__ == "__main__":

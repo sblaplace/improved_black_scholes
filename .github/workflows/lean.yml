@@ -417,6 +417,18 @@ jobs:
           #print axioms BSM.cornerEsscherZero_exponent
           #print axioms BSM.cornerEsscherZero_tendsto
           #print axioms BSM.cornerEsscherBound_tendsto
+          -- BRIEF_015: the Pareto witness for the Levy.lean tail hypothesis
+          #print axioms BSM.paretoMeasure_Ici
+          #print axioms BSM.paretoMeasure_Ici_self
+          #print axioms BSM.pareto_tail_lower_bound
+          #print axioms BSM.pareto_tail_const_pos
+          #print axioms BSM.pareto_exp_moment_infinite
+          #print axioms BSM.pareto_no_drift_makes_spot_integrable
+          #print axioms BSM.pareto_three_exp_moment_infinite
+          #print axioms BSM.levy_tail_hypothesis_unsatisfiable_of_nonpos
+          #print axioms BSM.levy_tail_hypothesis_satisfiable_iff
+          #print axioms BSM.dirac_tail_hypothesis_fails
+          #print axioms BSM.dirac_exp_integrable
           LEAN
           lake env lean /tmp/Audit.lean 2>&1 | tee lean-audit.log
           if grep -q sorryAx lean-audit.log; then

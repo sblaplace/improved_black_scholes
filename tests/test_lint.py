@@ -69,6 +69,7 @@ SKELETON = "ImprovedBS/Skeleton.lean"
 NONUNIQ = "ImprovedBS/NonUniqueness.lean"
 ESSCHER = "ImprovedBS/Esscher.lean"
 CORNER = "ImprovedBS/Corner.lean"
+PARETO = "ImprovedBS/ParetoWitness.lean"
 GOLDEN = "tests/golden_statements.json"
 BASELINE = ".github/lean_lint_baseline.json"
 
@@ -589,6 +590,54 @@ MUTANTS = [
                "false `Y = 2` statement in the old docs survived so long. A "
                "one-sided filter is the only thing in the statement that "
                "says so. Clause 4 of [CORNER] reads every limit's filter.",
+    },
+    {
+        "name": "W1 Pareto obstruction re-proved privately, Levy.lean uncited",
+        "file": PARETO,
+        "from": "  exact exp_moment_infinite_of_tail_lower_bound (paretoMeasure t r) r (t ^ r) t\n"
+                "    (pareto_tail_const_pos ht) (pareto_tail_lower_bound ht hr)",
+        "to": "  exact my_divergence (paretoMeasure t r) r (t ^ r) t\n"
+              "    (pareto_tail_const_pos ht) (pareto_tail_lower_bound ht hr)",
+        "tag": "[PARETO]",
+        "why": "The witness exists to exercise Levy.lean's obstruction at a real "
+               "law. Proving Pareto's infinite moment by any other route is true "
+               "and builds, and leaves `htail` exactly as undischarged as before. "
+               "Clause 1 of [PARETO] holds the citation.",
+    },
+    {
+        "name": "W2 tail bound at a shifted index, `x ^ (-r)` -> `x ^ (-(r + 1))`",
+        "file": PARETO,
+        "from": "    ∀ x ≥ t, ENNReal.ofReal (t ^ r * x ^ (-r)) ≤ paretoMeasure t r (Set.Ici x) :=",
+        "to": "    ∀ x ≥ t, ENNReal.ofReal (t ^ r * x ^ (-(r + 1))) ≤ paretoMeasure t r (Set.Ici x) :=",
+        "tag": "[PARETO]",
+        "why": "A weaker bound (a faster-decaying power) is still true for x >= t >= 1 "
+               "and still discharges SOME `htail` -- at index r + 1, not at the law's "
+               "own shape. Clause 2 of [PARETO] reads the constant and the index.",
+    },
+    {
+        "name": "W3 a hand-rolled second Pareto law via `withDensity`",
+        "file": PARETO,
+        "from": "open MeasureTheory ProbabilityTheory Filter\nopen scoped ENNReal Topology\n",
+        "to": "open MeasureTheory ProbabilityTheory Filter\nopen scoped ENNReal Topology\n\n"
+              "def myPareto (r : ℝ) : Measure ℝ :=\n"
+              "  volume.withDensity (fun x => ENNReal.ofReal (r * x ^ (-(r + 1))))\n",
+        "tag": "[PARETO]",
+        "why": "C13 originally proposed exactly this; BRIEF_015 F1 found mathlib ships "
+               "the reviewed law. A second density is a second specification the "
+               "tree must pin and trust. Clause 3 of [PARETO] forbids it.",
+    },
+    {
+        "name": "W4 headline weakened to the `←` half, C7 dropped",
+        "file": PARETO,
+        "from": "      ∃ c x₀ : ℝ, 0 < c ∧ ∀ x ≥ x₀, ENNReal.ofReal (c * x ^ (-α)) ≤ μ (Set.Ici x))\n"
+                "    ↔ 0 < α := by",
+        "to": "      ∃ c x₀ : ℝ, 0 < c ∧ ∀ x ≥ x₀, ENNReal.ofReal (c * x ^ (-α)) ≤ μ (Set.Ici x))\n"
+              "    ∨ 0 < α := by",
+        "tag": "[PARETO]",
+        "why": "The `↔` is what makes the witness a characterization. Weakened, the "
+               "statement is trivially true (`Or.inr`) at every positive α and says "
+               "nothing about α <= 0 -- C7 would be prose again. Clause 4 of "
+               "[PARETO] reads the connective.",
     },
 ]
 

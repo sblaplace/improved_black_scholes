@@ -268,6 +268,23 @@ MUTANTS = [
         # least doubled scaling and missing drift correction" asks for.
         ["test_gbm_corner"],
     ),
+    (
+        "M24 PARETO density exponent -(r+1) -> -r: not a probability density",
+        "return r * t ** r * x ** (-(r + 1.0))",
+        "return r * t ** r * x ** (-r)",
+        # One power too slow: the mass is ~3 at (1, 1.5) and infinite for
+        # r <= 1, so the upstream normalization assertion goes red at once.
+        ["test_pareto_witness"],
+    ),
+    (
+        "M25 PARETO tail constant t^r -> t^(-r): the weak mutant",
+        "return t ** r * x ** (-r)",
+        "return t ** (-r) * x ** (-r)",
+        # At t = 2 this still satisfies htail as an INEQUALITY (gap +0.875 at
+        # x = t) -- found by BRIEF_015's route-check. Only the equality
+        # assertions at t != 1 kill it, which is why the test carries them.
+        ["test_pareto_witness"],
+    ),
 ]
 
 
