@@ -183,7 +183,41 @@ measure restores the exponential moment, keeps algebraic tails at option
 tenors, and offers an α-stable (λ→0) corner and a **normalized** GBM
 (`Y ↑ 2`, `C_Y = (σ²/2)(2−Y)`) corner. Holding `C` fixed at `Y = 2` would
 hit a pole, not a Gaussian limit (BRIEF_014, ledger C17 — now a landed one-sided
-theorem at the normalized scale). Proving the
+theorem at the normalized scale). The **dynamic** half of the same warning is
+issued as BRIEF_016: a pure exponential-Lévy smile decays like `τ^(−1)` (the
+model's measured ATM-skew exponent is `1.0857` at the published Carr–Madan VG
+test case, `0.9682` at a CGMY witness) while the market's published power-law
+fits decay like `τ^(−0.36..−0.45)` (ledger C19, which corrects the reviewer's
+`τ^(−1/2)`) — disjoint bands at the two witness sets, no universality claim over
+the family. That claim's falsifier, and the oracle's one genuinely external
+anchor, are now **landed as BRIEF_016** (`tests/test_bs.py::test_term_structure_anchor`:
+the published Carr–Madan (1999) §5 Case-4 put prices reproduced to `≤ 3.6e−5`
+by both parameterizations of the same variance-gamma law, that paper's own
+failing VGPS row rejected as a free negative control, and the measured model
+bands `[0.90, 1.15]` against the market's `(0.30, 0.50)`); the RED is in
+`docs/02` §A1 and the correction in ledger C19.
+**The law side is issued as BRIEF_017.** Every CGMY declaration the tree has is
+about the characteristic *exponent*; the expectation-level twins of items 3 and
+5 need an actual `Measure ℝ`, and the feasibility audit (mathlib at the pinned
+tag has no Lévy–Khintchine, no infinite divisibility, no stable laws, no
+Bochner — but it does ship the Gamma law, the Γ-integral identities, the
+`mgf`/`complexMGF` layer and the Lévy-continuity/Prokhorov layer) decides the
+route in two stages: **Stage 1** is the family's `Y = 0` member, the
+variance-gamma law as the difference of two `gammaMeasure`s — the published law
+of BRIEF_016's anchor — which lands the first non-Gaussian martingale law in
+the tree; **Stage 2** is the general-`Y` law as the compound-Poisson truncation
+limit. Two traps are named in the brief: `Real.Gamma 0 = 0` (and `Gamma (−1)`)
+makes a raw evaluation at `Y = 0` or `Y = 1` *silently* the Dirac law, and the
+landed Esscher range `H_Y` degenerates at the corner (`H_Y ~ C/Y → ∞`).
+**Stage 1 is specified in BRIEF_018** (same PR): `ImprovedBS/VGLaw.lean` — the
+law as the difference of two `gammaMeasure`s, its mgf on the strip `(−G, M)`
+(consuming `integral_rpow_mul_exp_neg_mul_Ioi`), the corner as a `𝓝[>] 0`
+limit, the law-level Esscher tilt, and the expectation-level twins of items 3
+and 5 at the tilted law — with four `[VGLaw]` lint clauses (44 → 48 lint
+mutants), the oracle's `gamma_mgf`/`vg_cumulant`/`vg_mgf`/`vg_drift_map`/
+`vg_tilted_cumulant`/`vg_esscher_solve`, `test_vg_law` and mutants M30–M33;
+pins 268 → 268 + 22, audit 237 → 237 + 22 (the landed count rules).
+Proving the
 obstruction itself — a concrete divergent integral, no finance in it — is the
 cheapest high-value theorem in the research tier. Details in docs/03 §D1.
 
@@ -191,8 +225,8 @@ cheapest high-value theorem in the research tier. Details in docs/03 §D1.
 
 | Layer | what | status |
 |---|---|---|
-| Numeric oracle | independent `d1`/`d2`, independent call and put closed forms, PDE residual, delta identity, quadrature of the risk-neutral expectation, Carr–Madan Fourier inversion, model-free expectation route, Carr–Madan at any strip law, the CGMY exponent's contour and decay, the non-uniqueness witness in exact rationals, the Esscher drift map, its zero and its solvability bound, the normalized CGMY → GBM corner against an independently expanded polynomial | verified — 21/21 tests |
-| Oracle is a falsifier | mutation harness: 24 seeded bugs, each killed by its targeted test, incl. 2 vacuity canaries | verified — 4/4 harness tests |
+| Numeric oracle | independent `d1`/`d2`, independent call and put closed forms, PDE residual, delta identity, quadrature of the risk-neutral expectation, Carr–Madan Fourier inversion, model-free expectation route, Carr–Madan at any strip law, the CGMY exponent's contour and decay, the non-uniqueness witness in exact rationals, the Esscher drift map, its zero and its solvability bound, the normalized CGMY → GBM corner against an independently expanded polynomial, the **published Carr–Madan (1999) anchor** (both parameterizations of the same VG law) and the **term-structure falsifier** (measured ATM-skew exponents vs the cited market band) | verified — 23/23 tests |
+| Oracle is a falsifier | mutation harness: 30 seeded bugs, each killed by its targeted test, incl. 2 vacuity canaries | verified — 4/4 harness tests |
 | Failure modes + research dirs w/ falsifiers | docs/02, docs/03 | written |
 | Lean definitions | `erf`, Φ, φ, d1, d2, bsCall, bsPut — independent, matching the oracle | machine-checked |
 | Lean theorems | `Phi_add_Phi_neg`, T1, T2, T2′ | **GREEN** — `lake build` + `#print axioms` audit, run 35509578689 |
@@ -357,8 +391,8 @@ is the formal, machine-checked restatement and the widening question.
 All five harnesses are dependency-free Python; none needs a Lean toolchain.
 
 ```sh
-python3 tests/test_bs.py          # 22/22 — the oracle satisfies the claimed identities
-python3 tests/test_mutants.py     #  4/4  — and those tests can actually fail (26 mutants)
+python3 tests/test_bs.py          # 23/23 — the oracle satisfies the claimed identities
+python3 tests/test_mutants.py     #  4/4  — and those tests can actually fail (30 mutants)
 python3 tests/test_lint.py        #  7/7  — the linter can fail too (44 cheats, 5 controls)
 python3 tests/test_pins.py        # 12/12 — and the pins that back it parse real CI output, and the delta/merge path works
 python3 scripts/lean_lint.py      #  OK   — no sorry in the protected node, ratchet, independence, pins, spine, skeleton, contour, cgmy, nonuniq, esscher, corner, pareto (14 files, 321 declarations)

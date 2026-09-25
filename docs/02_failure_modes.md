@@ -30,6 +30,37 @@ the accumulated misspecification of the model's *state dependence* — σ in the
 real surface depends on S through moneyness, and the constant-vol model has no
 variable in which to express that.
 
+**The direction's own term-structure falsifier, pre-registered and measured
+(BRIEF_016, landed).** The tempered-stable (CGMY) repair of A2 *does* produce
+the A1 smile — a stationary, non-flat implied-vol surface, which is why it is
+the tree's direction — and taken alone it fails the **term structure** of that
+smile. Measured, in the tree's own oracle, over the pinned window
+`τ ∈ [0.25, 5]` with the pinned quadrature (`α = 1.5`, `u_max = 2000`,
+`n = 80000`, `h = 0.005`, implied vol by bisection):
+
+| witness set | measured ATM-skew exponent `a` in `ψ ≈ c·τ^(−a)` | market band |
+|---|---|---|
+| VG at Carr–Madan (1999) Case 4 (`σ = .25, ν = 2, θ = −.10`) | **1.0857** | |
+| CGMY `C = 1, G = 5, M = 10, Y = 0.7` (`r = q = 0`) | **0.9682** | |
+| the citation set (El Amrani–Guyon; Gatheral–Jaisson–Rosenbaum 2018) | | `0.30 … 0.50` |
+
+The two bands — model `[0.90, 1.15]`, market `(0.30, 0.50)` — are **disjoint by
+0.40**: the family's ATM skew decays like `τ^(−1)`, which is the *cited*
+large-time rate for exponential-Lévy models (Figueroa-López–Forde–Jacquier;
+ledger **C19** corrects C13's `τ^(−1/2)` parenthetical, which was the
+standardized-skewness rate), while the market's published power-law fits decay
+like `τ^(−0.36…−0.45)`. So the direction buys the tail class and the smile, and
+it does not buy the smile's term structure; the missing ingredient is the
+mean-reverting second factor of docs/03 §D2. The falsifier is a committed test,
+not a script — `tests/test_bs.py::test_term_structure_anchor` (A1–A5 for the
+external anchor below, F1–F4 for these bands), with mutants M26–M29, so
+widening a band is a visible diff. The **external anchor** for that test is the
+published Carr–Madan (1999) §5 Case-4 table — three puts, `0.6356 / 0.6787 /
+0.7244` at `K = 77/78/79`, reproduced by both parameterizations of the same law
+to `≤ 3.6e−5` — including that paper's own failing VGPS row as a free negative
+control.
+
+
 ## A2. Lognormal increments → the tail shape
 
 - **What it assumes:** one-period log-returns are Gaussian, and compounding

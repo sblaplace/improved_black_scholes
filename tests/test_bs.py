@@ -42,6 +42,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from experiments.black_scholes import (
     _d1d2,
+    atm_skew,
     bs_call,
     bs_call_by_expectation,
     bs_call_by_fourier_inversion,
@@ -51,7 +52,16 @@ from experiments.black_scholes import (
     bs_put,
     bs_put_by_expectation,
     bs_put_by_parity,
+    carr_madan_by_exponent,
     carr_madan_by_law,
+    cgmy_zeroth_corner_map,
+    cgmy_zeroth_exponent,
+    cgmy_zeroth_forward_exponent,
+    corner_forward_exponent,
+    implied_vol_bs,
+    power_law_exponent,
+    power_law_fit,
+    vg_exponent,
     cgmy_base_reals,
     cgmy_char_factor,
     cgmy_contour_re,
@@ -1083,6 +1093,212 @@ def test_pareto_witness():
     gauss_tail = 0.5 * math.erfc(20.0 / math.sqrt(2.0))
     assert gauss_tail < 1e-60 * 20.0 ** (-10.0)
 
+
+
+
+# ---------------------------------------------------------------------------
+# BRIEF_016: the EXTERNAL anchor (published constants, quoted, not computed)
+# and the term-structure falsifier.
+#
+# Carr, P. and Madan, D. B. (1999), "Option valuation using the fast Fourier
+# transform", Journal of Computational Finance 2(4), 61-73, DOI
+# 10.21314/JCF.1999.043, Section 5 (the sentence introducing Figure 2) and that
+# figure's error table. Case 4: S0 = 100, r = 0.05, q = 0.03, sigma = 0.25,
+# nu = 2.0, theta = -0.10, t = 0.25.
+#
+# The three VALUES below are the prices the paper reports (agreed by VGP /
+# VGFIC / TV to four decimals). They are quoted from the paper, not recomputed
+# here -- nothing in this file derives them -- and they are the PUT (OTM, or
+# call-time-value) column: the K = 77 call is ~ 23.84, so 0.6356 cannot be a
+# call. The paper ALSO prints its own failing VGPS (Pi1/Pi2) route at the same
+# three strikes, which makes a free negative control: those three numbers must
+# stay rejected.
+#
+# The market side of the falsifier (F5): El Amrani and Guyon, "Does the term
+# structure of the at-the-money skew really follow a power law?" (Risk, Cutting
+# Edge; two years of SPX / SX5E / DAX) gives alpha = 0.43 / 0.44 / 0.45 above
+# three to four weeks and 0.19 / 0.04 / 0.08 below (the short end does not blow
+# up); Gatheral, Jaisson and Rosenbaum, Quantitative Finance 18(6) (2018),
+# state the same law as alpha in (0.3, 0.5) with an SPX fit of tau^(-0.44). The
+# market band below is the intersection of those citations, pinned as a
+# literal so widening it is a visible diff.
+#
+# The model side's asymptotic rate is tau^(-1), NOT tau^(-1/2) (ledger C19:
+# Figueroa-Lopez, Forde and Jacquier, "The large-time smile and skew for
+# exponential Levy models", Proposition 4.1). The measured exponents below are
+# what the test pins, and the two bands are DISJOINT -- that is the RED.
+# ---------------------------------------------------------------------------
+
+CARR_MADAN_1999_CASE4_PARAMS = dict(
+    sigma=0.25, nu=2.0, theta=-0.10, tau=0.25, S=100.0, r=0.05, q=0.03
+)
+# Section 5, the sentence introducing Figure 2: the OTM/put column.
+CARR_MADAN_1999_CASE4 = ((77.0, 0.6356), (78.0, 0.6787), (79.0, 0.7244))
+# The same paper's wrong VGPS row at the same strikes (the free mutant).
+CARR_MADAN_1999_VGPS_WRONG = (0.2425, 0.2299, 1.5386)
+
+MODEL_SKEW_EXPONENT_BAND = (0.90, 1.15)   # measured; the family's rate is 1 (C19)
+MARKET_SKEW_EXPONENT_BAND = (0.30, 0.50)  # El Amrani-Guyon / Gatheral et al.
+VG_SKEW_EXPONENT = 1.0857                 # measured at the pinned window/settings
+CGMY_SKEW_EXPONENT = 0.9682
+SKEW_EXPONENT_TOL = 0.02
+SKEW_WINDOW = (0.25, 0.5, 1.0, 2.0, 5.0)  # the pinned window starts at 0.25: the
+                                          # short end is h-sensitive (BRIEF_016 §2)
+ANCHOR_ALPHA = 1.5
+ANCHOR_U_MAX = 2000.0
+ANCHOR_N = 80000
+ANCHOR_H = 0.005
+ANCHOR_QUAD_GRID = (
+    (1000.0, 40000), (1000.0, 80000),
+    (2000.0, 40000), (2000.0, 80000),
+    (4000.0, 40000), (4000.0, 80000),
+)
+
+
+def test_term_structure_anchor():
+    """BRIEF_016: the published anchor (A1-A5) and the term-structure falsifier (F1-F4).
+
+    Anchors the oracle to the one genuinely external table it has -- Carr-Madan
+    (1999) Case 4, which is this tree's own method AND the `Y = 0` (variance-
+    gamma) corner of its CGMY family -- and pins the measured ATM-skew decay
+    exponents that make the dynamic half of the T6 direction a documented
+    failure. What is asserted:
+
+      A1  the model's PUTS reproduce the three published literals to 5e-5 by
+          BOTH parameterizations (VG `(sigma, nu, theta)` and the CGMY `Y = 0`
+          corner `(C, G, M)`), so the F3 map is load-bearing;
+      A2  the CALLS at the same strikes do NOT (the call is ~ 23.84 against a
+        ~ 0.64 literal), so a call/put convention slip cannot pass;
+      A3  the paper's own WRONG VGPS row stays rejected by >= 0.3;
+      A4  parity at the anchor's numbers: the model call inverted to a BS
+          implied vol and repriced by the oracle's own `bs_put` agrees with the
+          parity put to 1e-9 (the bisection floor);
+      A5  `nu -> 0` recovers GBM at the measured rate `err/nu -> 2.31`;
+      F1  the measured skew exponents are within 0.02 of their pinned literals
+          and inside the model band;
+      F2  the model band and the market band are DISJOINT (0.90 > 0.50) -- the
+          RED in machine-checkable form;
+      F3  `|psi|*tau` stays inside [0.04, 0.35] on the window (the `1/tau`
+          law), while `|psi|*sqrt(tau)` falls by more than a factor of 2 on the
+          CGMY witness set -- the `tau^(-1/2)` reading is not what the family
+          does;
+      F4  the fitted exponent moves by <= 0.002 across the pinned quadrature
+          grid, so the RED is not a quadrature artifact;
+      canary  the same measurement run on the CLOSED-FORM instance with a
+          prescribed `tau^(-1/2)` skew returns 0.5, and the flat instance
+          returns 0 -- the machinery can see a different power law, and it does
+          not hallucinate one. (The closed form is NOT the falsifier's target;
+          the CF-priced family is -- and mutants M26-M29 live here.)
+    """
+    P = CARR_MADAN_1999_CASE4_PARAMS
+    sigma, nu, theta, tau = P["sigma"], P["nu"], P["theta"], P["tau"]
+    S, r, q = P["S"], P["r"], P["q"]
+    C, G, M = cgmy_zeroth_corner_map(sigma, nu, theta)
+
+    # --- the F3 map: one place, and its content is the two cumulants
+    assert abs(C - 1.0 / nu) < 1e-15, C
+    assert abs(C * (1.0 / M - 1.0 / G) - theta) < 1e-12, (C, G, M)
+    assert abs(C * (1.0 / M ** 2 + 1.0 / G ** 2) - (sigma ** 2 + nu * theta ** 2)) < 1e-12
+    assert 1.0 < M, f"the numeraire condition 1 < M fails: M = {M}"
+
+    def vg_route(t):
+        return lambda v: vg_exponent(sigma, nu, theta, t, r, q, v)
+
+    def corner_route(t):
+        return lambda v: t * cgmy_zeroth_forward_exponent(C, G, M, r, q, v)
+
+    # the two parameterizations are the SAME law: exponents agree pointwise...
+    for v in (0.0, 1.0, -1.5, 2.0, complex(1.0, -2.5), complex(-0.5, 1.0)):
+        a = vg_exponent(sigma, nu, theta, tau, r, q, v)
+        b = tau * cgmy_zeroth_forward_exponent(C, G, M, r, q, v)
+        assert abs(a - b) <= 1e-12 * max(1.0, abs(a)), (v, a, b)
+    # ...and the risk-neutral normalization is exact: psi(-i) = (r - q) tau
+    assert abs(vg_exponent(sigma, nu, theta, tau, r, q, -1j) - (r - q) * tau) < 1e-12
+    # kappa_0(1) = psi_0(-i) is real (it equals -omega of the VG parameterization)
+    assert abs(cgmy_zeroth_exponent(C, G, M, -1j).imag) < 1e-15
+
+    # --- A1/A2/A3/A4: the published literals, both routes, plus the controls
+    for route_name, route in (("vg", vg_route), ("corner", corner_route)):
+        for (K, published), vgps_wrong in zip(CARR_MADAN_1999_CASE4, CARR_MADAN_1999_VGPS_WRONG):
+            call = carr_madan_by_exponent(
+                route(tau), S, K, tau, r, q, ANCHOR_ALPHA, ANCHOR_U_MAX, ANCHOR_N
+            )
+            put = call - S * math.exp(-q * tau) + K * math.exp(-r * tau)
+            assert abs(put - published) <= 5e-5, (route_name, K, put, published)
+            assert abs(call - published) > 1.0, (route_name, K, call, published)   # A2
+            assert abs(put - vgps_wrong) >= 0.3, (route_name, K, put, vgps_wrong)  # A3
+            iv = implied_vol_bs(call, S, K, tau, r, q)
+            assert abs(bs_put(S, K, tau, r, q, iv) - put) < 1e-9, (route_name, K)  # A4
+
+    # --- A5: nu -> 0 is GBM, at the measured rate err/nu -> 2.31
+    gbm = bs_call(S, 100.0, tau, r, q, sigma)
+    errors, rates = [], []
+    for nu_small in (0.2, 0.05, 0.01, 0.002, 0.0004):
+        call = carr_madan_by_exponent(
+            lambda v, nu_=nu_small: vg_exponent(sigma, nu_, theta, tau, r, q, v),
+            S, 100.0, tau, r, q, ANCHOR_ALPHA, ANCHOR_U_MAX, ANCHOR_N,
+        )
+        errors.append(abs(call - gbm))
+        rates.append(errors[-1] / nu_small)
+    assert all(b < a for a, b in zip(errors, errors[1:])), errors
+    assert rates[-1] > rates[0] + 0.2, rates
+    assert abs(rates[-1] - 2.31) < 0.05, rates
+
+    # --- F1/F2/F3: the two witness sets, the window, the disjoint bands
+    def cgmy_route(t):
+        return lambda v: t * corner_forward_exponent(1.0, 5.0, 10.0, 0.7, 0.0, 0.0, v)
+
+    witnesses = (
+        ("VG case 4", vg_route, r, q, VG_SKEW_EXPONENT),
+        ("CGMY(1,5,10,.7)", cgmy_route, 0.0, 0.0, CGMY_SKEW_EXPONENT),
+    )
+    skews_by_set = {}
+    for name, family, rr, qq, literal in witnesses:
+        skews = [atm_skew(family, S, t, rr, qq, ANCHOR_H, ANCHOR_ALPHA, ANCHOR_U_MAX, ANCHOR_N)
+                 for t in SKEW_WINDOW]
+        skews_by_set[name] = skews
+        assert all(s < 0.0 for s in skews), (name, skews)
+        fit = power_law_fit(SKEW_WINDOW, skews)
+        assert MODEL_SKEW_EXPONENT_BAND[0] <= fit <= MODEL_SKEW_EXPONENT_BAND[1], (name, fit)
+        assert abs(fit - literal) <= SKEW_EXPONENT_TOL, (name, fit, literal)
+        scaled = [abs(s) * t for s, t in zip(skews, SKEW_WINDOW)]
+        assert all(0.04 <= x <= 0.35 for x in scaled), (name, scaled)
+
+    assert MODEL_SKEW_EXPONENT_BAND[0] > MARKET_SKEW_EXPONENT_BAND[1], "the bands must be disjoint"
+    assert MODEL_SKEW_EXPONENT_BAND[0] - MARKET_SKEW_EXPONENT_BAND[1] >= 0.4
+
+    half = [abs(s) * math.sqrt(t) for s, t in zip(skews_by_set["CGMY(1,5,10,.7)"], SKEW_WINDOW)]
+    assert all(b < a for a, b in zip(half, half[1:])), half
+    assert half[0] / half[-1] > 2.0, half
+
+    # --- F4: the exponent is quadrature-independent on the pinned grid
+    fits = [power_law_exponent(vg_route, S, r, q, SKEW_WINDOW, ANCHOR_H, ANCHOR_ALPHA, um, n)
+            for um, n in ANCHOR_QUAD_GRID]
+    assert max(fits) - min(fits) <= 0.002, (ANCHOR_QUAD_GRID, fits)
+
+    # --- canary: the measurement can see a DIFFERENT power law
+    canary_sigma, canary_c = 0.30, -0.6
+
+    def prescribed_skew(t):
+        F = S * math.exp((r - q) * t)
+
+        def iv(k):
+            return canary_sigma * (1.0 + canary_c * k * t ** -0.5)
+
+        vols = []
+        for k in (-ANCHOR_H, ANCHOR_H):
+            K = F * math.exp(k)
+            vols.append(implied_vol_bs(bs_call(S, K, t, r, q, iv(k)), S, K, t, r, q))
+        return (vols[1] - vols[0]) / (2.0 * ANCHOR_H)
+
+    canary_fit = power_law_fit(SKEW_WINDOW, [prescribed_skew(t) for t in SKEW_WINDOW])
+    assert abs(canary_fit - 0.5) < 0.01, canary_fit
+
+    def flat_route(t):
+        return lambda v: 1j * (r - q - 0.5 * sigma ** 2) * t * v - 0.5 * sigma ** 2 * t * v * v
+
+    flat = [atm_skew(flat_route, S, t, r, q) for t in SKEW_WINDOW]
+    assert max(abs(x) for x in flat) < 1e-6, flat
 
 
 if __name__ == "__main__":
