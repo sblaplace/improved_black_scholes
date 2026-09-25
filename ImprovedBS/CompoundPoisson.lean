@@ -305,12 +305,16 @@ theorem cgmyJumpMass_lt_top (C G M Y : ℝ) (ε : ℝ≥0) (hC : 0 < C) (hG : 0 
           refine lintegral_mono_ae ?_
           filter_upwards [ae_restrict_mem (hset.inter measurableSet_Iic)] with x hx
           have hx0 : x < 0 := lt_of_le_of_lt hx.2 (by norm_num)
+          -- `hx.2` is a *membership*; `linarith` wants the inequality itself
+          have hxneg : x ≤ -1 := hx.2
+          have hone : (1 : ℝ) ≤ -x := by linarith
+          have hz : (-1 - Y : ℝ) ≤ 0 := by linarith
           refine ENNReal.ofReal_le_ofReal ?_
           rw [cgmyLevyDensity_neg_of_neg hx0]
           calc C * Real.exp (G * x) * (-x) ^ (-1 - Y)
               ≤ C * Real.exp (G * x) * 1 :=
                 mul_le_mul_of_nonneg_left
-                  (Real.rpow_le_one_of_one_le_of_nonpos (by linarith [hx.2]) (by linarith))
+                  (Real.rpow_le_one_of_one_le_of_nonpos hone hz)
                   (mul_nonneg hC.le (Real.exp_nonneg _))
             _ = C * Real.exp (G * x) := by ring
       _ ≤ ∫⁻ x in Iic (-1), ENNReal.ofReal (C * Real.exp (G * x)) :=
