@@ -396,7 +396,9 @@ theorem vg_corner (C G M : ℝ) (v : ℂ) (hG : 0 < G) (hM : 0 < M) (hv₁ : -M 
       (fun Y : ℝ => (C : ℂ) * ((-Real.Gamma (2 - Y) / (1 - Y) : ℝ) : ℂ))
       (𝓝[>] (0 : ℝ)) (𝓝 (-(C : ℂ))) := by
     have hcast := (Complex.continuous_ofReal.tendsto (-1 : ℝ)).comp hquot
-    have h := (tendsto_const_nhds (f := 𝓝[>] (0 : ℝ)) (a := (C : ℂ))).mul hcast
+    have hconst : Tendsto (fun _ : ℝ => (C : ℂ)) (𝓝[>] (0 : ℝ)) (𝓝 (C : ℂ)) :=
+      tendsto_const_nhds
+    have h := hconst.mul hcast
     simp only [Function.comp_def] at h
     convert h using 1
     simp
