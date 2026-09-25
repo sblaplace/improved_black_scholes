@@ -1120,6 +1120,11 @@
       "kind": "theorem",
       "pin": "theorem carrMadan_re_eq_modelFreeCall {μ : Measure ℝ} [IsProbabilityMeasure μ] {S K r tau α : ℝ} (hS : 0 < S) (hK : 0 < K) (hα : 0 < α) {c D Y u₀ δ : ℝ} (hc : 0 < c) (hD : 0 ≤ D) (hY : 0 < Y) (hδ : 0 < δ) (hcont : Continuous fun u : ℝ => contourCharFun μ (↑u - ↑(α + 1) * Complex.I)) (hdecay : ∀ u : ℝ, u₀ ≤ |u| → ‖contourCharFun μ (↑u - ↑(α + 1) * Complex.I)‖ ≤ D * Real.exp (-c * |u| ^ Y)) (hTail : Integrable (fun x : ℝ => Real.exp ((α + 1 + δ) * x)) μ) (hX : Integrable (fun x : ℝ => S * Real.exp x) μ) : (((↑(Real.exp (-α * Real.log (K / S))) : ℂ) * cmPriceIntegral (contourCharFun μ) α r tau S (Real.log (K / S))).re) = modelFreeCall μ (fun x => S * Real.exp x) K r tau"
     },
+    "BSM.cgmyBracket_tendsto": {
+      "file": "ImprovedBS/Corner.lean",
+      "kind": "theorem",
+      "pin": "theorem cgmyBracket_tendsto (G M : ℝ) (hG : 0 < G) (hM : 0 < M) (v : ℂ) (hv₁ : -M < v.im) (hv₂ : v.im < G) : Tendsto (fun Y : ℝ => ((M : ℂ) - Complex.I * v) ^ (Y : ℂ) - (M : ℂ) ^ (Y : ℂ) + ((G : ℂ) + Complex.I * v) ^ (Y : ℂ) - (G : ℂ) ^ (Y : ℂ)) (𝓝[<] (2 : ℝ)) (𝓝 (-2 * v ^ 2 + 2 * Complex.I * ((G - M : ℝ) : ℂ) * v))"
+    },
     "BSM.cgmyCharFactor": {
       "file": "ImprovedBS/CGMY.lean",
       "kind": "def",
@@ -1134,6 +1139,36 @@
       "file": "ImprovedBS/CGMY.lean",
       "kind": "def",
       "pin": "def cgmyContour (α u : ℝ) : ℂ := (u : ℂ) - ((α + 1 : ℝ) : ℂ) * Complex.I"
+    },
+    "BSM.cgmyCornerC": {
+      "file": "ImprovedBS/Corner.lean",
+      "kind": "def",
+      "pin": "def cgmyCornerC (σ Y : ℝ) : ℝ := (σ ^ 2 / 2) * (2 - Y)"
+    },
+    "BSM.cgmyCornerC_pos": {
+      "file": "ImprovedBS/Corner.lean",
+      "kind": "theorem",
+      "pin": "theorem cgmyCornerC_pos (σ Y : ℝ) (hσ : σ ≠ 0) (hY₂ : Y < 2) : 0 < cgmyCornerC σ Y"
+    },
+    "BSM.cgmyCornerCumulant_one_tendsto": {
+      "file": "ImprovedBS/Corner.lean",
+      "kind": "theorem",
+      "pin": "theorem cgmyCornerCumulant_one_tendsto (σ G M : ℝ) (hG : 0 < G) (hM : 1 < M) : Tendsto (fun Y : ℝ => cgmyCumulant (cgmyCornerC σ Y) G M Y 1) (𝓝[<] (2 : ℝ)) (𝓝 ((σ ^ 2 / 2) * (G - M + 1)))"
+    },
+    "BSM.cgmyCornerExponent_tendsto": {
+      "file": "ImprovedBS/Corner.lean",
+      "kind": "theorem",
+      "pin": "theorem cgmyCornerExponent_tendsto (σ G M : ℝ) (hG : 0 < G) (hM : 1 < M) (v : ℂ) (hv₁ : -M < v.im) (hv₂ : v.im < G) : Tendsto (fun Y : ℝ => cgmyExponent (cgmyCornerC σ Y) G M Y v) (𝓝[<] (2 : ℝ)) (𝓝 (-((σ ^ 2 / 2 : ℝ) : ℂ) * v ^ 2 + Complex.I * ((σ ^ 2 / 2 : ℝ) : ℂ) * ((G - M : ℝ) : ℂ) * v))"
+    },
+    "BSM.cgmyCornerGamma_eq": {
+      "file": "ImprovedBS/Corner.lean",
+      "kind": "theorem",
+      "pin": "theorem cgmyCornerGamma_eq (Y : ℝ) (hY₁ : 1 < Y) (hY₂ : Y < 2) : (2 - Y) * Real.Gamma (-Y) = Real.Gamma (3 - Y) / (Y * (Y - 1))"
+    },
+    "BSM.cgmyCornerGamma_tendsto": {
+      "file": "ImprovedBS/Corner.lean",
+      "kind": "theorem",
+      "pin": "theorem cgmyCornerGamma_tendsto (σ : ℝ) : Tendsto (fun Y : ℝ => cgmyCornerC σ Y * Real.Gamma (-Y)) (𝓝[<] (2 : ℝ)) (𝓝 (σ ^ 2 / 4))"
     },
     "BSM.cgmyCumulant": {
       "file": "ImprovedBS/Esscher.lean",
@@ -1359,6 +1394,56 @@
       "file": "ImprovedBS/Pricing.lean",
       "kind": "def",
       "pin": "noncomputable def contourCharFun (μ : Measure ℝ) (v : ℂ) : ℂ := ∫ x, Complex.exp (Complex.I * v * ↑x) ∂μ"
+    },
+    "BSM.cornerEsscherBound_tendsto": {
+      "file": "ImprovedBS/Corner.lean",
+      "kind": "theorem",
+      "pin": "theorem cornerEsscherBound_tendsto (σ G M : ℝ) (hGM : 1 < G + M) : Tendsto (fun Y : ℝ => esscherDriftBound (cgmyCornerC σ Y) G M Y) (𝓝[<] (2 : ℝ)) (𝓝 ((σ ^ 2 / 2) * (G + M - 1)))"
+    },
+    "BSM.cornerEsscherZero_exponent": {
+      "file": "ImprovedBS/Corner.lean",
+      "kind": "theorem",
+      "pin": "theorem cornerEsscherZero_exponent (σ G M Y : ℝ) (hG : 0 < G) (hM : 1 < M) (hGM : 1 < G + M) : esscherExponent (cgmyExponent (cgmyCornerC σ Y) G M Y) (esscherThetaZero G M) (-Complex.I) = 0"
+    },
+    "BSM.cornerEsscherZero_mem": {
+      "file": "ImprovedBS/Corner.lean",
+      "kind": "theorem",
+      "pin": "theorem cornerEsscherZero_mem (G M : ℝ) (hGM : 1 < G + M) : esscherThetaZero G M ∈ Ioo (-G) (M - 1)"
+    },
+    "BSM.cornerEsscherZero_numeraire": {
+      "file": "ImprovedBS/Corner.lean",
+      "kind": "theorem",
+      "pin": "theorem cornerEsscherZero_numeraire (σ G M Y τ : ℝ) (hG : 0 < G) (hM : 1 < M) (hGM : 1 < G + M) : cgmyCharFactor (cgmyCornerC σ Y) (G + esscherThetaZero G M) (M - esscherThetaZero G M) Y τ (-Complex.I) = 1"
+    },
+    "BSM.cornerEsscherZero_tendsto": {
+      "file": "ImprovedBS/Corner.lean",
+      "kind": "theorem",
+      "pin": "theorem cornerEsscherZero_tendsto (σ G M : ℝ) (hG : 0 < G) (hM : 1 < M) (hGM : 1 < G + M) (v : ℂ) (hv₁ : -(M - esscherThetaZero G M) < v.im) (hv₂ : v.im < G + esscherThetaZero G M) : Tendsto (fun Y : ℝ => esscherExponent (cgmyExponent (cgmyCornerC σ Y) G M Y) (esscherThetaZero G M) v) (𝓝[<] (2 : ℝ)) (𝓝 (-((σ ^ 2 / 2 : ℝ) : ℂ) * v ^ 2 - Complex.I * ((σ ^ 2 / 2 : ℝ) : ℂ) * v))"
+    },
+    "BSM.cornerForwardExponent": {
+      "file": "ImprovedBS/Corner.lean",
+      "kind": "def",
+      "pin": "def cornerForwardExponent (σ G M Y r q : ℝ) (v : ℂ) : ℂ := cgmyExponent (cgmyCornerC σ Y) G M Y v + Complex.I * ((r - q - cgmyCumulant (cgmyCornerC σ Y) G M Y 1 : ℝ) : ℂ) * v"
+    },
+    "BSM.cornerForwardExponent_tendsto": {
+      "file": "ImprovedBS/Corner.lean",
+      "kind": "theorem",
+      "pin": "theorem cornerForwardExponent_tendsto (σ G M r q : ℝ) (hG : 0 < G) (hM : 1 < M) (v : ℂ) (hv₁ : -M < v.im) (hv₂ : v.im < G) : Tendsto (fun Y : ℝ => cornerForwardExponent σ G M Y r q v) (𝓝[<] (2 : ℝ)) (𝓝 (Complex.I * ((r - q - σ ^ 2 / 2 : ℝ) : ℂ) * v - ((σ ^ 2 / 2 : ℝ) : ℂ) * v ^ 2))"
+    },
+    "BSM.cornerForwardFactor_numeraire": {
+      "file": "ImprovedBS/Corner.lean",
+      "kind": "theorem",
+      "pin": "theorem cornerForwardFactor_numeraire (σ G M Y τ r q : ℝ) (hG : 0 < G) (hM : 1 < M) : Complex.exp ((τ : ℂ) * cornerForwardExponent σ G M Y r q (-Complex.I)) = Complex.exp ((τ : ℂ) * ((r - q : ℝ) : ℂ))"
+    },
+    "BSM.cornerForwardFactor_tendsto": {
+      "file": "ImprovedBS/Corner.lean",
+      "kind": "theorem",
+      "pin": "theorem cornerForwardFactor_tendsto (σ G M τ r q : ℝ) (hG : 0 < G) (hM : 1 < M) (v : ℂ) (hv₁ : -M < v.im) (hv₂ : v.im < G) : Tendsto (fun Y : ℝ => Complex.exp ((τ : ℂ) * cornerForwardExponent σ G M Y r q v)) (𝓝[<] (2 : ℝ)) (𝓝 (gbmCharFactor ((r - q - σ ^ 2 / 2) * τ) ((σ ^ 2 / 2) * τ) v))"
+    },
+    "BSM.cornerForward_numeraire": {
+      "file": "ImprovedBS/Corner.lean",
+      "kind": "theorem",
+      "pin": "theorem cornerForward_numeraire (σ G M Y r q : ℝ) (hG : 0 < G) (hM : 1 < M) : cornerForwardExponent σ G M Y r q (-Complex.I) = ((r - q : ℝ) : ℂ)"
     },
     "BSM.d1": {
       "file": "ImprovedBS/Core.lean",

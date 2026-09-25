@@ -108,6 +108,20 @@ Checks
                   `(G+M)^Y - (G+M-1)^Y - 1` -- the cheat is a `max` over
                   sampled values, which builds and certifies nothing. Three
                   mutants in tests/test_lint.py.
+16. CORNER        BRIEF_014's route commitments for the normalized CGMY → GBM
+                  corner (BSM-2 kit item 6, correction C17). (1) `cgmyCornerC`
+                  must carry BOTH the scale `2 - Y` and the half-variance
+                  `σ ^ 2 / 2` -- a doubled scale delivers twice the variance
+                  and a scale without the factor diverges -- and the module
+                  may never evaluate the pole `Gamma (-2)`. (2) The pole
+                  cancellation must be DERIVED: `cgmyCornerGamma_eq` must cite
+                  `cgmyGamma_two_sub_eq` and `Real.Gamma_add_one`. (3) The GBM
+                  target must be BRIEF_005's own `gbmCharFactor`, and route B
+                  must CONSUME BRIEF_013's shift and named selection rather
+                  than re-derive a tilted exponent. (4) Every limit statement
+                  must be the one-sided `𝓝[<] 2`, and the exponent limits must
+                  carry the strip hypotheses that keep the cpow bases nonzero.
+                  Four mutants in tests/test_lint.py.
 
 Exit status is non-zero on any failure, with every failure printed.
 
@@ -436,6 +450,32 @@ REQUIRED = {
     "esscher_tilted_numeraire": "ImprovedBS/Esscher.lean",
     "esscher_correction_invariant": "ImprovedBS/Esscher.lean",
     "esscher_cmPriceKernel_integrable": "ImprovedBS/Esscher.lean",
+    # BRIEF_014 (BSM-2 kit item 6): the normalized CGMY → GBM corner, as a
+    # ONE-SIDED limit (correction C17: the bare "CGMY = GBM at Y = 2"
+    # statement of the old docs/03 is false, Gamma(-Y) has a pole there). The
+    # two `def`s are specifications: `cgmyCornerC` is the scale the pole
+    # cancellation runs on (a scale of `σ²(2−Y)` delivers twice the variance,
+    # a scale without the `(2−Y)` diverges), and `cornerForwardExponent` must
+    # be built from the CGMY data rather than from the GBM answer it is
+    # compared with. So both sit here beside the theorems, and every one of
+    # the 17 declarations is PROTECTED.
+    "cgmyCornerC": "ImprovedBS/Corner.lean",
+    "cornerForwardExponent": "ImprovedBS/Corner.lean",
+    "cgmyCornerC_pos": "ImprovedBS/Corner.lean",
+    "cgmyCornerGamma_eq": "ImprovedBS/Corner.lean",
+    "cgmyCornerGamma_tendsto": "ImprovedBS/Corner.lean",
+    "cgmyBracket_tendsto": "ImprovedBS/Corner.lean",
+    "cgmyCornerExponent_tendsto": "ImprovedBS/Corner.lean",
+    "cgmyCornerCumulant_one_tendsto": "ImprovedBS/Corner.lean",
+    "cornerForward_numeraire": "ImprovedBS/Corner.lean",
+    "cornerForwardFactor_numeraire": "ImprovedBS/Corner.lean",
+    "cornerForwardExponent_tendsto": "ImprovedBS/Corner.lean",
+    "cornerForwardFactor_tendsto": "ImprovedBS/Corner.lean",
+    "cornerEsscherZero_mem": "ImprovedBS/Corner.lean",
+    "cornerEsscherZero_numeraire": "ImprovedBS/Corner.lean",
+    "cornerEsscherZero_exponent": "ImprovedBS/Corner.lean",
+    "cornerEsscherZero_tendsto": "ImprovedBS/Corner.lean",
+    "cornerEsscherBound_tendsto": "ImprovedBS/Corner.lean",
 }
 
 # Zero deferred-proof markers allowed. The T1/T2 node per BRIEF_001; the T3/T4
@@ -697,6 +737,27 @@ PROTECTED = {
     "esscher_tilted_numeraire",
     "esscher_correction_invariant",
     "esscher_cmPriceKernel_integrable",
+    # BRIEF_014 (BSM-2 kit item 6): all 17 declarations of Corner.lean, defs
+    # included -- the scale and the forward exponent's body are the
+    # specification the [CORNER] check reads, and a `sorry` anywhere in the
+    # corner reverts the node outright.
+    "cgmyCornerC",
+    "cornerForwardExponent",
+    "cgmyCornerC_pos",
+    "cgmyCornerGamma_eq",
+    "cgmyCornerGamma_tendsto",
+    "cgmyBracket_tendsto",
+    "cgmyCornerExponent_tendsto",
+    "cgmyCornerCumulant_one_tendsto",
+    "cornerForward_numeraire",
+    "cornerForwardFactor_numeraire",
+    "cornerForwardExponent_tendsto",
+    "cornerForwardFactor_tendsto",
+    "cornerEsscherZero_mem",
+    "cornerEsscherZero_numeraire",
+    "cornerEsscherZero_exponent",
+    "cornerEsscherZero_tendsto",
+    "cornerEsscherBound_tendsto",
 }
 
 # The T5 node, in dependency order, and the two citations docs/04's spine
@@ -777,6 +838,45 @@ NONUNIQ_HEADLINE_CLAUSES = (
     (r"modelFreeCall witnessMeasureA id 1 0 1 ≠ modelFreeCall witnessMeasureB id 1 0 1",
      "that the two prices differ"),
 )
+
+# BRIEF_014's route commitments, checked in [CORNER]. (1) The corner scale
+# `cgmyCornerC` must carry BOTH the half-variance `σ ^ 2 / 2` and the factor
+# `2 - Y` (a doubled scale delivers twice the variance; a scale without the
+# factor diverges), and the module may never evaluate the pole. (2) The pole
+# cancellation must be DERIVED from BRIEF_013's `cgmyGamma_two_sub_eq` plus
+# one `Real.Gamma_add_one`. (3) The GBM target must be BRIEF_005's own
+# `gbmCharFactor`, and route B must CITE BRIEF_013's shift and named
+# zero-drift selection rather than re-derive a tilted exponent. (4) Every
+# limit must be the one-sided `𝓝[<] 2` (C17: the two-sided limit does not
+# exist and `Y = 2` is a pole), and the exponent limits must carry the strip
+# hypotheses that keep the four cpow bases off zero.
+CORNER_SCALE = "cgmyCornerC"
+CORNER_FORWARD = "cornerForwardExponent"
+CORNER_GAMMA = "cgmyCornerGamma_eq"
+CORNER_FACTOR = "cornerForwardFactor_tendsto"
+CORNER_GAMMA_CITATIONS = ("cgmyGamma_two_sub_eq", "Real.Gamma_add_one")
+CORNER_ESSCHER_CITATIONS = (
+    ("cornerEsscherZero_numeraire", ("esscher_drift_factor", "esscherDriftMap_zero")),
+    ("cornerEsscherZero_exponent", ("esscherExponent_neg_I_eq", "esscherDriftMap_zero")),
+    ("cornerEsscherZero_tendsto", ("esscher_cgmy_shift",)),
+)
+CORNER_TENDSTO = (
+    "cgmyCornerGamma_tendsto",
+    "cgmyBracket_tendsto",
+    "cgmyCornerExponent_tendsto",
+    "cgmyCornerCumulant_one_tendsto",
+    "cornerForwardExponent_tendsto",
+    "cornerForwardFactor_tendsto",
+    "cornerEsscherZero_tendsto",
+    "cornerEsscherBound_tendsto",
+)
+CORNER_STRIP = (
+    "cgmyBracket_tendsto",
+    "cgmyCornerExponent_tendsto",
+    "cornerForwardExponent_tendsto",
+    "cornerForwardFactor_tendsto",
+)
+CORNER_STRIP_SHIFTED = ("cornerEsscherZero_tendsto",)
 
 # A `sorry` that survives `lake build` is an axiom. Allow none by default.
 AXIOM_ALLOWLIST: set[str] = set()
@@ -1643,6 +1743,182 @@ def main() -> int:
                 "[ESSCHER] shift defined for a general `ψ`; pricing at the tilted rates "
                 "consumes `cgmy_cmPriceKernel_integrable`; headline carries `1 < G + M`, "
                 "`Y ≠ 1` and the `esscherDriftBound` comparison; bound is the closed form"
+            )
+
+    # [CORNER] BRIEF_014: the normalized CGMY → GBM corner (BSM-2 kit item 6).
+    #     `lake build` grades that the corner theorems are TRUE; this grades
+    #     that they are the corner the brief asked for -- and at this node the
+    #     two come apart in a way no other node exhibits, because the FALSE
+    #     statement (the bare "CGMY = GBM at Y = 2" of the old docs/03) is
+    #     also a statement that builds: `Real.Gamma (-2)` is `0` at the tag,
+    #     so a wrong claim wears no `sorry` and trips no lane. Four guards,
+    #     one per clause of correction C17. Bodies are comment-stripped, so
+    #     the honest doc-comments that name the forbidden spellings stay
+    #     legal.
+    corner_path = os.path.join(ROOT, "ImprovedBS", "Corner.lean")
+    if not os.path.exists(corner_path):
+        failures.append("[CORNER] ImprovedBS/Corner.lean not found")
+    else:
+        corner_clean = strip_comments(open(corner_path, encoding="utf-8").read())
+        corner_bodies = {name: body for _, name, _, body in declarations(corner_clean)}
+        corner_failures: list[str] = []
+
+        def corner_body(name: str) -> str:
+            body = corner_bodies.get(name, "")
+            if body == "":
+                corner_failures.append(f"[CORNER] `{name}` not found")
+            return body
+
+        def corner_rhs(name: str) -> str:
+            body = corner_body(name)
+            return " ".join((body.split(":=", 1)[1] if ":=" in body else "").split())
+
+        def corner_stmt(name: str) -> str:
+            body = corner_body(name)
+            return " ".join((body.split(":=", 1)[0] if body else "").split())
+
+        # (1) the scale -- both factors, and never the pole
+        rhs = corner_rhs(CORNER_SCALE)
+        if rhs != "":
+            for pat, why in (
+                (r"σ\s*\^\s*2\s*/\s*2", "the half-variance `σ ^ 2 / 2`"),
+                (r"2\s*-\s*Y", "the vanishing factor `2 - Y`"),
+            ):
+                if not re.search(pat, rhs):
+                    corner_failures.append(
+                        f"[CORNER] `cgmyCornerC` no longer carries {why} (pattern {pat!r}). "
+                        "The pole cancellation is `C_Y Γ(−Y) → σ²/4` and it holds at exactly "
+                        "this scale: without the `2 − Y` the coefficient diverges (the bare "
+                        "corner of the old docs/03, C17), and doubling it to `σ²(2−Y)` gives "
+                        "twice the intended variance. Both are true-looking, neither is the "
+                        "corner."
+                    )
+        if re.search(r"Real\.Gamma\s*\(\s*-\s*2\s*\)", corner_clean):
+            corner_failures.append(
+                "[CORNER] ImprovedBS/Corner.lean evaluates `Real.Gamma (-2)`: the corner is "
+                "a ONE-SIDED limit `Y → 2⁻` (C17) and the pole is not a value the brief "
+                "claims anything about. At this tag `Real.Gamma (-2) = 0`, so such a claim "
+                "is not even the wrong number by accident."
+            )
+        # (1b) the forward exponent is built from the CGMY data, not the answer
+        rhs = corner_rhs(CORNER_FORWARD)
+        if rhs != "":
+            for pat, why in (
+                (r"\bcgmyExponent\b", "the CGMY exponent `cgmyExponent`"),
+                (r"\bcgmyCumulant\b", "the CGMY cumulant `cgmyCumulant`"),
+                (r"r\s*-\s*q\s*-\s*cgmyCumulant", "the carry correction `r − q − κ_Y(1)`"),
+            ):
+                if not re.search(pat, rhs):
+                    corner_failures.append(
+                        f"[CORNER] `cornerForwardExponent` no longer carries {why} "
+                        f"(pattern {pat!r}). Route A is a normalization of the CGMY "
+                        "exponent, not a definition of the GBM answer: written in terms of "
+                        "the target, `cornerForwardExponent_tendsto` compares a definition "
+                        "with itself and certifies nothing."
+                    )
+            if "gbmCharFactor" in rhs:
+                corner_failures.append(
+                    "[CORNER] `cornerForwardExponent` is defined using `gbmCharFactor`. "
+                    "The C1 failure at a limit: the object on the left of (6)–(7) must be "
+                    "built from BRIEF_011's exponent, or the convergence is an `rfl`."
+                )
+
+        # (2) the pole cancellation is DERIVED, not asserted
+        gamma = corner_body(CORNER_GAMMA)
+        if gamma != "":
+            for witness in CORNER_GAMMA_CITATIONS:
+                if not re.search(rf"\b{re.escape(witness)}\b", gamma):
+                    corner_failures.append(
+                        f"[CORNER] `cgmyCornerGamma_eq` does not cite `{witness}`. The "
+                        "identity `ε Γ(−Y) = Γ(3−Y)/(Y(Y−1))` is two `Real.Gamma_add_one` "
+                        "steps away from BRIEF_013's `cgmyGamma_two_sub_eq`; asserting it "
+                        "(or reading it off a numeric oracle) hides the one fact that makes "
+                        "the corner finite."
+                    )
+
+        # (3) the GBM target, and route B's consumption of BRIEF_013
+        stmt = corner_stmt(CORNER_FACTOR)
+        if stmt != "" and not re.search(r"\bgbmCharFactor\b", stmt):
+            corner_failures.append(
+                "[CORNER] `cornerForwardFactor_tendsto` no longer targets `gbmCharFactor`. "
+                "BRIEF_005's own GBM factor is the specification of the answer (7): a new "
+                "function here could be defined to make the comparison hold."
+            )
+        for node, witnesses in CORNER_ESSCHER_CITATIONS:
+            body = corner_body(node)
+            if body == "":
+                continue
+            for witness in witnesses:
+                if not re.search(rf"\b{re.escape(witness)}\b", body):
+                    corner_failures.append(
+                        f"[CORNER] `{node}` does not cite `{witness}`. Route B is the NAMED "
+                        "selection of BRIEF_013 -- `θ₀ = (M−G−1)/2` solves the Esscher "
+                        "equation exactly at every `Y` -- so the zero-carry limit must be "
+                        "inherited from the shift and the zero-drift theorem, not "
+                        "re-derived. A re-derived tilt is equally true and says nothing "
+                        "about which selection principle is at work."
+                    )
+
+        # (4) the one-sided limit, and the strip that keeps the bases nonzero
+        for node in CORNER_TENDSTO:
+            stmt = corner_stmt(node)
+            if stmt == "":
+                continue
+            if not re.search(r"𝓝\[<\]\s*\(?\s*2", stmt):
+                corner_failures.append(
+                    f"[CORNER] `{node}` does not carry the one-sided limit `𝓝[<] 2`. The "
+                    "corner is a limit FROM BELOW (C17): `Γ(−Y)` has a pole at `Y = 2`, so "
+                    "a two-sided limit or an equality at `Y = 2` is either false or "
+                    "vacuous, and the guard exists because both elaborate."
+                )
+        for node in CORNER_STRIP:
+            stmt = corner_stmt(node)
+            if stmt == "":
+                continue
+            for pat, why in (
+                (r"-\s*M\s*<\s*v\.im", "`-M < v.im` (the `M − iv` base off the cut)"),
+                (r"v\.im\s*<\s*G", "`v.im < G` (the `G + iv` base off the cut)"),
+            ):
+                if not re.search(pat, stmt):
+                    corner_failures.append(
+                        f"[CORNER] `{node}` no longer carries {why} (pattern {pat!r}). The "
+                        "limit is pointwise on the strip, and the strip is exactly what "
+                        "makes the four `cpow` bases nonzero; dropping it either "
+                        "strengthens the hypothesis into something unprovable or, worse, "
+                        "moves the claim off the branch where it is true."
+                    )
+        for node in CORNER_STRIP_SHIFTED:
+            stmt = corner_stmt(node)
+            if stmt == "":
+                continue
+            for pat, why in (
+                (r"-\s*\(\s*M\s*-\s*esscherThetaZero\s*G\s*M\s*\)\s*<\s*v\.im",
+                 "the SHIFTED lower strip condition"),
+                (r"v\.im\s*<\s*G\s*\+\s*esscherThetaZero\s*G\s*M",
+                 "the SHIFTED upper strip condition"),
+            ):
+                if not re.search(pat, stmt):
+                    corner_failures.append(
+                        f"[CORNER] `{node}` no longer carries {why} (pattern {pat!r}). The "
+                        "Esscher shift MOVES the rates to `(G+θ₀, M−θ₀)`, so the strip the "
+                        "limit is taken on is the shifted one; a `v` legal for `(G, M)` "
+                        "need not be legal for the tilted exponent."
+                    )
+        if re.search(r"\bmin\b", corner_clean):
+            corner_failures.append(
+                "[CORNER] `min` appears in ImprovedBS/Corner.lean: the strip is "
+                "`-M < Im v < G` (C14 extended -- `G` constrains the upper side, `M` the "
+                "lower, and neither is a `min` over the two rates)."
+            )
+
+        if corner_failures:
+            failures.extend(corner_failures)
+        else:
+            notes.append(
+                "[CORNER] scale carries `σ²/2` and `2−Y` with no pole evaluation; the "
+                "Gamma identity consumes `cgmyGamma_two_sub_eq`; the factor target is "
+                "`gbmCharFactor`; route B consumes the Esscher shift and the zero-drift "
+                "selection; every limit is `𝓝[<] 2` on its (shifted) strip"
             )
 
     if "--write-baseline" in sys.argv:
