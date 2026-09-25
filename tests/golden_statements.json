@@ -426,6 +426,14 @@
       "axioms": "'BSM.dampedModelFreeCall_eq_dampedCallPrice' depends on axioms: [propext, Classical.choice, Quot.sound]",
       "type": "BSM.dampedModelFreeCall_eq_dampedCallPrice : ∀ {S m r tau α k : ℝ} {v : NNReal}, BSM.dampedModelFreeCall (ProbabilityTheory.gaussianReal m v) S r tau α k = BSM.dampedCallPrice S v m r tau α k"
     },
+    "BSM.dirac_exp_integrable": {
+      "axioms": "'BSM.dirac_exp_integrable' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.dirac_exp_integrable : MeasureTheory.Integrable (fun y => Real.exp y) (MeasureTheory.Measure.dirac 0)"
+    },
+    "BSM.dirac_tail_hypothesis_fails": {
+      "axioms": "'BSM.dirac_tail_hypothesis_fails' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.dirac_tail_hypothesis_fails : ∀ {α c x₀ : ℝ}, 0 < c → ¬∀ x ≥ x₀, ENNReal.ofReal (c * x ^ (-α)) ≤ (MeasureTheory.Measure.dirac 0) (Set.Ici x)"
+    },
     "BSM.erf": {
       "axioms": "'BSM.erf' depends on axioms: [propext, Classical.choice, Quot.sound]",
       "type": "BSM.erf : ℝ → ℝ"
@@ -682,6 +690,14 @@
       "axioms": "'BSM.integral_spot_mul_phi_eq_forward' depends on axioms: [propext, Classical.choice, Quot.sound]",
       "type": "BSM.integral_spot_mul_phi_eq_forward : ∀ (S tau r q sigma : ℝ), 0 ≤ tau → ∫ (z : ℝ), S * Real.exp ((r - q - sigma ^ 2 / 2) * tau + sigma * √tau * z) * BSM.phi z = S * Real.exp ((r - q) * tau)"
     },
+    "BSM.levy_tail_hypothesis_satisfiable_iff": {
+      "axioms": "'BSM.levy_tail_hypothesis_satisfiable_iff' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.levy_tail_hypothesis_satisfiable_iff : ∀ (α : ℝ), (∃ μ, MeasureTheory.IsProbabilityMeasure μ ∧ ∃ c x₀, 0 < c ∧ ∀ x ≥ x₀, ENNReal.ofReal (c * x ^ (-α)) ≤ μ (Set.Ici x)) ↔ 0 < α"
+    },
+    "BSM.levy_tail_hypothesis_unsatisfiable_of_nonpos": {
+      "axioms": "'BSM.levy_tail_hypothesis_unsatisfiable_of_nonpos' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.levy_tail_hypothesis_unsatisfiable_of_nonpos : ∀ (μ : MeasureTheory.Measure ℝ) [MeasureTheory.IsProbabilityMeasure μ] {α c x₀ : ℝ}, α ≤ 0 → 0 < c → ¬∀ x ≥ x₀, ENNReal.ofReal (c * x ^ (-α)) ≤ μ (Set.Ici x)"
+    },
     "BSM.lintegral_exp_add_eq_top_of_tail_lower_bound": {
       "axioms": "'BSM.lintegral_exp_add_eq_top_of_tail_lower_bound' depends on axioms: [propext, Classical.choice, Quot.sound]",
       "type": "BSM.lintegral_exp_add_eq_top_of_tail_lower_bound : ∀ (μ : MeasureTheory.Measure ℝ) [MeasureTheory.IsProbabilityMeasure μ] (α c x₀ d : ℝ), 0 < c → (∀ x ≥ x₀, ENNReal.ofReal (c * x ^ (-α)) ≤ μ (Set.Ici x)) → ∫⁻ (y : ℝ), ENNReal.ofReal (Real.exp (y + d)) ∂μ = ⊤"
@@ -777,6 +793,34 @@
     "BSM.ofReal_mul_tail_le_lintegral_exp_add": {
       "axioms": "'BSM.ofReal_mul_tail_le_lintegral_exp_add' depends on axioms: [propext, Classical.choice, Quot.sound]",
       "type": "BSM.ofReal_mul_tail_le_lintegral_exp_add : ∀ (μ : MeasureTheory.Measure ℝ) (d α c x : ℝ), ENNReal.ofReal (c * x ^ (-α)) ≤ μ (Set.Ici x) → ENNReal.ofReal (Real.exp (x + d) * (c * x ^ (-α))) ≤ ∫⁻ (y : ℝ), ENNReal.ofReal (Real.exp (y + d)) ∂μ"
+    },
+    "BSM.paretoMeasure_Ici": {
+      "axioms": "'BSM.paretoMeasure_Ici' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.paretoMeasure_Ici : ∀ {t r : ℝ}, 0 < t → 0 < r → ∀ {x : ℝ}, t ≤ x → (ProbabilityTheory.paretoMeasure t r) (Set.Ici x) = ENNReal.ofReal (t ^ r * x ^ (-r))"
+    },
+    "BSM.paretoMeasure_Ici_self": {
+      "axioms": "'BSM.paretoMeasure_Ici_self' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.paretoMeasure_Ici_self : ∀ {t r : ℝ}, 0 < t → 0 < r → (ProbabilityTheory.paretoMeasure t r) (Set.Ici t) = 1"
+    },
+    "BSM.pareto_exp_moment_infinite": {
+      "axioms": "'BSM.pareto_exp_moment_infinite' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.pareto_exp_moment_infinite : ∀ {t r : ℝ}, 0 < t → 0 < r → ¬MeasureTheory.Integrable (fun y => Real.exp y) (ProbabilityTheory.paretoMeasure t r)"
+    },
+    "BSM.pareto_no_drift_makes_spot_integrable": {
+      "axioms": "'BSM.pareto_no_drift_makes_spot_integrable' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.pareto_no_drift_makes_spot_integrable : ∀ {t r : ℝ}, 0 < t → 0 < r → ∀ (S₀ d : ℝ), 0 < S₀ → ¬MeasureTheory.Integrable (fun x => S₀ * Real.exp (x + d)) (ProbabilityTheory.paretoMeasure t r)"
+    },
+    "BSM.pareto_tail_const_pos": {
+      "axioms": "'BSM.pareto_tail_const_pos' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.pareto_tail_const_pos : ∀ {t r : ℝ}, 0 < t → 0 < t ^ r"
+    },
+    "BSM.pareto_tail_lower_bound": {
+      "axioms": "'BSM.pareto_tail_lower_bound' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.pareto_tail_lower_bound : ∀ {t r : ℝ}, 0 < t → 0 < r → ∀ x ≥ t, ENNReal.ofReal (t ^ r * x ^ (-r)) ≤ (ProbabilityTheory.paretoMeasure t r) (Set.Ici x)"
+    },
+    "BSM.pareto_three_exp_moment_infinite": {
+      "axioms": "'BSM.pareto_three_exp_moment_infinite' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.pareto_three_exp_moment_infinite : ¬MeasureTheory.Integrable (fun y => Real.exp y) (ProbabilityTheory.paretoMeasure 1 3)"
     },
     "BSM.phi": {
       "axioms": "'BSM.phi' depends on axioms: [propext, Classical.choice, Quot.sound]",

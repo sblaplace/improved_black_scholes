@@ -33,7 +33,7 @@
   The law is NOT hand-rolled (BRIEF_015 finding F1): a second density would be
   a second specification to pin and trust, and the upstream one is reviewed.
   `isProbabilityMeasure_paretoMeasure` is a lemma, not an instance, hence the
-  `haveI`s below.
+  local `have`s below.
 
   WHAT IS STILL NOT MACHINE-CHECKED
 
@@ -70,11 +70,7 @@ theorem paretoMeasure_Ici {t r : ℝ} (ht : 0 < t) (hr : 0 < r) {x : ℝ} (hx : 
   have hint : IntegrableOn (fun y : ℝ => r * t ^ r * y ^ (-(r + 1))) (Set.Ici x) := by
     have h := integrableOn_Ioi_rpow_of_lt (by linarith : -(r + 1) < -1) hx0
     have hIci : IntegrableOn (fun y : ℝ => y ^ (-(r + 1))) (Set.Ici x) := by
-      first
-      | exact (integrableOn_Ici_iff_integrableOn_Ioi (by simp)).mpr h
-      | exact (integrableOn_Ici_iff_integrableOn_Ioi).mpr h
-      | (rw [integrableOn_Ici_iff_integrableOn_Ioi]; exact h)
-      | exact (integrableOn_Ici_iff_integrableOn_Ioi' (by simp)).mpr h
+      exact (integrableOn_Ici_iff_integrableOn_Ioi (by simp)).mpr h
     exact hIci.const_mul (r * t ^ r)
   have hnn : 0 ≤ᵐ[volume.restrict (Set.Ici x)]
       fun y : ℝ => r * t ^ r * y ^ (-(r + 1)) := by
@@ -215,7 +211,7 @@ theorem dirac_tail_hypothesis_fails {α c x₀ : ℝ} (hc : 0 < c) :
   have hnot : ¬ (max x₀ 1 ≤ 0) := not_le.2 (by linarith)
   have hzero : (Measure.dirac (0 : ℝ)) (Set.Ici (max x₀ 1)) = 0 := by
     rw [Measure.dirac_apply' _ measurableSet_Ici]
-    simp [Set.indicator_apply, hnot]
+    simp [hnot]
   have h := htail (max x₀ 1) (le_max_left _ _)
   exact (not_le.2 (ENNReal.ofReal_pos.2 hpos)) (h.trans_eq hzero)
 
@@ -223,9 +219,6 @@ theorem dirac_tail_hypothesis_fails {α c x₀ : ℝ} (hc : 0 < c) :
 `dirac_tail_hypothesis_fails`, `htail` is shown to discriminate. -/
 theorem dirac_exp_integrable :
     Integrable (fun y => Real.exp y) (Measure.dirac (0 : ℝ)) := by
-  first
-  | exact (integrable_const (Real.exp 0)).congr (ae_eq_dirac (fun y => Real.exp y)).symm
-  | exact integrable_dirac (by fun_prop)
-  | exact Integrable.of_finite
+  exact (integrable_const (Real.exp 0)).congr (ae_eq_dirac (fun y => Real.exp y)).symm
 
 end BSM
