@@ -903,6 +903,35 @@ def cgmy_exponent_one_sided_compensated(C: float, a: float, Y: float, v: complex
     return C * cgmy_gamma_neg(Y) * ((a - 1j * v) ** Y - a ** Y + 1j * v * Y * a ** (Y - 1.0))
 
 
+# ---------------------------------------------------------------------------
+# BRIEF_015: the Pareto witness for Levy.lean's tail hypothesis.
+#
+# The numeric shadow of mathlib's `ProbabilityTheory.paretoPDFReal` and of the
+# Lean `paretoMeasure_Ici`. The two are written INDEPENDENTLY: the tail below
+# is the closed form `(t/x)^r`, never an integral of `pareto_pdf`, so the test
+# comparing a quadrature of one against the other can fail.
+# ---------------------------------------------------------------------------
+
+
+def pareto_pdf(t: float, r: float, x: float) -> float:
+    """`r t^r x^(-(r+1))` on `[t, inf)`, `0` below -- mathlib's `paretoPDFReal`."""
+    if x < t:
+        return 0.0
+    return r * t ** r * x ** (-(r + 1.0))
+
+
+def pareto_tail(t: float, r: float, x: float) -> float:
+    """`mu[x, inf) = t^r x^(-r)` for `x >= t`, `1` below -- the Lean `paretoMeasure_Ici`.
+
+    At `c = t^r`, `alpha = r`, `x0 = t` this is Levy.lean's `htail` WITH
+    EQUALITY, which is why the test asserts equality: the inequality alone
+    survives the `t^r -> t^(-r)` constant swap whenever `t > 1` (mutant M25).
+    """
+    if x < t:
+        return 1.0
+    return t ** r * x ** (-r)
+
+
 def bs_price(S, K, T, t, r, s, q=0.0, option="call"):
     """BSM European price. Raises ValueError on illegal (tau,s).
 

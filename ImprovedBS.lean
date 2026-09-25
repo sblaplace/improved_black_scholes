@@ -9,6 +9,7 @@ import ImprovedBS.CGMY
 import ImprovedBS.NonUniqueness
 import ImprovedBS.Esscher
 import ImprovedBS.Corner
+import ImprovedBS.ParetoWitness
 
 /-!
 # ImprovedBS
@@ -108,6 +109,14 @@ Root module of the `ImprovedBS` library. Modules imported here are built by
   `θ₀ = (M−G−1)/2` the BRIEF_013 shift alone delivers the zero-carry GBM limit
   (8) with no drift correction, plus the collapse (9) of the attainable
   half-width `H` to `(σ²/2)(G+M−1)`.
+* `ImprovedBS.ParetoWitness` — BRIEF_015 (ledger C13 finding 3): the witness
+  for `ImprovedBS.Levy`'s tail hypothesis. §1 the Pareto tail
+  `μ[x, ∞) = t^r · x^(−r)` for mathlib's own `paretoMeasure`, §2 the discharge
+  of `htail` with equality at `c = t^r, α = r, x₀ = t`, §3 the obstruction
+  instantiated BY CITATION, ledger C7 as a theorem (`α ≤ 0` is unsatisfiable)
+  and the headline `levy_tail_hypothesis_satisfiable_iff : (∃ law, htail) ↔
+  0 < α`, §4 the discriminator: the Dirac mass fails `htail` and has a finite
+  exponential moment.
 
 ## Why the module is not called `Lean.*`
 

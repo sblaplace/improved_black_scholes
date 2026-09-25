@@ -122,6 +122,19 @@ Checks
                   must be the one-sided `𝓝[<] 2`, and the exponent limits must
                   carry the strip hypotheses that keep the cpow bases nonzero.
                   Four mutants in tests/test_lint.py.
+17. PARETO        BRIEF_015's route commitments for the Pareto witness to
+                  Levy.lean's tail hypothesis (ledger C13 finding 3). (1) The
+                  Pareto instantiations must CITE Levy.lean's obstruction
+                  (`exp_moment_infinite_of_tail_lower_bound` /
+                  `no_drift_makes_spot_integrable`) and the module may not run
+                  its own divergence (`tendsto_exp_div_rpow_atTop`); (2)
+                  `pareto_tail_lower_bound` must be Levy.lean's `htail`
+                  verbatim at `c = t ^ r`, `α = r`, `x₀ = t`; (3) the law must
+                  be mathlib's `paretoMeasure` -- no `def` in the module may
+                  build a second one with `withDensity`; (4) the headline
+                  `levy_tail_hypothesis_satisfiable_iff` must stay an `↔` with
+                  right-hand side `0 < α` over probability laws -- the `←` half
+                  alone drops C7. Four mutants in tests/test_lint.py.
 
 Exit status is non-zero on any failure, with every failure printed.
 
@@ -476,6 +489,19 @@ REQUIRED = {
     "cornerEsscherZero_exponent": "ImprovedBS/Corner.lean",
     "cornerEsscherZero_tendsto": "ImprovedBS/Corner.lean",
     "cornerEsscherBound_tendsto": "ImprovedBS/Corner.lean",
+    # BRIEF_015 (ledger C13 finding 3): the Pareto witness for Levy.lean's tail
+    # hypothesis. No defs -- the law is mathlib's own `paretoMeasure` (F1).
+    "paretoMeasure_Ici": "ImprovedBS/ParetoWitness.lean",
+    "paretoMeasure_Ici_self": "ImprovedBS/ParetoWitness.lean",
+    "pareto_tail_lower_bound": "ImprovedBS/ParetoWitness.lean",
+    "pareto_tail_const_pos": "ImprovedBS/ParetoWitness.lean",
+    "pareto_exp_moment_infinite": "ImprovedBS/ParetoWitness.lean",
+    "pareto_no_drift_makes_spot_integrable": "ImprovedBS/ParetoWitness.lean",
+    "pareto_three_exp_moment_infinite": "ImprovedBS/ParetoWitness.lean",
+    "levy_tail_hypothesis_unsatisfiable_of_nonpos": "ImprovedBS/ParetoWitness.lean",
+    "levy_tail_hypothesis_satisfiable_iff": "ImprovedBS/ParetoWitness.lean",
+    "dirac_tail_hypothesis_fails": "ImprovedBS/ParetoWitness.lean",
+    "dirac_exp_integrable": "ImprovedBS/ParetoWitness.lean",
 }
 
 # Zero deferred-proof markers allowed. The T1/T2 node per BRIEF_001; the T3/T4
@@ -758,6 +784,18 @@ PROTECTED = {
     "cornerEsscherZero_exponent",
     "cornerEsscherZero_tendsto",
     "cornerEsscherBound_tendsto",
+    # BRIEF_015: all 11 theorems of ParetoWitness.lean.
+    "paretoMeasure_Ici",
+    "paretoMeasure_Ici_self",
+    "pareto_tail_lower_bound",
+    "pareto_tail_const_pos",
+    "pareto_exp_moment_infinite",
+    "pareto_no_drift_makes_spot_integrable",
+    "pareto_three_exp_moment_infinite",
+    "levy_tail_hypothesis_unsatisfiable_of_nonpos",
+    "levy_tail_hypothesis_satisfiable_iff",
+    "dirac_tail_hypothesis_fails",
+    "dirac_exp_integrable",
 }
 
 # The T5 node, in dependency order, and the two citations docs/04's spine
@@ -877,6 +915,28 @@ CORNER_STRIP = (
     "cornerForwardFactor_tendsto",
 )
 CORNER_STRIP_SHIFTED = ("cornerEsscherZero_tendsto",)
+
+# BRIEF_015's route commitments, checked in [PARETO]. Statement patterns are
+# matched against the whitespace-collapsed, comment-stripped declaration text.
+PARETO_CITATIONS = (
+    ("pareto_exp_moment_infinite", ("exp_moment_infinite_of_tail_lower_bound",)),
+    ("pareto_no_drift_makes_spot_integrable", ("no_drift_makes_spot_integrable",)),
+    ("pareto_three_exp_moment_infinite",
+     ("exp_moment_infinite_of_tail_lower_bound", "pareto_exp_moment_infinite")),
+)
+PARETO_FORBIDDEN = ("tendsto_exp_div_rpow_atTop",)
+PARETO_TAIL = "pareto_tail_lower_bound"
+PARETO_TAIL_STMT = (
+    r"∀ x ≥ t, ENNReal\.ofReal \(t \^ r \* x \^ \(-r\)\) "
+    r"≤ paretoMeasure t r \(Set\.Ici x\)"
+)
+PARETO_HEADLINE = "levy_tail_hypothesis_satisfiable_iff"
+PARETO_HEADLINE_CLAUSES = (
+    (r"∃ μ : Measure ℝ, IsProbabilityMeasure μ ∧", "the existential over probability laws"),
+    (r"ENNReal\.ofReal \(c \* x \^ \(-α\)\) ≤ μ \(Set\.Ici x\)",
+     "Levy.lean's tail hypothesis verbatim"),
+    (r"\) ↔ 0 < α$", "the `↔ 0 < α` characterization (C7's half included)"),
+)
 
 # A `sorry` that survives `lake build` is an axiom. Allow none by default.
 AXIOM_ALLOWLIST: set[str] = set()
@@ -1919,6 +1979,85 @@ def main() -> int:
                 "Gamma identity consumes `cgmyGamma_two_sub_eq`; the factor target is "
                 "`gbmCharFactor`; route B consumes the Esscher shift and the zero-drift "
                 "selection; every limit is `𝓝[<] 2` on its (shifted) strip"
+            )
+
+    # [PARETO] BRIEF_015: the Pareto witness for Levy.lean's tail hypothesis.
+    #     `lake build` grades that the witness theorems are TRUE; this grades
+    #     that they witness the hypothesis the obstruction actually carries,
+    #     through the obstruction itself, at the upstream law.
+    pareto_path = os.path.join(ROOT, "ImprovedBS", "ParetoWitness.lean")
+    if not os.path.exists(pareto_path):
+        failures.append("[PARETO] ImprovedBS/ParetoWitness.lean not found")
+    else:
+        pareto_clean = strip_comments(open(pareto_path, encoding="utf-8").read())
+        pareto_decls = declarations(pareto_clean)
+        pareto_bodies = {name: body for _, name, _, body in pareto_decls}
+        pareto_failures: list[str] = []
+
+        def pareto_body(name: str) -> str:
+            body = pareto_bodies.get(name, "")
+            if body == "":
+                pareto_failures.append(f"[PARETO] `{name}` not found")
+            return body
+
+        def pareto_stmt(name: str) -> str:
+            body = pareto_body(name)
+            return " ".join((body.split(":=", 1)[0] if body else "").split())
+
+        # (1) the instantiations cite the obstruction
+        for node, witnesses in PARETO_CITATIONS:
+            body = pareto_body(node)
+            if body and not any(re.search(rf"\b{re.escape(w)}\b", body) for w in witnesses):
+                pareto_failures.append(
+                    f"[PARETO] `{node}` cites none of {', '.join(witnesses)}. The witness "
+                    "exists to exercise Levy.lean's obstruction at a real law; a private "
+                    "proof leaves the obstruction's hypothesis as undischarged as before."
+                )
+        for bad in PARETO_FORBIDDEN:
+            if re.search(rf"\b{re.escape(bad)}\b", pareto_clean):
+                pareto_failures.append(
+                    f"[PARETO] ImprovedBS/ParetoWitness.lean uses `{bad}`: the divergence "
+                    "is Levy.lean's to prove, and a second copy here would grade the "
+                    "witness by itself."
+                )
+        # (2) the discharge is Levy.lean's htail verbatim
+        stmt = pareto_stmt(PARETO_TAIL)
+        if stmt and not re.search(PARETO_TAIL_STMT, stmt):
+            pareto_failures.append(
+                "[PARETO] `pareto_tail_lower_bound` is no longer Levy.lean's `htail` at "
+                "`c = t ^ r`, `α = r`, `x₀ = t`. A bound at a different index or constant "
+                "does not discharge the hypothesis the obstruction carries."
+            )
+        # (3) the law is mathlib's
+        if not re.search(r"\bparetoMeasure\b", pareto_clean):
+            pareto_failures.append(
+                "[PARETO] ImprovedBS/ParetoWitness.lean does not use mathlib's "
+                "`paretoMeasure` (BRIEF_015 F1)."
+            )
+        for kind, name, _, body in pareto_decls:
+            if kind in ("def", "abbrev") and re.search(r"\bwithDensity\b", body):
+                pareto_failures.append(
+                    f"[PARETO] `{name}` builds a law with `withDensity`: the witness must "
+                    "be mathlib's reviewed `paretoMeasure`, not a second specification "
+                    "(BRIEF_015 F1)."
+                )
+        # (4) the headline stays a characterization
+        stmt = pareto_stmt(PARETO_HEADLINE)
+        if stmt:
+            for pat, why in PARETO_HEADLINE_CLAUSES:
+                if not re.search(pat, stmt):
+                    pareto_failures.append(
+                        f"[PARETO] `levy_tail_hypothesis_satisfiable_iff` no longer carries "
+                        f"{why} (pattern {pat!r}). Without the `→` half, C7 is prose again."
+                    )
+
+        if pareto_failures:
+            failures.extend(pareto_failures)
+        else:
+            notes.append(
+                "[PARETO] the Pareto instantiations cite Levy.lean's obstruction; the "
+                "discharge is `htail` verbatim at `c = t^r, α = r, x₀ = t`; the law is "
+                "mathlib's `paretoMeasure`; the headline is `(∃ law, htail) ↔ 0 < α`"
             )
 
     if "--write-baseline" in sys.argv:
