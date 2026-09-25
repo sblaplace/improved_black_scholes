@@ -209,6 +209,14 @@ the tree; **Stage 2** is the general-`Y` law as the compound-Poisson truncation
 limit. Two traps are named in the brief: `Real.Gamma 0 = 0` (and `Gamma (−1)`)
 makes a raw evaluation at `Y = 0` or `Y = 1` *silently* the Dirac law, and the
 landed Esscher range `H_Y` degenerates at the corner (`H_Y ~ C/Y → ∞`).
+**Stage 1 is specified in BRIEF_018** (same PR): `ImprovedBS/VGLaw.lean` — the
+law as the difference of two `gammaMeasure`s, its mgf on the strip `(−G, M)`
+(consuming `integral_rpow_mul_exp_neg_mul_Ioi`), the corner as a `𝓝[>] 0`
+limit, the law-level Esscher tilt, and the expectation-level twins of items 3
+and 5 at the tilted law — with four `[VGLaw]` lint clauses (44 → 48 lint
+mutants), the oracle's `gamma_mgf`/`vg_cumulant`/`vg_mgf`/`vg_drift_map`/
+`vg_tilted_cumulant`/`vg_esscher_solve`, `test_vg_law` and mutants M30–M33;
+pins 268 → 268 + 22, audit 237 → 237 + 22 (the landed count rules).
 Proving the
 obstruction itself — a concrete divergent integral, no finance in it — is the
 cheapest high-value theorem in the research tier. Details in docs/03 §D1.

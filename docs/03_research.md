@@ -191,6 +191,8 @@ one above — **in the same tree, under the same skeleton**, with all seven of:
    which lands the expectation-level twin at that member; the general-`Y` law
    is Stage 2, the compound-Poisson truncation limit through mathlib's
    Lévy-continuity and Prokhorov layer, specified and queued behind it.
+   **BRIEF_018** (same PR) is the Stage-1 contract: `ImprovedBS/VGLaw.lean`,
+   ~22 declarations, the `[VGLaw]` lint clauses, `test_vg_law` and M30–M33.
 4. **T6's triangle holds at the new exponent.** The Carr–Madan integral
    converges absolutely on the contour, inverts to `e^{−rτ}·E[(S_T − K)⁺]`,
    and is real-valued — the full pricing claim where no closed form exists.
