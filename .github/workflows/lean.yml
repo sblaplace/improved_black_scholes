@@ -452,6 +452,19 @@ jobs:
           #print axioms BSM.vg_modelFree_call_bounds
           #print axioms BSM.vg_modelFree_put_bounds
           #print axioms BSM.vg_modelFree_parity
+          -- BRIEF_019: the compound-Poisson law and the truncated CGMY jump law
+          #print axioms BSM.convPow_isFiniteMeasure
+          #print axioms BSM.convPow_isProbabilityMeasure
+          #print axioms BSM.charFun_convPow
+          #print axioms BSM.cpLaw_isProbabilityMeasure
+          #print axioms BSM.cpLaw_apply_univ
+          #print axioms BSM.charFun_cpLaw
+          #print axioms BSM.cgmyJumpMass_lt_top
+          #print axioms BSM.cgmyJumpMass_pos
+          #print axioms BSM.cgmyJumpLaw_isProbabilityMeasure
+          #print axioms BSM.cgmyTruncatedExponent_integrable
+          #print axioms BSM.cgmyTruncatedExponent_zero
+          #print axioms BSM.charFun_cgmyCpLaw
           LEAN
           lake env lean /tmp/Audit.lean 2>&1 | tee lean-audit.log
           if grep -q sorryAx lean-audit.log; then

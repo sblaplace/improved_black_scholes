@@ -1463,6 +1463,31 @@
       "kind": "theorem",
       "pin": "theorem cgmyGamma_two_sub_eq (Y : ℝ) (hY : 0 < Y) (hY₂ : Y < 2) (hY₁ : Y ≠ 1) : Real.Gamma (-Y) * Y * (Y - 1) = Real.Gamma (2 - Y)"
     },
+    "BSM.cgmyJumpLaw": {
+      "file": "ImprovedBS/CompoundPoisson.lean",
+      "kind": "def",
+      "pin": "noncomputable def cgmyJumpLaw (C G M Y : ℝ) (ε : ℝ≥0) : Measure ℝ := (cgmyJumpMeasure C G M Y ε Set.univ)⁻¹ • cgmyJumpMeasure C G M Y ε"
+    },
+    "BSM.cgmyJumpLaw_isProbabilityMeasure": {
+      "file": "ImprovedBS/CompoundPoisson.lean",
+      "kind": "theorem",
+      "pin": "theorem cgmyJumpLaw_isProbabilityMeasure (C G M Y : ℝ) (ε : ℝ≥0) (hC : 0 < C) (hG : 0 < G) (hM : 0 < M) (hY : 0 < Y) (hε : 0 < ε) : IsProbabilityMeasure (cgmyJumpLaw C G M Y ε)"
+    },
+    "BSM.cgmyJumpMass_lt_top": {
+      "file": "ImprovedBS/CompoundPoisson.lean",
+      "kind": "theorem",
+      "pin": "theorem cgmyJumpMass_lt_top (C G M Y : ℝ) (ε : ℝ≥0) (hC : 0 < C) (hG : 0 < G) (hM : 0 < M) (hY : 0 < Y) (hε : 0 < ε) : cgmyJumpMeasure C G M Y ε Set.univ < ⊤"
+    },
+    "BSM.cgmyJumpMass_pos": {
+      "file": "ImprovedBS/CompoundPoisson.lean",
+      "kind": "theorem",
+      "pin": "theorem cgmyJumpMass_pos (C G M Y : ℝ) (ε : ℝ≥0) (hC : 0 < C) (hM : 0 < M) (hY : 0 < Y) (hε : 0 < ε) : 0 < cgmyJumpMeasure C G M Y ε Set.univ"
+    },
+    "BSM.cgmyJumpMeasure": {
+      "file": "ImprovedBS/CompoundPoisson.lean",
+      "kind": "def",
+      "pin": "noncomputable def cgmyJumpMeasure (C G M Y : ℝ) (ε : ℝ≥0) : Measure ℝ := (volume.restrict {x : ℝ | (ε : ℝ) ≤ |x|}).withDensity (fun x => ENNReal.ofReal (cgmyLevyDensity C G M Y x))"
+    },
     "BSM.cgmyLevyDensity": {
       "file": "ImprovedBS/CGMY.lean",
       "kind": "def",
@@ -1487,6 +1512,21 @@
       "file": "ImprovedBS/CGMY.lean",
       "kind": "def",
       "pin": "def cgmyTemperedRate (C Y : ℝ) : ℝ := 2 * C * |Real.Gamma (-Y) * Real.cos (Real.pi * Y / 2)|"
+    },
+    "BSM.cgmyTruncatedExponent": {
+      "file": "ImprovedBS/CompoundPoisson.lean",
+      "kind": "def",
+      "pin": "noncomputable def cgmyTruncatedExponent (C G M Y : ℝ) (ε : ℝ≥0) (v : ℂ) : ℂ := ∫ x in {x : ℝ | (ε : ℝ) ≤ |x|}, (Complex.exp (v * (x : ℂ) * I) - 1) * (cgmyLevyDensity C G M Y x : ℂ)"
+    },
+    "BSM.cgmyTruncatedExponent_integrable": {
+      "file": "ImprovedBS/CompoundPoisson.lean",
+      "kind": "theorem",
+      "pin": "theorem cgmyTruncatedExponent_integrable (C G M Y : ℝ) (ε : ℝ≥0) (hC : 0 < C) (hG : 0 < G) (hM : 0 < M) (hY : 0 < Y) (hε : 0 < ε) (v : ℝ) : IntegrableOn (fun x : ℝ => (Complex.exp ((v : ℂ) * (x : ℂ) * I) - 1) * (cgmyLevyDensity C G M Y x : ℂ)) {x : ℝ | (ε : ℝ) ≤ |x|}"
+    },
+    "BSM.cgmyTruncatedExponent_zero": {
+      "file": "ImprovedBS/CompoundPoisson.lean",
+      "kind": "theorem",
+      "pin": "theorem cgmyTruncatedExponent_zero (C G M Y : ℝ) (ε : ℝ≥0) : cgmyTruncatedExponent C G M Y ε 0 = 0"
     },
     "BSM.cgmy_cmPriceKernel_integrable": {
       "file": "ImprovedBS/CGMY.lean",
@@ -1542,6 +1582,21 @@
       "file": "ImprovedBS/CGMY.lean",
       "kind": "theorem",
       "pin": "theorem cgmy_tempered_rate_neg_eq {C Y : ℝ} (hY : 0 < Y) (hY₂ : Y < 2) (hY₁ : Y ≠ 1) : -(cgmyTemperedRate C Y) = 2 * C * Real.Gamma (-Y) * Real.cos (Real.pi * Y / 2)"
+    },
+    "BSM.charFun_cgmyCpLaw": {
+      "file": "ImprovedBS/CompoundPoisson.lean",
+      "kind": "theorem",
+      "pin": "theorem charFun_cgmyCpLaw (C G M Y : ℝ) (ε : ℝ≥0) (hC : 0 < C) (hG : 0 < G) (hM : 0 < M) (hY : 0 < Y) (hε : 0 < ε) (τ : ℝ≥0) (t : ℝ) : charFun (cpLaw (τ * (cgmyJumpMeasure C G M Y ε Set.univ).toNNReal) (cgmyJumpLaw C G M Y ε)) t = Complex.exp ((τ : ℂ) * cgmyTruncatedExponent C G M Y ε (t : ℂ))"
+    },
+    "BSM.charFun_convPow": {
+      "file": "ImprovedBS/CompoundPoisson.lean",
+      "kind": "theorem",
+      "pin": "theorem charFun_convPow (ρ : Measure ℝ) (hρ : IsProbabilityMeasure ρ) (t : ℝ) : ∀ n, charFun (convPow ρ n) t = charFun ρ t ^ n | 0 => by rw [convPow, pow_zero, charFun_dirac] simp | n + 1 => by haveI hn : IsFiniteMeasure (convPow ρ n)"
+    },
+    "BSM.charFun_cpLaw": {
+      "file": "ImprovedBS/CompoundPoisson.lean",
+      "kind": "theorem",
+      "pin": "theorem charFun_cpLaw (lam : ℝ≥0) (ρ : Measure ℝ) (hρ : IsProbabilityMeasure ρ) (t : ℝ) : charFun (cpLaw lam ρ) t = Complex.exp ((lam : ℂ) * (charFun ρ t - 1))"
     },
     "BSM.cmDenom": {
       "file": "ImprovedBS/Fourier.lean",
@@ -1603,6 +1658,21 @@
       "kind": "def",
       "pin": "noncomputable def contourCharFun (μ : Measure ℝ) (v : ℂ) : ℂ := ∫ x, Complex.exp (Complex.I * v * ↑x) ∂μ"
     },
+    "BSM.convPow": {
+      "file": "ImprovedBS/CompoundPoisson.lean",
+      "kind": "def",
+      "pin": "noncomputable def convPow (ρ : Measure ℝ) : ℕ → Measure ℝ | 0 => Measure.dirac 0 | n + 1 => Measure.conv (convPow ρ n) ρ"
+    },
+    "BSM.convPow_isFiniteMeasure": {
+      "file": "ImprovedBS/CompoundPoisson.lean",
+      "kind": "theorem",
+      "pin": "theorem convPow_isFiniteMeasure (ρ : Measure ℝ) (hρ : IsProbabilityMeasure ρ) (n : ℕ) : IsFiniteMeasure (convPow ρ n)"
+    },
+    "BSM.convPow_isProbabilityMeasure": {
+      "file": "ImprovedBS/CompoundPoisson.lean",
+      "kind": "theorem",
+      "pin": "theorem convPow_isProbabilityMeasure (ρ : Measure ℝ) (hρ : IsProbabilityMeasure ρ) : ∀ n, IsProbabilityMeasure (convPow ρ n) | 0 => by rw [convPow]; infer_instance | n + 1 => by rw [convPow] haveI : IsProbabilityMeasure (convPow ρ n)"
+    },
     "BSM.cornerEsscherBound_tendsto": {
       "file": "ImprovedBS/Corner.lean",
       "kind": "theorem",
@@ -1652,6 +1722,21 @@
       "file": "ImprovedBS/Corner.lean",
       "kind": "theorem",
       "pin": "theorem cornerForward_numeraire (σ G M Y r q : ℝ) (hG : 0 < G) (hM : 1 < M) : cornerForwardExponent σ G M Y r q (-Complex.I) = ((r - q : ℝ) : ℂ)"
+    },
+    "BSM.cpLaw": {
+      "file": "ImprovedBS/CompoundPoisson.lean",
+      "kind": "def",
+      "pin": "noncomputable def cpLaw (lam : ℝ≥0) (ρ : Measure ℝ) : Measure ℝ := Measure.sum (fun n => ENNReal.ofReal (poissonPMFReal lam n) • convPow ρ n)"
+    },
+    "BSM.cpLaw_apply_univ": {
+      "file": "ImprovedBS/CompoundPoisson.lean",
+      "kind": "theorem",
+      "pin": "theorem cpLaw_apply_univ (lam : ℝ≥0) (ρ : Measure ℝ) (hρ : IsProbabilityMeasure ρ) : cpLaw lam ρ Set.univ = 1"
+    },
+    "BSM.cpLaw_isProbabilityMeasure": {
+      "file": "ImprovedBS/CompoundPoisson.lean",
+      "kind": "theorem",
+      "pin": "theorem cpLaw_isProbabilityMeasure (lam : ℝ≥0) (ρ : Measure ℝ) (hρ : IsProbabilityMeasure ρ) : IsProbabilityMeasure (cpLaw lam ρ)"
     },
     "BSM.d1": {
       "file": "ImprovedBS/Core.lean",

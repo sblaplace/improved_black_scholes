@@ -143,6 +143,17 @@ theorem charFun_cpLaw (lam : ℝ≥0) (ρ : Measure ℝ) (hρ : IsProbabilityMea
   haveI hprob : ∀ n, IsProbabilityMeasure (convPow ρ n) := convPow_isProbabilityMeasure ρ hρ
   have hsum : HasSum (fun n => poissonPMFReal lam n) 1 := by
     simpa only [poissonPMFReal] using hasSum_one_poissonMeasure lam
+  -- the convolution-power identity, written inline so that the mixture's own
+  -- proof body consumes the shipped convolution exchange `charFun_conv` (R2);
+  -- the standalone `charFun_convPow` below is the same induction, stated for reuse
+  have hpow : ∀ n, charFun (convPow ρ n) t = charFun ρ t ^ n := by
+    intro n
+    induction n with
+    | zero => rw [convPow, pow_zero, charFun_dirac]; simp
+    | succ n ih =>
+        haveI hn : IsFiniteMeasure (convPow ρ n) := convPow_isFiniteMeasure ρ hρ n
+        haveI hρf : IsFiniteMeasure ρ := ⟨by rw [measure_univ]; exact ENNReal.one_lt_top⟩
+        rw [convPow, charFun_conv, ih, pow_succ]
   have htsum : ∀ z : ℂ, ∑' n, (poissonPMFReal lam n : ℂ) * z ^ n
       = Complex.exp ((lam : ℂ) * (z - 1)) := by
     intro z
@@ -166,7 +177,8 @@ theorem charFun_cpLaw (lam : ℝ≥0) (ρ : Measure ℝ) (hρ : IsProbabilityMea
   have hint : Integrable (fun x : ℝ => Complex.exp (t * x * I)) (cpLaw lam ρ) := by
     rw [cpLaw]
     refine integrable_sum_measure (fun n => ?_) ?_
-    · haveI hf : IsFiniteMeasure (ENNReal.ofReal (poissonPMFReal lam n) • convPow ρ n) :=
+    · haveI hn : IsProbabilityMeasure (convPow ρ n) := hprob n
+      haveI hf : IsFiniteMeasure (ENNReal.ofReal (poissonPMFReal lam n) • convPow ρ n) :=
         ⟨by rw [Measure.smul_apply, smul_eq_mul, measure_univ, mul_one]
             exact ENNReal.ofReal_lt_top⟩
       refine Integrable.of_bound ?_ 1 (ae_of_all _ fun x => ?_)
@@ -202,7 +214,7 @@ theorem charFun_cpLaw (lam : ℝ≥0) (ρ : Measure ℝ) (hρ : IsProbabilityMea
     haveI : IsFiniteMeasure (convPow ρ n) := convPow_isFiniteMeasure ρ hρ n
     rw [integral_smul_measure,
       ENNReal.toReal_ofReal (show (0 : ℝ) ≤ poissonPMFReal lam n from poissonPMFReal_nonneg),
-      Complex.real_smul, ← charFun_apply_real, charFun_convPow ρ hρ t n]
+      Complex.real_smul, ← charFun_apply_real, hpow n]
   simp_rw [hterm]
   exact htsum (charFun ρ t)
 
@@ -246,49 +258,51 @@ theorem cgmyJumpMass_lt_top (C G M Y : ℝ) (ε : ℝ≥0) (hC : 0 < C) (hG : 0 
   rw [cgmyJumpMeasure, withDensity_apply _ MeasurableSet.univ, Measure.restrict_univ]
   have hset : MeasurableSet {x : ℝ | (ε : ℝ) ≤ |x|} :=
     measurableSet_le measurable_const continuous_abs.measurable
-  -- the far-field integrability, inherited from the landed moment theorem
+  -- (i) the far positive tail: the landed far-field moment, at the density's own rate
   have hfarM : IntegrableOn (fun x : ℝ => C * (Real.exp (-M * x) * x ^ (-1 - Y))) (Ioi 1) := by
     simpa only [sub_zero] using cgmy_levy_far_moment C M Y 0 hC hY hM
-  have hfarG : IntegrableOn (fun x : ℝ => C * (Real.exp (-G * x) * x ^ (-1 - Y)))
-      (Ioi (-(-1))) := by
-    simpa only [sub_zero, neg_neg] using cgmy_levy_far_moment C G Y 0 hC hY hG
-  have hmirror : IntegrableOn (fun x : ℝ => C * (Real.exp (-G * (-x)) * (-x) ^ (-1 - Y)))
-      (Iic (-1)) :=
-    Iff.mpr integrableOn_Iic_iff_integrableOn_Iio (IntegrableOn.comp_neg_Iio hfarG)
-  have hpos : IntegrableOn (fun x : ℝ => cgmyLevyDensity C G M Y x) (Ioi 1) :=
-    hfarM.congr_fun_ae (by
-      filter_upwards [ae_restrict_mem measurableSet_Ioi] with x hx
-      rw [cgmyLevyDensity_pos_of_pos (lt_trans zero_lt_one (mem_Ioi.mp hx))]
-      ring)
-  have hneg : IntegrableOn (fun x : ℝ => cgmyLevyDensity C G M Y x) (Iic (-1)) :=
-    hmirror.congr_fun_ae (by
-      filter_upwards [ae_restrict_mem measurableSet_Iic] with x hx
-      have hx0 : x < 0 := lt_of_le_of_lt (by simpa using hx) (by norm_num)
-      rw [cgmyLevyDensity_neg_of_neg hx0]
-      have harg : G * x = -G * (-x) := by ring
-      rw [harg]
-      ring)
-  -- the far positive piece
+  have hfarM_nn : ∀ᵐ x ∂(volume.restrict (Ioi 1)),
+      0 ≤ C * (Real.exp (-M * x) * x ^ (-1 - Y)) := by
+    filter_upwards [ae_restrict_mem measurableSet_Ioi] with x _hx
+    exact mul_nonneg hC.le (mul_nonneg (Real.exp_nonneg _) (Real.rpow_nonneg (abs_nonneg x) _))
   have p₁ : ∫⁻ x in {x : ℝ | (ε : ℝ) ≤ |x|} ∩ Ioi 1,
       ENNReal.ofReal (cgmyLevyDensity C G M Y x) < ⊤ := by
     calc ∫⁻ x in {x : ℝ | (ε : ℝ) ≤ |x|} ∩ Ioi 1,
           ENNReal.ofReal (cgmyLevyDensity C G M Y x)
-        ≤ ∫⁻ x in Ioi 1, ENNReal.ofReal (cgmyLevyDensity C G M Y x) :=
-          lintegral_mono_set inter_subset_right
-      _ = ENNReal.ofReal (∫ x in Ioi 1, cgmyLevyDensity C G M Y x) :=
-          (ofReal_integral_eq_lintegral_ofReal hpos
-            (ae_of_all _ fun x => cgmyLevyDensity_nonneg hC.le x)).symm
+        ≤ ∫⁻ x in Ioi 1,
+            ENNReal.ofReal (C * (Real.exp (-M * x) * x ^ (-1 - Y))) := by
+          refine lintegral_mono_ae ?_
+          filter_upwards [ae_restrict_mem (hset.inter measurableSet_Ioi)] with x hx
+          have hx0 : 0 < x := lt_trans zero_lt_one hx.2
+          refine ENNReal.ofReal_le_ofReal ?_
+          rw [cgmyLevyDensity_pos_of_pos hx0]
+          ring
+      _ = ENNReal.ofReal (∫ x in Ioi 1, C * (Real.exp (-M * x) * x ^ (-1 - Y))) :=
+          (ofReal_integral_eq_lintegral_ofReal hfarM hfarM_nn).symm
       _ < ⊤ := ENNReal.ofReal_lt_top
-  -- the far negative piece
+  -- (ii) the far negative tail: the mirror exponential, dominated on `-x ≥ 1`
+  have hmir : IntegrableOn (fun x : ℝ => C * Real.exp (G * x)) (Iic (-1)) :=
+    (integrableOn_exp_mul_Iic hG (-1)).const_mul C
+  have hmir_nn : ∀ᵐ x ∂(volume.restrict (Iic (-1))), 0 ≤ C * Real.exp (G * x) :=
+    ae_of_all _ fun x => mul_nonneg hC.le (Real.exp_nonneg x)
   have p₃ : ∫⁻ x in {x : ℝ | (ε : ℝ) ≤ |x|} ∩ Iic (-1),
       ENNReal.ofReal (cgmyLevyDensity C G M Y x) < ⊤ := by
     calc ∫⁻ x in {x : ℝ | (ε : ℝ) ≤ |x|} ∩ Iic (-1),
           ENNReal.ofReal (cgmyLevyDensity C G M Y x)
-        ≤ ∫⁻ x in Iic (-1), ENNReal.ofReal (cgmyLevyDensity C G M Y x) :=
-          lintegral_mono_set inter_subset_right
-      _ = ENNReal.ofReal (∫ x in Iic (-1), cgmyLevyDensity C G M Y x) :=
-          (ofReal_integral_eq_lintegral_ofReal hneg
-            (ae_of_all _ fun x => cgmyLevyDensity_nonneg hC.le x)).symm
+        ≤ ∫⁻ x in Iic (-1), ENNReal.ofReal (C * Real.exp (G * x)) := by
+          refine lintegral_mono_ae ?_
+          filter_upwards [ae_restrict_mem (hset.inter measurableSet_Iic)] with x hx
+          have hx0 : x < 0 := lt_of_le_of_lt hx.2 (by norm_num)
+          refine ENNReal.ofReal_le_ofReal ?_
+          rw [cgmyLevyDensity_neg_of_neg hx0]
+          calc C * Real.exp (G * x) * (-x) ^ (-1 - Y)
+              ≤ C * Real.exp (G * x) * 1 :=
+                mul_le_mul_of_nonneg_left
+                  (Real.rpow_le_one_of_one_le_of_nonpos (by linarith) (by linarith))
+                  (mul_nonneg hC.le (Real.exp_nonneg _))
+            _ = C * Real.exp (G * x) := by ring
+      _ = ENNReal.ofReal (∫ x in Iic (-1), C * Real.exp (G * x)) :=
+          (ofReal_integral_eq_lintegral_ofReal hmir hmir_nn).symm
       _ < ⊤ := ENNReal.ofReal_lt_top
   -- the window: the truncation alone bounds the density
   have p₂ : ∫⁻ x in {x : ℝ | (ε : ℝ) ≤ |x|} ∩ Icc (-1) 1,
@@ -566,26 +580,39 @@ theorem charFun_cgmyCpLaw (C G M Y : ℝ) (ε : ℝ≥0) (hC : 0 < C) (hG : 0 < 
         (ae_of_all _ fun x => ENNReal.ofReal_lt_top),
       cgmyTruncatedExponent]
     refine integral_congr_ae (Eventually.of_forall fun x => ?_)
-    rw [ENNReal.toReal_ofReal (cgmyLevyDensity_nonneg hC.le x), Complex.real_smul,
-      Complex.ofReal_mul]
+    rw [ENNReal.toReal_ofReal (cgmyLevyDensity_nonneg hC.le x), Complex.real_smul]
+    ring
+  -- splitting the integral at `e^{itx} = 1`: mass plus the honest integrand
+  have hsplit : (∫ x, Complex.exp (t * x * I) ∂(cgmyJumpMeasure C G M Y ε))
+      = ((cgmyJumpMeasure C G M Y ε Set.univ).toReal : ℂ)
+        + ∫ x, (Complex.exp (t * x * I) - 1) ∂(cgmyJumpMeasure C G M Y ε) := by
+    rw [← hsub, hone_int]
     ring
   -- assemble: the two normalisations cancel
   have hkey : charFun (cgmyJumpLaw C G M Y ε) t - 1
       = ((cgmyJumpMeasure C G M Y ε Set.univ).toReal : ℂ)⁻¹ *
         cgmyTruncatedExponent C G M Y ε (t : ℂ) := by
-    rw [hchar, ← hdens, ← hsub, hone_int, mul_sub, inv_mul_cancel₀ hmassreal_ne]
-  -- the rate's `λ_ε` cancels the normalisation of the law
+    have hA : ((cgmyJumpMeasure C G M Y ε Set.univ).toReal : ℂ)⁻¹ *
+        ((cgmyJumpMeasure C G M Y ε Set.univ).toReal : ℂ) = 1 :=
+      inv_mul_cancel₀ hmassreal_ne
+    rw [hchar, hsplit, hdens, mul_add, hA]
+    ring
+  -- the rate's own mass cancels the normalisation of the law
   have hprod : ((τ : ℂ) * ((cgmyJumpMeasure C G M Y ε Set.univ).toReal : ℂ)) *
       (((cgmyJumpMeasure C G M Y ε Set.univ).toReal : ℂ)⁻¹ *
         cgmyTruncatedExponent C G M Y ε (t : ℂ))
       = (τ : ℂ) * cgmyTruncatedExponent C G M Y ε (t : ℂ) := by
-    rw [mul_assoc (τ : ℂ) ((cgmyJumpMeasure C G M Y ε Set.univ).toReal : ℂ)]
-    rw [← mul_assoc ((cgmyJumpMeasure C G M Y ε Set.univ).toReal : ℂ)
-      (((cgmyJumpMeasure C G M Y ε Set.univ).toReal : ℂ)⁻¹)
-      (cgmyTruncatedExponent C G M Y ε (t : ℂ))]
-    rw [mul_comm ((cgmyJumpMeasure C G M Y ε Set.univ).toReal : ℂ)
-      (((cgmyJumpMeasure C G M Y ε Set.univ).toReal : ℂ)⁻¹), inv_mul_cancel₀ hmassreal_ne,
-      one_mul]
+    have hA : ((cgmyJumpMeasure C G M Y ε Set.univ).toReal : ℂ) *
+        ((cgmyJumpMeasure C G M Y ε Set.univ).toReal : ℂ)⁻¹ = 1 :=
+      mul_inv_cancel₀ hmassreal_ne
+    calc ((τ : ℂ) * ((cgmyJumpMeasure C G M Y ε Set.univ).toReal : ℂ)) *
+          (((cgmyJumpMeasure C G M Y ε Set.univ).toReal : ℂ)⁻¹ *
+            cgmyTruncatedExponent C G M Y ε (t : ℂ))
+        = (τ : ℂ) * (((cgmyJumpMeasure C G M Y ε Set.univ).toReal : ℂ) *
+            ((cgmyJumpMeasure C G M Y ε Set.univ).toReal : ℂ)⁻¹ *
+              cgmyTruncatedExponent C G M Y ε (t : ℂ)) := by ring
+      _ = (τ : ℂ) * (1 * cgmyTruncatedExponent C G M Y ε (t : ℂ)) := by rw [hA]
+      _ = (τ : ℂ) * cgmyTruncatedExponent C G M Y ε (t : ℂ) := by ring
   have hcoe : ((τ * (cgmyJumpMeasure C G M Y ε Set.univ).toNNReal : ℝ≥0) : ℂ)
       = (τ : ℂ) * ((cgmyJumpMeasure C G M Y ε Set.univ).toReal : ℂ) := by
     have hreal : ((τ * (cgmyJumpMeasure C G M Y ε Set.univ).toNNReal : ℝ≥0) : ℝ)

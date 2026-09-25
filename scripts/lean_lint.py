@@ -531,6 +531,28 @@ REQUIRED = {
     "vg_modelFree_call_bounds": "ImprovedBS/VGLaw.lean",
     "vg_modelFree_put_bounds": "ImprovedBS/VGLaw.lean",
     "vg_modelFree_parity": "ImprovedBS/VGLaw.lean",
+    # BRIEF_019: the compound-Poisson law and the truncated CGMY jump law. Five
+    # defs are specifications (the mixture is `Measure.sum`-built from
+    # `poissonPMFReal` and `convPow`; the jump law is the landed CGMY density over
+    # the *symmetric* truncation, with no compensator), and all 17 declarations
+    # are PROTECTED.
+    "convPow": "ImprovedBS/CompoundPoisson.lean",
+    "cpLaw": "ImprovedBS/CompoundPoisson.lean",
+    "cgmyJumpMeasure": "ImprovedBS/CompoundPoisson.lean",
+    "cgmyJumpLaw": "ImprovedBS/CompoundPoisson.lean",
+    "cgmyTruncatedExponent": "ImprovedBS/CompoundPoisson.lean",
+    "convPow_isFiniteMeasure": "ImprovedBS/CompoundPoisson.lean",
+    "convPow_isProbabilityMeasure": "ImprovedBS/CompoundPoisson.lean",
+    "charFun_convPow": "ImprovedBS/CompoundPoisson.lean",
+    "cpLaw_isProbabilityMeasure": "ImprovedBS/CompoundPoisson.lean",
+    "cpLaw_apply_univ": "ImprovedBS/CompoundPoisson.lean",
+    "charFun_cpLaw": "ImprovedBS/CompoundPoisson.lean",
+    "cgmyJumpMass_lt_top": "ImprovedBS/CompoundPoisson.lean",
+    "cgmyJumpMass_pos": "ImprovedBS/CompoundPoisson.lean",
+    "cgmyJumpLaw_isProbabilityMeasure": "ImprovedBS/CompoundPoisson.lean",
+    "cgmyTruncatedExponent_integrable": "ImprovedBS/CompoundPoisson.lean",
+    "cgmyTruncatedExponent_zero": "ImprovedBS/CompoundPoisson.lean",
+    "charFun_cgmyCpLaw": "ImprovedBS/CompoundPoisson.lean",
 }
 
 # Zero deferred-proof markers allowed. The T1/T2 node per BRIEF_001; the T3/T4
@@ -850,6 +872,24 @@ PROTECTED = {
     "vg_modelFree_call_bounds",
     "vg_modelFree_put_bounds",
     "vg_modelFree_parity",
+    # BRIEF_019: all 17 declarations of CompoundPoisson.lean.
+    "convPow",
+    "cpLaw",
+    "cgmyJumpMeasure",
+    "cgmyJumpLaw",
+    "cgmyTruncatedExponent",
+    "convPow_isFiniteMeasure",
+    "convPow_isProbabilityMeasure",
+    "charFun_convPow",
+    "cpLaw_isProbabilityMeasure",
+    "cpLaw_apply_univ",
+    "charFun_cpLaw",
+    "cgmyJumpMass_lt_top",
+    "cgmyJumpMass_pos",
+    "cgmyJumpLaw_isProbabilityMeasure",
+    "cgmyTruncatedExponent_integrable",
+    "cgmyTruncatedExponent_zero",
+    "charFun_cgmyCpLaw",
 }
 
 # The T5 node, in dependency order, and the two citations docs/04's spine
@@ -1011,6 +1051,49 @@ AXIOM_ALLOWLIST: set[str] = set()
 # Any one of these in a parity proof means the odd symmetry of the normal law was
 # actually used. See the INDEPENDENCE check for why three names and not one.
 ODD_SYMMETRY_WITNESSES = frozenset({"Phi_add_Phi_neg", "Phi_neg", "erf_neg"})
+
+# BRIEF_019's `[CPOISSON]` route commitments. The mixture must be the mixture
+# (R1: no hand-rolled density, no pushed-forward Poisson law -- the latter is
+# right only for `ρ = δ₁`); the CF must consume the shipped sum/integral exchange
+# and the shipped convolution exchange (R2: not `charFun_map_cast_poissonMeasure`,
+# which is the route-check's numeric canary, not the proof of the general
+# theorem); the jump law must be built from the landed CGMY density, with its
+# far-field integrability inherited from `cgmy_levy_far_moment` (R3: no second
+# density function in the module); and the truncation must stay symmetric with no
+# compensator (R4). R4's two halves are *measured* cheat classes, not style: the
+# one-sided truncation leaves the near-zero `i v x` piece without a cancellation
+# partner (the error exponent is measured at `+0.4929` at `Y = 1/2` instead of
+# `-0.4798` at `Y = 3/2`), and the compensated exponent is the translated law
+# `A_ε - i v m^∞`, whose value differs from the tree's `ψ_0` by `O(v)`.
+CPOISSON_LAW = "cpLaw"
+CPOISSON_LAW_CITES = ("Measure.sum", "poissonPMFReal", "convPow")
+CPOISSON_LAW_FORBIDS = (r"\bwithDensity\b", r"\bMeasure\.map\b", r"\bPo\b")
+CPOISSON_CF = "charFun_cpLaw"
+CPOISSON_CF_CITES = ("charFun_conv",)
+CPOISSON_CF_EXCHANGE = ("integral_sum_measure", "hasSum_integral_measure")
+CPOISSON_CF_FORBIDS = (r"\bcharFun_map_cast_poissonMeasure\b",)
+CPOISSON_JUMP = "cgmyJumpMeasure"
+CPOISSON_JUMP_DENSITY = "cgmyLevyDensity"
+# the *symmetric* truncation, as written: `{x | (ε : ℝ) ≤ |x|}`
+CPOISSON_JUMP_SET = re.compile(r"\{\s*x\s*:\s*ℝ\s*\|\s*\(\s*ε\s*:\s*ℝ\s*\)\s*≤\s*\|x\|\s*\}")
+CPOISSON_MASS = "cgmyJumpMass_lt_top"
+CPOISSON_MASS_CITES = ("cgmy_levy_far_moment",)
+CPOISSON_EXPONENT = "cgmyTruncatedExponent"
+# R4(a): half-line truncations at the truncation parameter, whitespace-insensitive.
+CPOISSON_HALFLINE = (
+    "Ioiε", "Ioi(ε", "Ioi(-ε", "Ioi(-(ε", "Ioi(0-ε", "Ioi(ε:ℝ",
+    "Iciε", "Ici(ε", "Ici(-ε", "Ici(0-ε", "Ici(ε:ℝ",
+    "Iicε", "Iic(ε", "Iic(-ε", "Iic(-(ε", "Iic(0-ε", "Iic(ε:ℝ",
+    "Iioε", "Iio(ε", "Iio(-ε", "Iio(0-ε", "Iio(ε:ℝ",
+    "Icpε", "Icoε", "Icc(0-ε",
+    "{ε≤", "{x|ε≤", "{x:ℝ|ε≤", "{ε<", "{x|ε<", "{x:ℝ|ε<",
+    "(ε:ℝ)≤x}", "-ε≤x}", "x≤-ε}", "x≤-(ε:ℝ)}", "(ε:ℝ)<x}",
+)
+# R4(b): a compensation term inside `cgmyTruncatedExponent`, in its spellings.
+CPOISSON_COMPENSATOR = (
+    "-v*x*I", "-(v*x*I)", "-v*(x:ℂ)*I", "-(v*(x:ℂ)*I)", "-v*x", "-v*(x:ℂ)",
+    "-Complex.I*v*x", "-I*v*x", "-v*x*Complex.I",
+)
 
 MARKERS = ("sorry", "admit", "native_decide")
 
@@ -2229,6 +2312,144 @@ def main() -> int:
                 "`gammaMeasure`-built with no `withDensity`; `gammaMeasure_mgf` consumes "
                 "the Γ integral; the tilt is a density over its mgf and the numeraire "
                 "is cited from `esscher_tilted_numeraire`"
+            )
+
+    # [CPOISSON] BRIEF_019: the compound-Poisson mixture and the truncated CGMY
+    # jump law. `lake build` grades that the theorems are true; this grades that
+    # they are the objects the brief asked for -- the direct general-case proof,
+    # not the `δ₁` canary, and not the one-sided/compensated variant whose
+    # divergence and translation the route-check measures. Bodies are
+    # comment-stripped, so a doc-comment may name the forbidden spellings.
+    cpoisson_path = os.path.join(ROOT, "ImprovedBS", "CompoundPoisson.lean")
+    if not os.path.exists(cpoisson_path):
+        failures.append("[CPOISSON] ImprovedBS/CompoundPoisson.lean not found")
+    else:
+        cpoisson_clean = strip_comments(open(cpoisson_path, encoding="utf-8").read())
+        cpoisson_bodies = {name: body for _, name, _, body in declarations(cpoisson_clean)}
+        cpoisson_squashed = {
+            name: re.sub(r"\s+", "", body) for name, body in cpoisson_bodies.items()
+        }
+        cpoisson_failures: list[str] = []
+
+        def cp_body(name: str) -> str:
+            body = cpoisson_bodies.get(name, "")
+            if body == "":
+                cpoisson_failures.append(f"[CPOISSON] `{name}` not found")
+            return body
+
+        def cp_rhs(name: str) -> str:
+            body = cp_body(name)
+            return " ".join((body.split(":=", 1)[1] if ":=" in body else "").split())
+
+        # (R1) the mixture is the mixture
+        rhs = cp_rhs(CPOISSON_LAW)
+        if rhs:
+            for cite in CPOISSON_LAW_CITES:
+                if not re.search(r"\b" + re.escape(cite) + r"\b", rhs):
+                    cpoisson_failures.append(
+                        f"[CPOISSON] `{CPOISSON_LAW}` no longer cites `{cite}`. The law is "
+                        "the Poisson mixture of convolution powers, not another construction."
+                    )
+            for pat in CPOISSON_LAW_FORBIDS:
+                if re.search(pat, rhs):
+                    cpoisson_failures.append(
+                        f"[CPOISSON] `{CPOISSON_LAW}` builds the law through {pat!r}: a "
+                        "hand-rolled density, a pushed-forward law, or mathlib's Poisson "
+                        "law, which is the mixture only for `ρ = δ₁`."
+                    )
+        # (R2) the CF consumes the shipped sum/integral and convolution exchanges
+        body = cp_body(CPOISSON_CF)
+        if body:
+            for cite in CPOISSON_CF_CITES:
+                if not re.search(r"\b" + re.escape(cite) + r"\b", body):
+                    cpoisson_failures.append(
+                        f"[CPOISSON] `{CPOISSON_CF}` does not cite `{cite}`. The convolution "
+                        "powers must come from the shipped convolution exchange."
+                    )
+            if not any(re.search(r"\b" + re.escape(c) + r"\b", body) for c in CPOISSON_CF_EXCHANGE):
+                cpoisson_failures.append(
+                    "[CPOISSON] `charFun_cpLaw` cites neither `integral_sum_measure` nor "
+                    "`hasSum_integral_measure`: the sum/integral exchange is consumed, "
+                    "not re-derived."
+                )
+            for pat in CPOISSON_CF_FORBIDS:
+                if re.search(pat, body):
+                    cpoisson_failures.append(
+                        "[CPOISSON] `charFun_cpLaw` proves the general identity from "
+                        "`charFun_map_cast_poissonMeasure`: that is the `ρ = δ₁` instance "
+                        "(the route-check's numeric canary), not the theorem."
+                    )
+        # (R3) the jump law is built from the landed density; the mass is inherited
+        rhs = cp_rhs(CPOISSON_JUMP)
+        if rhs:
+            if not re.search(r"\b" + re.escape(CPOISSON_JUMP_DENSITY) + r"\b", rhs):
+                cpoisson_failures.append(
+                    f"[CPOISSON] `{CPOISSON_JUMP}` no longer reads the landed "
+                    f"`{CPOISSON_JUMP_DENSITY}`."
+                )
+            if not CPOISSON_JUMP_SET.search(rhs):
+                cpoisson_failures.append(
+                    f"[CPOISSON] `{CPOISSON_JUMP}` no longer truncates to the symmetric set "
+                    "`{x | (ε : ℝ) ≤ |x|}`."
+                )
+        body = cp_body(CPOISSON_MASS)
+        if body and not any(
+            re.search(r"\b" + re.escape(c) + r"\b", body) for c in CPOISSON_MASS_CITES
+        ):
+            cpoisson_failures.append(
+                f"[CPOISSON] `{CPOISSON_MASS}` does not cite `{CPOISSON_MASS_CITES[0]}`: "
+                "the far-field integrability is inherited from the landed moment, not "
+                "re-derived."
+            )
+        density_sites = [
+            name for name, body in cpoisson_bodies.items() if re.search(r"\bwithDensity\b", body)
+        ]
+        if density_sites != [CPOISSON_JUMP]:
+            cpoisson_failures.append(
+                "[CPOISSON] the module's `withDensity` sites are "
+                f"{density_sites}, not just `{CPOISSON_JUMP}`: a second density function "
+                "is a second specification."
+            )
+        # (R4) symmetric truncation only, and no compensator
+        for name, squashed in cpoisson_squashed.items():
+            for pat in CPOISSON_HALFLINE:
+                if pat in squashed:
+                    cpoisson_failures.append(
+                        f"[CPOISSON] `{name}` truncates a half-line at ε ({pat!r}). The "
+                        "truncation must be the symmetric set: the one-sided version "
+                        "leaves the near-zero `i v x` piece without its cancellation "
+                        "partner (measured: error exponent `+0.4929` at `Y = 1/2`)."
+                    )
+                    break
+        body = cp_body(CPOISSON_EXPONENT)
+        if body:
+            if "-1" not in re.sub(r"\s+", "", body):
+                cpoisson_failures.append(
+                    f"[CPOISSON] `{CPOISSON_EXPONENT}` no longer integrates "
+                    "`(e^{ivx} − 1)`: the `− 1` is the compensate-at-zero convention."
+                )
+            squashed = re.sub(r"\s+", "", body)
+            for pat in CPOISSON_COMPENSATOR:
+                if pat in squashed:
+                    cpoisson_failures.append(
+                        f"[CPOISSON] `{CPOISSON_EXPONENT}` carries the compensator "
+                        f"({pat!r}): that exponent is the translated law `A_ε − i v m^∞`, "
+                        "not the tree's `ψ₀`."
+                    )
+                    break
+
+        if cpoisson_failures:
+            failures.extend(cpoisson_failures)
+        else:
+            notes.append(
+                "[CPOISSON] `cpLaw` is the `Measure.sum` mixture of `poissonPMFReal` "
+                "and `convPow`, with no `withDensity`/`Measure.map`; `charFun_cpLaw` "
+                "consumes `charFun_conv` and the sum/integral exchange and never "
+                "`charFun_map_cast_poissonMeasure`; `cgmyJumpMeasure` is the landed "
+                "`cgmyLevyDensity` over the symmetric truncation and is the module's "
+                "only density; `cgmyJumpMass_lt_top` inherits `cgmy_levy_far_moment`; "
+                "no declaration truncates a half-line at ε and `cgmyTruncatedExponent` "
+                "carries no compensator"
             )
 
     if "--write-baseline" in sys.argv:
