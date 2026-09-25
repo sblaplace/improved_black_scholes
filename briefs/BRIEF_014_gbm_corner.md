@@ -1,9 +1,21 @@
 # BRIEF_014 — the normalized CGMY → GBM corner (BSM-2 kit item 6)
 
-- **Status: ISSUED, NOT LANDED** (2026-09-25). The route has been checked
-  numerically with `python3 scripts/check_gbm_corner.py`; **no Lean theorem,
-  statement pin, or audit entry for this brief exists yet**. The script is a
-  pre-brief contradiction detector, not evidence of a proved limit.
+- **Status: LANDED GREEN** (2026-09-25; PR #22, lean run 36111570530, oracle
+  lane 36111570572 — `benchmarks/LEDGER.md` row 14 and its CI history).
+  `ImprovedBS/Corner.lean`: 17 declarations (2 defs + 15 audited theorems, all
+  in `REQUIRED` + `PROTECTED`), statement pins 240 → 257 in both layers with
+  the 240 pre-existing entries byte-identical, audit list 211 → 226, all on
+  `[propext, Classical.choice, Quot.sound]` and never `sorryAx`. The route
+  check the lines below describe is now a committed oracle test,
+  `tests/test_bs.py::test_gbm_corner` — `scripts/check_gbm_corner.py` was
+  deleted when its routes moved (ledger C18 item 1) — with mutants M22 (doubled
+  scale) and M23 (dropped drift correction) killed by it; the `[CORNER]` lint
+  check adds five more (G1–G5). Two deviations from this text, both recorded in
+  C18: `cgmyBracket_tendsto` is stated with `0 < M` rather than `M > 1`
+  (item 2), and the brief's numeric table is re-run rather than re-read.
+  What is proved is pointwise convergence of the characteristic exponent and
+  factor, one-sided as `Y ↑ 2`; it is **not** a CGMY law, a price limit, or an
+  interchange with the pricing integral.
 - **Prerequisites:** BRIEF_011 (`cgmyExponent`, `cgmyExponent_strip`,
   `cgmyCharFactor`), BRIEF_013 (`cgmyCumulant`, `cgmyGamma_two_sub_eq`,
   `esscher_cgmy_shift`, `esscherThetaZero`, `esscherDriftMap_zero`,

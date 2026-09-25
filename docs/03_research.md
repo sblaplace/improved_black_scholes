@@ -206,20 +206,34 @@ one above — **in the same tree, under the same skeleton**, with all seven of:
    widening preserves the skeleton" is a theorem schema now, and every later
    law inherits T2/T4 by supplying three facts (`Integrable X`, the drift
    condition, `0 ≤ X`) and plugging in.
-6. **GBM comes back at the corner — BRIEF_014 ISSUED, not yet proved.** For
+6. **GBM comes back at the corner — LANDED as BRIEF_014** (PR #22, lean run
+   36111570530, 2026-09-25; `ImprovedBS/Corner.lean`). For
    `1 < Y < 2`, take `C_Y = (σ²/2)(2−Y)` as `Y ↑ 2`: then
    `C_Y Γ(−Y) → σ²/4` and the **uncorrected** CGMY exponent converges
    pointwise on the strip to `−(σ²/2)v² + i(σ²/2)(G−M)v`. A separately
    labelled *algebraic forward normalization* `i(r−q−κ_Y(1))v` gives the GBM
    risk-neutral exponent; at `r=q`, the **named Esscher selection**
    `θ₀=(M−G−1)/2` gives the same GBM limit and satisfies the numéraire
-   condition for every `Y`. BRIEF_014 specifies both without conflating them.
-   The old bare `Y → 2` with fixed `C` **diverges** (the `Γ(−Y)` pole), and
+   condition for every `Y`. The two routes are proved separately because they
+   are different selection principles: route A is `cornerForwardExponent`,
+   `Ψ_Y(v) = ψ_Y(v) + i(r−q−κ_Y(1))v`, whose numéraire identity
+   `Ψ_Y(−i) = r−q` is *exact at every `Y`* and consumes
+   `cgmyExponent_strip`, and route B is the BRIEF_013 shift
+   `esscher_cgmy_shift` consumed at the shifted rates `G′ = (G+M−1)/2`,
+   `M′ = (G+M+1)/2`, with `esscherDriftMap_zero` solving the drift equation
+   at `θ₀` for every `Y` — no drift correction at all, and no limiting root.
+   What landed is a **one-sided** limit, `Tendsto … (𝓝[<] 2) …`: the old bare
+   `Y → 2` with fixed `C` **diverges** (the `Γ(−Y)` pole), and
    `G,M → σ²/2` is **not** an alternative Gaussian limit; correction C17
-   records the error and the numerical counterexample. No limit is yet a
-   Lean theorem. Convergence of prices, or a CGMY probability measure to
-   connect this exponent to expectations, is a recorded deferral, not a
-   consequence of pointwise convergence.
+   records the error and the numerical counterexample. The route-check that
+   measured all of this is now a committed oracle test
+   (`tests/test_bs.py::test_gbm_corner`) with seeded mutants for the doubled
+   scale and the dropped drift correction. Convergence of prices, or a CGMY
+   probability measure to connect this exponent to expectations, is a
+   recorded deferral, not a consequence of pointwise convergence: the limit
+   holds at each fixed `v`, which is not a uniform dominating bound on the
+   pricing contour and does not license an interchange with the Carr–Madan
+   integral.
 7. **The selection principle's necessity is a theorem.** The tree contains a
    machine-checked non-uniqueness witness: two distinct probability measures,
    both satisfying the drift condition, giving *different* call prices —
