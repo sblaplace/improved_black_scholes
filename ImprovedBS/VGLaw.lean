@@ -86,74 +86,12 @@ integrand is a constant times the Γ integrand at rate `r − u`, moved onto
 `GammaIntegral_convergent`; off the positive half-line the density is zero. -/
 theorem gammaMeasure_exp_integrable (a r u : ℝ) (ha : 0 < a) (hr : 0 < r) (hu : u < r) :
     Integrable (fun x => Real.exp (u * x)) (gammaMeasure a r) := by
-  have hρ : 0 < r - u := sub_pos.mpr hu
-  let ρ := r - u
-  have hmeas : Measurable (gammaPDF a r) :=
-    ENNReal.continuous_ofReal.measurable.comp (measurable_gammaPDFReal a r)
-  have hlt : ∀ x, gammaPDF a r x < ⊤ := by
-    intro x
-    simp [gammaPDF]
-  rw [gammaMeasure, integrable_withDensity_iff hmeas (ae_of_all _ hlt)]
-  simp_rw [gammaPDF, ENNReal.toReal_ofReal (gammaPDFReal_nonneg ha hr _)]
-  -- the positive half-line, scaled from the Euler integral
-  have hbase : IntegrableOn (fun t : ℝ => Real.exp (-t) * t ^ (a - 1)) (Ioi 0) :=
-    Real.GammaIntegral_convergent ha
-  have hcomp : IntegrableOn (fun t => Real.exp (-(ρ * t)) * (ρ * t) ^ (a - 1)) (Ioi 0) :=
-    (integrableOn_Ioi_comp_mul_left_iff (fun t => Real.exp (-t) * t ^ (a - 1)) 0 hρ).mpr
-      (by simpa [mul_zero] using hbase)
-  have heq : EqOn (fun t => Real.exp (-(ρ * t)) * (ρ * t) ^ (a - 1))
-      (fun t => ρ ^ (a - 1) * (t ^ (a - 1) * Real.exp (-(ρ * t)))) (Ioi 0) := by
-    intro t ht
-    dsimp only [ρ]
-    rw [Real.mul_rpow hρ.le ht.le]
-    ring
-  have hmul : IntegrableOn (fun t => ρ ^ (a - 1) * (t ^ (a - 1) * Real.exp (-(ρ * t))))
-      (Ioi 0) :=
-    hcomp.congr_fun heq measurableSet_Ioi
-  have htarget : IntegrableOn (fun t => t ^ (a - 1) * Real.exp (-(ρ * t))) (Ioi 0) := by
-    have hc : ρ ^ (a - 1) ≠ 0 := (Real.rpow_pos_of_pos hρ _).ne'
-    unfold IntegrableOn at hmul ⊢
-    exact (integrable_const_mul_iff (IsUnit.mk0 _ hc) _).mp hmul
-  have hIoi : IntegrableOn (fun x => Real.exp (u * x) * gammaPDFReal a r x) (Ioi 0) := by
-    refine (htarget.const_mul (r ^ a / Real.Gamma a)).congr_fun ?_ measurableSet_Ioi
-    intro x hx
-    simp only [gammaPDFReal, if_pos hx.le]
-    have hexp : Real.exp (u * x) * Real.exp (-(r * x)) = Real.exp (-(ρ * x)) := by
-      rw [← Real.exp_add]
-      congr 1
-      ring
-    calc Real.exp (u * x) * (r ^ a / Real.Gamma a * x ^ (a - 1) * Real.exp (-(r * x)))
-        = r ^ a / Real.Gamma a * x ^ (a - 1) * (Real.exp (u * x) * Real.exp (-(r * x))) := by ring
-      _ = r ^ a / Real.Gamma a * (x ^ (a - 1) * Real.exp (-(ρ * x))) := by rw [hexp]; ring
-  -- off the positive half-line the density is zero; `{0}` is null
-  have hIio : IntegrableOn (fun x => Real.exp (u * x) * gammaPDFReal a r x) (Iio 0) := by
-    refine (integrableOn_zero (s := Iio (0 : ℝ))).congr_fun ?_ measurableSet_Iio
-    intro x hx
-    simp [gammaPDFReal, show ¬ 0 ≤ x from not_le.mpr hx]
-  have hpt : IntegrableOn (fun x => Real.exp (u * x) * gammaPDFReal a r x) ({(0 : ℝ)}) :=
-    IntegrableOn.of_measure_zero (by simp : volume {(0 : ℝ)} = 0)
-  have hIic : IntegrableOn (fun x => Real.exp (u * x) * gammaPDFReal a r x) (Iic 0) := by
-    have hunion : Iio (0 : ℝ) ∪ {(0 : ℝ)} = Iic 0 := by
-      ext x
-      simp only [mem_union, mem_Iio, mem_singleton_iff, mem_Iic]
-      constructor
-      · rintro (h | rfl); exact h.le; rfl
-      · intro hx
-        rcases lt_or_eq_of_le hx with h | rfl
-        · exact Or.inl h
-        · exact Or.inr rfl
-    rw [← hunion]
-    exact hIio.union hpt
-  have hcover : Ioi (0 : ℝ) ∪ Iic 0 = univ := by
-    ext x
-    simp only [mem_union, mem_Ioi, mem_Iic, mem_univ, iff_true]
-    exact (le_or_gt x 0).symm
-  rw [← integrableOn_univ, ← hcover]
-  exact hIoi.union hIic
+  haveI : IsProbabilityMeasure (gammaMeasure a r) := isProbabilityMeasure_gammaMeasure ha hr
+  have hpos : 0 < mgf id (gammaMeasure a r) u := by
+    rw [gammaMeasure_mgf a r u ha hr hu]
+    positivity
+  exact mgf_pos_iff.mp hpos
 
-/-- The mgf of a Gamma law: `mgf id (gammaMeasure a r) u = (r/(r−u))^a` for
-`u < r`. The one new analytical rung of the module, and it consumes the shipped
-Γ integral rather than re-deriving it. -/
 theorem gammaMeasure_mgf (a r u : ℝ) (ha : 0 < a) (hr : 0 < r) (hu : u < r) :
     mgf id (gammaMeasure a r) u = (r / (r - u)) ^ a := by
   have hρ : 0 < r - u := sub_pos.mpr hu
@@ -193,13 +131,10 @@ theorem gammaMeasure_mgf (a r u : ℝ) (ha : 0 < a) (hr : 0 < r) (hu : u < r) :
   rw [integral_congr_ae hae, integral_indicator measurableSet_Ioi, integral_const_mul,
     Real.integral_rpow_mul_exp_neg_mul_Ioi ha hρ]
   have hGne : Real.Gamma a ≠ 0 := (Real.Gamma_pos_of_pos ha).ne'
-  calc r ^ a / Real.Gamma a * ((1 / ρ) ^ a * Real.Gamma a)
-      = r ^ a * (1 / ρ) ^ a := by
-        rw [div_mul_eq_mul_div, mul_assoc, mul_div_assoc, div_self hGne, mul_one]
-    _ = r ^ a / ρ ^ a := by
-        rw [div_rpow zero_le_one hρ.le, one_rpow, mul_one_div]
-    _ = (r / ρ) ^ a := by
-        rw [← div_rpow hr.le hρ.le]
+  open Real in
+  rw [mul_div_assoc, mul_assoc, mul_div_cancel_right₀ _ hGne, div_rpow zero_le_one hρ.le,
+    one_rpow, mul_one_div, ← div_rpow hr.le hρ.le]
+  simp [ρ]
 
 /-! ## §3 the law -/
 
@@ -212,7 +147,7 @@ theorem vgLaw_isProbabilityMeasure (C G M τ : ℝ) (hC : 0 < C) (hτ : 0 < τ) 
     ext p
     simp
   rw [hsub, Measure.map_apply (measurable_fst.sub measurable_snd) MeasurableSet.univ]
-  have hpre : (fun p : ℝ × ℝ => p.1 - p.2) ⁻¹' univ = univ := by
+  have hpre : (Prod.fst - Prod.snd) ⁻¹' univ = univ := by
     ext p
     simp
   rw [hpre, ← univ_prod_univ, Measure.prod_prod]
@@ -243,6 +178,8 @@ theorem vgLaw_exp_integrable (C G M τ u : ℝ) (hC : 0 < C) (hτ : 0 < τ) (hG 
     congr 1
     ring
   rw [hfun]
+  haveI : SFinite (gammaMeasure (C * τ) M) := by rw [gammaMeasure]; infer_instance
+  haveI : SFinite (gammaMeasure (C * τ) G) := by rw [gammaMeasure]; infer_instance
   exact (gammaMeasure_exp_integrable (C * τ) M u hCτ hM h₂).mul_prod
     (gammaMeasure_exp_integrable (C * τ) G (-u) hCτ hG (by linarith))
 
@@ -266,6 +203,8 @@ theorem vgLaw_mgf (C G M τ u : ℝ) (hC : 0 < C) (hτ : 0 < τ) (hG : 0 < G) (h
     ring
   unfold mgf
   simp only [id_eq]
+  haveI : SFinite (gammaMeasure (C * τ) M) := by rw [gammaMeasure]; infer_instance
+  haveI : SFinite (gammaMeasure (C * τ) G) := by rw [gammaMeasure]; infer_instance
   rw [hfun, integral_prod_mul (μ := gammaMeasure (C * τ) M) (ν := gammaMeasure (C * τ) G)]
   have h1 := gammaMeasure_mgf (C * τ) M u hCτ hM h₂
   have h2 := gammaMeasure_mgf (C * τ) G (-u) hCτ hG (by linarith)
@@ -304,30 +243,25 @@ theorem vgCumulant_hasDerivAt (C G M u : ℝ) (hG : 0 < G) (hM : 0 < M) (h₁ : 
   have hGpos : 0 < G / (G + u) := div_pos hG (by linarith)
   have hdSub : HasDerivAt (fun x => M - x) (-1) u := by
     convert ((hasDerivAt_const u M).sub (hasDerivAt_id u)) using 1
-    ext x
-    simp [id]
+    · ext x
+      simp [id]
   have hdAdd : HasDerivAt (fun x => G + x) 1 u := by
     convert ((hasDerivAt_const u G).add (hasDerivAt_id u)) using 1
-    ext x
-    simp [id]
+    · ext x
+      simp [id]
   have hdDivM : HasDerivAt (fun x => M / (M - x)) (M / (M - u) ^ 2) u := by
     convert ((hasDerivAt_const u M).div hdSub hMu) using 1
-    ring_nf
+    · ring_nf
   have hdDivG : HasDerivAt (fun x => G / (G + x)) (-G / (G + u) ^ 2) u := by
     convert ((hasDerivAt_const u G).div hdAdd hGu) using 1
-    ring_nf
+    · ring_nf
   have hdLogM : HasDerivAt (fun x => Real.log (M / (M - x))) (1 / (M - u)) u := by
     open Real in
     convert hdDivM.log hMpos.ne' using 1
-    field_simp
-    ring_nf
   have hdLogG : HasDerivAt (fun x => Real.log (G / (G + x))) (-(1 / (G + u))) u := by
     open Real in
     convert hdDivG.log hGpos.ne' using 1
-    field_simp
-    ring_nf
   convert (hdLogM.add hdLogG).const_mul C using 1
-  ring_nf
 
 /-! ## §4 the corner, as a limit -/
 
@@ -342,12 +276,11 @@ theorem vgCumulant_eq_corner_re (C G M u : ℝ) (hG : 0 < G) (hM : 0 < M) (h₁ 
   unfold vgCumulant vgCornerExponent
   have hbaseM : (M : ℂ) - Complex.I * (-(u : ℂ) * Complex.I) = (M - u : ℝ) := by
     push_cast
-    ring_nf
+    noncomm_ring
   have hbaseG : (G : ℂ) + Complex.I * (-(u : ℂ) * Complex.I) = (G + u : ℝ) := by
     push_cast
-    ring_nf
-  rw [hbaseM, hbaseG, ← Complex.ofReal_div (by linarith : M - u ≠ 0),
-    ← Complex.ofReal_div (by linarith : G + u ≠ 0),
+    noncomm_ring
+  rw [hbaseM, hbaseG, ← Complex.ofReal_div M (M - u), ← Complex.ofReal_div G (G + u),
     Complex.ofReal_log (div_pos hM hMu).le, Complex.ofReal_log (div_pos hG hGu).le]
   push_cast
   simp [Complex.ofReal_re, Complex.add_re, Complex.mul_re]
@@ -413,7 +346,7 @@ theorem vg_corner (C G M : ℝ) (v : ℂ) (hG : 0 < G) (hM : 0 < M) (hv₁ : -M 
     filter_upwards [self_mem_nhdsWithin] with t ht
     have ht0 : t ≠ 0 := ne_of_gt ht
     simp only [zero_add]
-    rw [Complex.real_smul, Complex.ofReal_inv ht0, Complex.exp_zero,
+    rw [Complex.real_smul, Complex.ofReal_inv t, Complex.exp_zero,
       mul_comm (Complex.log c), ← Complex.cpow_def_of_ne_zero hc]
     ring
   have hdiff (c d : ℂ) (hc : c ≠ 0) (hd : d ≠ 0) :
@@ -439,8 +372,10 @@ theorem vg_corner (C G M : ℝ) (v : ℂ) (hG : 0 < G) (hM : 0 < M) (hv₁ : -M 
       intro m hm
       have hm0 : (0 : ℝ) ≤ m := Nat.cast_nonneg m
       linarith
-    have hcomp := ContinuousAt.comp (Real.differentiableAt_Gamma hne).continuousAt
-      ((continuous_const.sub continuous_id).continuousAt (x := (0 : ℝ)))
+    have hcomp : ContinuousAt (Real.Gamma ∘ fun Y : ℝ => 2 - Y) 0 :=
+      ContinuousAt.comp ((Real.differentiableAt_Gamma (s := (2 : ℝ)) hne).continuousAt)
+        ((show Continuous (fun Y : ℝ => 2 - Y) from continuous_const.sub continuous_id).continuousAt
+          (x := 0))
     simpa [Function.comp_def] using hcomp
   have hΓlim : Tendsto (fun Y => Real.Gamma (2 - Y)) (𝓝[>] (0 : ℝ)) (𝓝 (1 : ℝ)) := by
     have htend := hΓcont.continuousWithinAt (s := Ioi (0 : ℝ)).tendsto
@@ -497,14 +432,13 @@ theorem vg_corner (C G M : ℝ) (v : ℂ) (hG : 0 < G) (hM : 0 < M) (hv₁ : -M 
       have hreal : -Real.Gamma (2 - Y) / (Y * (1 - Y)) =
           (-Real.Gamma (2 - Y) / (1 - Y)) * Y⁻¹ := by
         field_simp [ne_of_gt hY.1, show (1 : ℝ) - Y ≠ 0 by linarith [hY.2]]
-        ring
       rw [hreal]
       push_cast
       ring
     have hC : ((C * Real.Gamma (-Y) : ℝ) : ℂ) = (C : ℂ) * ((Real.Gamma (-Y) : ℝ) : ℂ) := by
       push_cast
       ring
-    rw [hC, hcast]
+    rw [hcast]
     simp only [z, w]
     ring
   have hmain : Tendsto (fun Y => cgmyExponent C G M Y v) (𝓝[>] (0 : ℝ))
@@ -512,7 +446,7 @@ theorem vg_corner (C G M : ℝ) (v : ℂ) (hG : 0 < G) (hM : 0 < M) (hv₁ : -M 
         (Complex.log w - Complex.log (G : ℂ))))) := by
     refine Filter.Tendsto.congr' ?_ hprod
     filter_upwards [hmem] with Y hY
-    exact hexp Y hY
+    exact (hexp Y hY).symm
   have hlog (c : ℂ) (hc : c ≠ 0) (hcre : 0 < c.re) (b : ℝ) (hb : 0 < b) :
       Complex.log ((b : ℂ) / c) = -(Complex.log c - Complex.log (b : ℂ)) := by
     rw [div_eq_mul_inv, Complex.log_ofReal_mul hb (inv_ne_zero hc),
@@ -631,8 +565,12 @@ theorem vg_tilt_cumulant_shift (C G M θ u : ℝ) (hG : 0 < G) (hM : 0 < M) (hθ
   have hsum : (Real.log (M / (M - (u + θ))) + Real.log (G / (G + (u + θ)))) -
       (Real.log (M / (M - θ)) + Real.log (G / (G + θ))) =
       Real.log ((M - θ) / (M - θ - u)) + Real.log ((G + θ) / (G + θ + u)) := by
-    rw [hMstep, hGstep]
-    ring
+    calc (Real.log (M / (M - (u + θ))) + Real.log (G / (G + (u + θ)))) -
+          (Real.log (M / (M - θ)) + Real.log (G / (G + θ)))
+        = (Real.log (M / (M - (u + θ))) - Real.log (M / (M - θ))) +
+          (Real.log (G / (G + (u + θ))) - Real.log (G / (G + θ))) := by ring
+      _ = Real.log ((M - θ) / (M - θ - u)) + Real.log ((G + θ) / (G + θ + u)) := by
+          rw [hMstep, hGstep]
   rw [← mul_sub, hsum]
 
 /-! ## §6 items 3 and 5, at the tilted law -/
