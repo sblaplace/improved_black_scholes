@@ -429,6 +429,29 @@ jobs:
           #print axioms BSM.levy_tail_hypothesis_satisfiable_iff
           #print axioms BSM.dirac_tail_hypothesis_fails
           #print axioms BSM.dirac_exp_integrable
+          -- BRIEF_018: the variance-gamma law (the family's Y = 0 member),
+          -- ImprovedBS/VGLaw.lean. The Gamma rung, the law and its mgf, the
+          -- one-sided corner, the tilt, and items 3 and 5 at the tilted law.
+          -- All must print [propext, Classical.choice, Quot.sound] and never sorryAx.
+          #print axioms BSM.gammaMeasure_mgf
+          #print axioms BSM.gammaMeasure_exp_integrable
+          #print axioms BSM.vgLaw_isProbabilityMeasure
+          #print axioms BSM.vgLaw_exp_integrable
+          #print axioms BSM.vgLaw_mgf
+          #print axioms BSM.vgLaw_cgf
+          #print axioms BSM.vgLaw_mgf_one
+          #print axioms BSM.vgCumulant_hasDerivAt
+          #print axioms BSM.vgCumulant_eq_corner_re
+          #print axioms BSM.vg_corner_cumulant
+          #print axioms BSM.vg_corner
+          #print axioms BSM.vgTilt_isProbabilityMeasure
+          #print axioms BSM.vg_tilt_numeraire
+          #print axioms BSM.vg_tilt_mgf
+          #print axioms BSM.vg_tilt_cumulant_shift
+          #print axioms BSM.vg_drift_identity
+          #print axioms BSM.vg_modelFree_call_bounds
+          #print axioms BSM.vg_modelFree_put_bounds
+          #print axioms BSM.vg_modelFree_parity
           LEAN
           lake env lean /tmp/Audit.lean 2>&1 | tee lean-audit.log
           if grep -q sorryAx lean-audit.log; then

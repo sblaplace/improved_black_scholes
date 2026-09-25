@@ -70,6 +70,7 @@ NONUNIQ = "ImprovedBS/NonUniqueness.lean"
 ESSCHER = "ImprovedBS/Esscher.lean"
 CORNER = "ImprovedBS/Corner.lean"
 PARETO = "ImprovedBS/ParetoWitness.lean"
+VGLAW = "ImprovedBS/VGLaw.lean"
 GOLDEN = "tests/golden_statements.json"
 BASELINE = ".github/lean_lint_baseline.json"
 
@@ -638,6 +639,54 @@ MUTANTS = [
                "statement is trivially true (`Or.inr`) at every positive α and says "
                "nothing about α <= 0 -- C7 would be prose again. Clause 4 of "
                "[PARETO] reads the connective.",
+    },
+    # ---- BRIEF_018: the variance-gamma law (the family's Y = 0 member) ----
+    {
+        "name": "V1 a raw Y = 0 evaluation of cgmyExponent inside the module",
+        "file": VGLAW,
+        "from": "theorem vg_corner (C G M : ℝ) (v : ℂ)",
+        "to": "def vgEvalCheat (C G M : ℝ) (v : ℂ) : ℂ := cgmyExponent C G M 0 v\n\n"
+              "theorem vg_corner (C G M : ℝ) (v : ℂ)",
+        "tag": "[VGLaw]",
+        "why": "Real.Gamma 0 = 0, so cgmyExponent at Y = 0 elaborates and is "
+               "silently the Dirac law. Nothing else in the file objects: the "
+               "corner theorems are still one-sided limits. Clause 1 of [VGLaw] "
+               "is the only reader of the evaluation.",
+    },
+    {
+        "name": "V2 vgLaw hand-rolled as a withDensity, gammaMeasure dropped",
+        "file": VGLAW,
+        "from": "  ((gammaMeasure (C * τ) M).prod (gammaMeasure (C * τ) G)).map\n"
+                "    (fun p : ℝ × ℝ => p.1 - p.2)",
+        "to": "  volume.withDensity (fun x => ENNReal.ofReal (Real.exp (-x ^ 2)))",
+        "tag": "[VGLaw]",
+        "why": "A hand-rolled density is a second specification. It builds, it "
+               "can be a probability measure, and no pin of a theorem statement "
+               "notices, because the law is a def. Clause 2 of [VGLaw] reads the body.",
+    },
+    {
+        "name": "V3 gammaMeasure_mgf re-derives the Gamma integral, the citation dropped",
+        "file": VGLAW,
+        "from": "Real.integral_rpow_mul_exp_neg_mul_Ioi ha hρ",
+        "to": "Real.Gamma_eq_integral ha",
+        "tag": "[VGLaw]",
+        "why": "The Gamma integral is the one rung the module is not allowed to "
+               "re-derive. Swapping the citation for Gamma_eq_integral leaves a "
+               "proof-shaped line that no longer consumes the shipped identity. "
+               "Clause 3 of [VGLaw] holds the name.",
+    },
+    {
+        "name": "V4 numeraire re-derived by linarith, esscher_tilted_numeraire uncited",
+        "file": VGLAW,
+        "from": "theorem vg_tilt_numeraire (G M θ : ℝ) (hθ : θ ∈ Ioo (-G) (M - 1)) : 1 < M - θ :=\n"
+                "  esscher_tilted_numeraire G M θ hθ",
+        "to": "theorem vg_tilt_numeraire (G M θ : ℝ) (hθ : θ ∈ Ioo (-G) (M - 1)) : 1 < M - θ :=\n"
+              "  by linarith [hθ.2]",
+        "tag": "[VGLaw]",
+        "why": "The numeraire condition is a conclusion inherited from BRIEF_013. "
+               "Re-deriving it by linarith is true and builds, and leaves "
+               "esscher_tilted_numeraire decoration. Clause 4 of [VGLaw] holds "
+               "the citation.",
     },
 ]
 

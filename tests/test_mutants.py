@@ -325,6 +325,54 @@ MUTANTS = [
         # routes are the same law.
         ["test_term_structure_anchor"],
     ),
+    (
+        "M30 BRIEF_018 corner sign flip in cgmy_zeroth_exponent: C * (...) -> -C * (...)",
+        "return C * (cmath.log(M / (M - 1j * v)) + cmath.log(G / (G + 1j * v)))",
+        "return -C * (cmath.log(M / (M - 1j * v)) + cmath.log(G / (G + 1j * v)))",
+        # The complex corner target negated: the bridge `exp(tau * psi_0(-i))`
+        # moves 0.984025 -> 1.016234 against the real-side mgf, and every
+        # corner ratio `|psi_Y - psi_0|/Y` explodes. The anchor test dies too
+        # (its corner-route prices move by O(1)) -- recorded, not avoided:
+        # BRIEF_018's primitive reconciliation says the corner target is ONE
+        # function shared by both tests.
+        ["test_vg_law", "test_term_structure_anchor"],
+    ),
+    (
+        "M31 BRIEF_018 mgf drops tau: exp(tau * kappa) -> exp(kappa)",
+        "return math.exp(tau * vg_cumulant(C, G, M, u))",
+        "return math.exp(vg_cumulant(C, G, M, u))",
+        # The law's shape is `C*tau`; dropping `tau` prices the `tau = 1` law
+        # at every maturity. The mgf at `u = 1` moves 0.984025 -> 0.937614 and
+        # the two-Gamma factorization breaks -- only the VG test reads `vg_mgf`.
+        ["test_vg_law"],
+    ),
+    (
+        "M32 BRIEF_018 tilt legs swapped: (G+theta, M-theta) -> (M+theta, G-theta)",
+        "return vg_cumulant(C, G + theta, M - theta, u)",
+        "return vg_cumulant(C, M + theta, G - theta, u)",
+        # The tilted law is the family member at the shifted rates; swapping
+        # the legs prices a different law. The tilted mgf at 1 moves
+        # 1.0050125 -> 1.2061790 and the shift identity breaks on its grid --
+        # only the VG test reads `vg_tilted_cumulant`. (The brief's M32 row
+        # quotes 0.984025 -> 0.946021; the from-value is the UNTILTED mgf(1)
+        # and the to-value is the theta -> -theta variant -- measured
+        # 0.9460212974415997 exactly -- while the as-prosed leg-swap measures
+        # 1.2061789609599316. Ledger C21 records the slip; the kill is O(1)
+        # either way.)
+        ["test_vg_law"],
+    ),
+    (
+        "M33 BRIEF_018 cumulant reflected: u -> -u (the mean changes sign)",
+        "return C * (math.log(M / (M - u)) + math.log(G / (G + u)))",
+        "return C * (math.log(M / (M + u)) + math.log(G / (G - u)))",
+        # `M` tempers the positive side and `G` the negative side; reflecting
+        # `u` swaps the mean's sign (`1/M - 1/G -> 1/G - 1/M`). The `kappa_0(1)`
+        # pin moves -0.064416 -> +0.152245 (O(1)), and in the unguarded scratch
+        # world the solved theta crosses theta0 to -1.736491239, where the
+        # TRUE drift is -0.283720 instead of 0.02. Only the VG test reads
+        # `vg_cumulant`.
+        ["test_vg_law"],
+    ),
 ]
 
 

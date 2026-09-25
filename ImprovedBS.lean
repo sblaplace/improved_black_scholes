@@ -10,6 +10,7 @@ import ImprovedBS.NonUniqueness
 import ImprovedBS.Esscher
 import ImprovedBS.Corner
 import ImprovedBS.ParetoWitness
+import ImprovedBS.VGLaw
 
 /-!
 # ImprovedBS
@@ -117,6 +118,15 @@ Root module of the `ImprovedBS` library. Modules imported here are built by
   and the headline `levy_tail_hypothesis_satisfiable_iff : (∃ law, htail) ↔
   0 < α`, §4 the discriminator: the Dirac mass fails `htail` and has a finite
   exponential moment.
+* `ImprovedBS.VGLaw` — BRIEF_018: the variance-gamma law, the family's `Y = 0`
+  member and the tree's first CGMY-family probability measure. §1 the law as
+  the difference of two `gammaMeasure`s, §2 the Gamma mgf rung consuming
+  `integral_rpow_mul_exp_neg_mul_Ioi`, §3 the law's mgf `exp(τ · κ₀)` on the
+  strip `(−G, M)`, §4 the `Y ↓ 0` corner as a `𝓝[>] 0` limit (never an
+  evaluation — `Real.Gamma 0 = 0`), §5 the Esscher tilt by `withDensity` with
+  the numéraire derived from `esscher_tilted_numeraire`, §6 items 3 and 5 at
+  the tilted law. Stage 2 (general `Y`) and G1 (complex-rate Γ integral) stay
+  open.
 
 ## Why the module is not called `Lean.*`
 

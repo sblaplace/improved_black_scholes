@@ -209,14 +209,14 @@ the tree; **Stage 2** is the general-`Y` law as the compound-Poisson truncation
 limit. Two traps are named in the brief: `Real.Gamma 0 = 0` (and `Gamma (−1)`)
 makes a raw evaluation at `Y = 0` or `Y = 1` *silently* the Dirac law, and the
 landed Esscher range `H_Y` degenerates at the corner (`H_Y ~ C/Y → ∞`).
-**Stage 1 is specified in BRIEF_018** (same PR): `ImprovedBS/VGLaw.lean` — the
-law as the difference of two `gammaMeasure`s, its mgf on the strip `(−G, M)`
-(consuming `integral_rpow_mul_exp_neg_mul_Ioi`), the corner as a `𝓝[>] 0`
-limit, the law-level Esscher tilt, and the expectation-level twins of items 3
-and 5 at the tilted law — with four `[VGLaw]` lint clauses (44 → 48 lint
-mutants), the oracle's `gamma_mgf`/`vg_cumulant`/`vg_mgf`/`vg_drift_map`/
-`vg_tilted_cumulant`/`vg_esscher_solve`, `test_vg_law` and mutants M30–M33;
-pins 268 → 268 + 22, audit 237 → 237 + 22 (the landed count rules).
+**Stage 1 has landed as BRIEF_018** (`ImprovedBS/VGLaw.lean`, 5 defs + 19
+theorems): the law as the difference of two `gammaMeasure`s, its mgf on the
+strip `(−G, M)` (consuming `integral_rpow_mul_exp_neg_mul_Ioi`), the corner as
+a `𝓝[>] 0` limit, the law-level Esscher tilt, and the expectation-level twins
+of items 3 and 5 at the tilted law. **Stage 2** (the general-`Y` law) and
+**G1** (the complex-rate Γ integral) remain open. Four `[VGLaw]` lint clauses
+(44 → 48), `test_vg_law` and mutants M30–M33; pins 268 → 292, audit 237 → 256
+(theorems only — the repo's `#print axioms` list does not cover defs).
 Proving the
 obstruction itself — a concrete divergent integral, no finance in it — is the
 cheapest high-value theorem in the research tier. Details in docs/03 §D1.
@@ -225,8 +225,8 @@ cheapest high-value theorem in the research tier. Details in docs/03 §D1.
 
 | Layer | what | status |
 |---|---|---|
-| Numeric oracle | independent `d1`/`d2`, independent call and put closed forms, PDE residual, delta identity, quadrature of the risk-neutral expectation, Carr–Madan Fourier inversion, model-free expectation route, Carr–Madan at any strip law, the CGMY exponent's contour and decay, the non-uniqueness witness in exact rationals, the Esscher drift map, its zero and its solvability bound, the normalized CGMY → GBM corner against an independently expanded polynomial, the **published Carr–Madan (1999) anchor** (both parameterizations of the same VG law) and the **term-structure falsifier** (measured ATM-skew exponents vs the cited market band) | verified — 23/23 tests |
-| Oracle is a falsifier | mutation harness: 30 seeded bugs, each killed by its targeted test, incl. 2 vacuity canaries | verified — 4/4 harness tests |
+| Numeric oracle | independent `d1`/`d2`, independent call and put closed forms, PDE residual, delta identity, quadrature of the risk-neutral expectation, Carr–Madan Fourier inversion, model-free expectation route, Carr–Madan at any strip law, the CGMY exponent's contour and decay, the non-uniqueness witness in exact rationals, the Esscher drift map, its zero and its solvability bound, the normalized CGMY → GBM corner against an independently expanded polynomial, the **published Carr–Madan (1999) anchor** (both parameterizations of the same VG law) and the **term-structure falsifier** (measured ATM-skew exponents vs the cited market band), the **variance-gamma law** (Gamma mgf, two-Gamma factorization, corner ratios, Esscher tilt, model-free bounds) | verified — 24/24 tests |
+| Oracle is a falsifier | mutation harness: 34 seeded bugs, each killed by its targeted test, incl. 2 vacuity canaries | verified — 4/4 harness tests |
 | Failure modes + research dirs w/ falsifiers | docs/02, docs/03 | written |
 | Lean definitions | `erf`, Φ, φ, d1, d2, bsCall, bsPut — independent, matching the oracle | machine-checked |
 | Lean theorems | `Phi_add_Phi_neg`, T1, T2, T2′ | **GREEN** — `lake build` + `#print axioms` audit, run 35509578689 |
@@ -244,8 +244,9 @@ cheapest high-value theorem in the research tier. Details in docs/03 §D1.
 | Lean theorems | BSM-2 kit item 6: the normalized CGMY → GBM corner — at the scale `C_Y = (σ²/2)(2−Y)` the Γ pole cancels and `ψ_Y(v) → −(σ²/2)v² + i(σ²/2)(G−M)v` **pointwise** on `−M < Im v < G`, as a one-sided `Y → 2⁻` limit; route A's algebraic forward normalization `Ψ_Y(v) = ψ_Y(v) + i(r−q−κ_Y(1))v` (numéraire exact at every `Y`, consuming `cgmyExponent_strip`) lands it on the risk-neutral GBM exponent and its factor on `gbmCharFactor`, route B's named `θ₀ = (M−G−1)/2` lands it on the zero-carry GBM exponent with no correction at all (consuming `esscher_cgmy_shift` at the shifted rates), and the drift half-width collapses to `(σ²/2)(G+M−1)` (`ImprovedBS/Corner.lean`, 17 declarations) | **GREEN** — `lake build` + `#print axioms` audit (226 entries) + statement pins (elab, 257), run 36111570530; `benchmarks/LEDGER.md` row 14, correction C17 |
 | Lean theorems | the obstruction's tail hypothesis is non-vacuous — mathlib's Pareto law has `μ[x,∞) = t^r·x^(−r)`, so `htail` holds with equality and `Levy.lean`'s obstruction is instantiated at a real law by citation; C7's `α ≤ 0` remark is a theorem, giving `(∃ law, htail) ↔ 0 < α`, and a Dirac mass shows the hypothesis can fail (`ImprovedBS/ParetoWitness.lean`, 11 theorems) | **GREEN** — `lake build` + `#print axioms` audit (237 entries) + statement pins (elab, 268), run 36119639468; `benchmarks/LEDGER.md` row 15 |
 | Deferred | *(nothing)* | ratcheted at 0 `sorry`s — `deferred: {}` |
-| Lint is a falsifier | `tests/test_lint.py`: 44 seeded cheats each killed by a named check, 5 legitimate edits green, 1 residual gap asserted open | verified — 7/7 tests |
-| Pinned claims | `tests/golden_statements.json`: 268 declarations — theorem statements, definition bodies | machine-checked (source 268, elab 268); `#check`/axioms layer verified in build job |
+| Lean theorems | BSM-2 Stage 1: the variance-gamma law as a `Measure ℝ` — difference of two `gammaMeasure`s, mgf `exp(τ·κ₀)` on `(−G, M)`, the `Y ↓ 0` corner as a `𝓝[>] 0` limit, the Esscher tilt, and items 3 and 5 instantiated at it (`ImprovedBS/VGLaw.lean`, 24 declarations) | implemented — grading run outstanding; `benchmarks/LEDGER.md` row 17 |
+| Lint is a falsifier | `tests/test_lint.py`: 48 seeded cheats each killed by a named check, 5 legitimate edits green, 1 residual gap asserted open | verified — 7/7 tests |
+| Pinned claims | `tests/golden_statements.json`: 292 declarations — theorem statements, definition bodies | machine-checked (source 292, elab 268 + 24 awaiting the build job); `#check`/axioms layer verified in build job |
 | Grading lane | briefs/ + benchmarks/ + 2 CI workflows + toolchain-free lint + pins | standing |
 | First brief | BRIEF_001, re-scoped to what is actually checkable | see briefs/ |
 
