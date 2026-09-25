@@ -478,6 +478,55 @@ jobs:
           python3 scripts/pin_statements.py --elab-check 2>&1 | tee lean-pins.log
           exit ${PIPESTATUS[0]}
 
+      - name: Publish the elaborated-pin delta
+        # The general failure comment tails every log at 25k characters, which
+        # exceeds GitHub's 65536-character comment limit and is rejected (run
+        # 36149933365: lake build was green, the pin delta was in lean-pins.log,
+        # and the comment never posted). This step posts only the `elab_delta`
+        # block, which is what a toolchain-less sandbox has to merge.
+        if: failure() && github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.number }}
+          REPO: ${{ github.repository }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -uo pipefail
+          python3 - << 'PY'
+          import json, os, urllib.request
+          sha = os.environ["HEAD_SHA"][:7]
+          log = "lean-pins.log"
+          if not os.path.exists(log) or os.path.getsize(log) == 0:
+              print("no lean-pins.log; nothing to publish")
+              raise SystemExit(0)
+          text = open(log, encoding="utf-8", errors="replace").read()
+          marker = '{"elab_delta":'
+          idx = text.rfind(marker)
+          if idx < 0:
+              chunk = text[-20000:]
+              body = f"### Elaborated pins failed on {sha}\n\nNo `elab_delta` block. Tail:\n\n```\n{chunk}\n```\n"
+          else:
+              chunk = text[idx:]
+              stop = chunk.find("\n\nThe `elab_delta` block")
+              if stop > 0:
+                  chunk = chunk[:stop]
+              body = (
+                  f"### Elaborated-pin delta on {sha}\n\n"
+                  "Paste-ready `elab_delta` from `pin_statements.py --elab-check`.\n\n"
+                  "```json\n" + chunk.strip() + "\n```\n"
+              )
+          if len(body) > 60000:
+              body = body[:59990] + "\n```\n"
+          req = urllib.request.Request(
+              f"https://api.github.com/repos/{os.environ['REPO']}/issues/{os.environ['PR_NUMBER']}/comments",
+              data=json.dumps({"body": body}).encode(),
+              headers={"Authorization": f"Bearer {os.environ['GH_TOKEN']}",
+                       "Accept": "application/vnd.github+json"},
+              method="POST")
+          urllib.request.urlopen(req)
+          print(f"posted pin delta ({len(body)} chars) to PR #{os.environ['PR_NUMBER']}")
+          PY
+
       - name: Oracle ↔ Lean pointwise cross-verifier (BRIEF_002)
         # Evaluates the golden parameter grid (tests/golden_grid.json) in both
         # the Lean Float evaluator and the Python numeric oracle, asserting
