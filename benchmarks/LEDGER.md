@@ -1137,3 +1137,38 @@ evidence has to be re-run, not re-read, which is what
 `test_nonuniqueness_witness` now does on every oracle run. The brief's text
 is left as issued (it is a record); this entry, the test's docstring and the
 mutants' comments carry the corrected numbers.
+
+### C17 — the GBM corner needs a normalized scale, not just `Y → 2` (BRIEF_014 issuance)
+
+**Date:** 2026-09-25. **Trigger:** issuing BSM-2 kit item 6 against the *landed*
+`cgmyExponent`, rather than against the shorthand in docs/03 §D1. This is a
+correction to a proposed theorem, **not** a CI verdict or a landed Lean proof.
+
+The old item 6 said `ψ_CGMY → ψ_GBM as Y → 2 (or G,M → σ²/2)` with no scaling
+of `C`. The first limit is **false**: `Γ(−Y) ~ 1/[2(2−Y)]`; at fixed `C=.35`,
+`G=M=3`, `v=1`, the bracket tends `−2` and `Re ψ` goes to `−∞`.
+`python3 scripts/check_gbm_corner.py` measures `Re ψ = −2.980` at `Y=1.9`
+and `−349.411` at `Y=1.999`, with `(2−Y)Re ψ → −.35`. Taking
+`G,M → σ²/2` at fixed noninteger `Y` is not a Gaussian limit either: the
+`Y`-th complex powers remain nonquadratic (at `Y=1.5, C=.2,
+G=M=σ²/2=1.125`, with `σ=1.5` and `M>1`, the measured ratio
+`Re ψ(2)/Re ψ(1)` is `3.691`, not the Gaussian `4`). Worse,
+evaluating `Y=2` directly
+in Lean cannot be substituted for a limit: `Real.Gamma (-2) = 0` at its pole
+by convention, so it silently returns the wrong exponent.
+
+**Repaired specification (issued, unproved):** `1 < Y < 2`,
+`C_Y=(σ²/2)(2−Y)`, and `Y ↑ 2`, so the Gamma recurrence gives
+`C_YΓ(−Y) → σ²/4`. The bracket has polynomial limit
+`−2v²+2i(G−M)v`, yielding variance `σ²` but still an uncorrected log-drift.
+BRIEF_014 records two *distinct* bridges to GBM: an algebraic forward
+normalization `r−q−κ_Y(1)` at general carry (not an Esscher measure), and a
+named Esscher selection at exact zero carry `θ₀=(M−G−1)/2`. The numeric
+route-check against an independently expanded polynomial falls from maximum
+relative exponent error `5.05e−2` at
+`ε=.1` to `5.85e−5` at `ε=.0001` for the forward-normalized route; doubling
+`C_Y` leaves a `1.257` discrepancy and dropping the correction a `.563`
+discrepancy. These checks are **not** a machine-checked limit, a CGMY law
+construction, or convergence of prices; the latter need further theorems.
+C13's provisional "BRIEF_014 = Haug" assignment remains archival; the
+external-anchor repair is still queued and will be numbered at issue.

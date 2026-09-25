@@ -3,13 +3,15 @@ name: oracle
 # The numeric handrail. Dependency-free Python, so this lane runs everywhere --
 # including environments with no Lean toolchain and no network.
 #
-# Two suites, both load-bearing:
+# Two regression suites, both load-bearing:
 #   test_bs.py        the oracle satisfies the identities the Lean stack claims
 #   test_mutants.py   the oracle tests can actually FAIL: seeded bugs are each
 #                     caught by the test meant to catch them, and the two
 #                     vacuity canaries (Phi losing odd symmetry; the independent
 #                     d2 being corrupted) prove parity and d1-d2 are checked
 #                     between independently derived expressions.
+# Plus scripts/check_gbm_corner.py: a numeric pre-brief route-check with its own
+# wrong-scaling and drift canaries. It is not a Lean proof or a landed theorem.
 
 on:
   pull_request:
@@ -31,6 +33,9 @@ jobs:
 
       - name: Run numeric oracle tests (no deps)
         run: python3 tests/test_bs.py
+
+      - name: Check normalized CGMY-to-GBM corner (numeric pre-brief, not a proof)
+        run: python3 scripts/check_gbm_corner.py
 
       - name: Run mutation harness (proves the oracle tests are falsifiers)
         run: python3 tests/test_mutants.py
