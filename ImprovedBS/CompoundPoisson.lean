@@ -145,7 +145,7 @@ theorem charFun_cpLaw (lam : ℝ≥0) (ρ : Measure ℝ) (hρ : IsProbabilityMea
     simpa only [poissonPMFReal] using hasSum_one_poissonMeasure lam
   -- the convolution-power identity, written inline so that the mixture's own
   -- proof body consumes the shipped convolution exchange `charFun_conv` (R2);
-  -- the standalone `charFun_convPow` below is the same induction, stated for reuse
+  -- the standalone `charFun_convPow` above is the same induction, stated for reuse
   have hpow : ∀ n, charFun (convPow ρ n) t = charFun ρ t ^ n := by
     intro n
     induction n with
@@ -160,7 +160,7 @@ theorem charFun_cpLaw (lam : ℝ≥0) (ρ : Measure ℝ) (hρ : IsProbabilityMea
     have hpmf : ∀ n : ℕ, poissonPMFReal lam n
         = Real.exp (-(lam : ℝ)) * (lam : ℝ) ^ n / (Nat.factorial n : ℝ) := by
       intro n
-      rw [poissonPMFReal, NNReal.coe_pow]
+      unfold poissonPMFReal
       ring
     intro z
     calc ∑' n, (poissonPMFReal lam n : ℂ) * z ^ n
@@ -310,7 +310,7 @@ theorem cgmyJumpMass_lt_top (C G M Y : ℝ) (ε : ℝ≥0) (hC : 0 < C) (hG : 0 
           calc C * Real.exp (G * x) * (-x) ^ (-1 - Y)
               ≤ C * Real.exp (G * x) * 1 :=
                 mul_le_mul_of_nonneg_left
-                  (Real.rpow_le_one_of_one_le_of_nonpos (by linarith) (by linarith))
+                  (Real.rpow_le_one_of_one_le_of_nonpos (by linarith [hx.2]) (by linarith))
                   (mul_nonneg hC.le (Real.exp_nonneg _))
             _ = C * Real.exp (G * x) := by ring
       _ ≤ ∫⁻ x in Iic (-1), ENNReal.ofReal (C * Real.exp (G * x)) :=
@@ -366,11 +366,11 @@ theorem cgmyJumpMass_lt_top (C G M Y : ℝ) (ε : ℝ≥0) (hC : 0 < C) (hG : 0 
     have hxabs : (ε : ℝ) ≤ |x| := by simpa using hx
     rcases lt_or_ge x 0 with hx0 | hx0
     · rw [abs_of_neg hx0] at hxabs
-      rcases lt_or_le (-1) x with hx1 | hx1
+      rcases lt_or_ge (-1) x with hx1 | hx1
       · exact Or.inr (Or.inl ⟨hx, ⟨hx1.le, by linarith⟩⟩)
       · exact Or.inr (Or.inr ⟨hx, hx1⟩)
     · rw [abs_of_nonneg hx0] at hxabs
-      rcases lt_or_le 1 x with hx1 | hx1
+      rcases lt_or_ge 1 x with hx1 | hx1
       · exact Or.inl ⟨hx, hx1⟩
       · exact Or.inr (Or.inl ⟨hx, ⟨by linarith, hx1⟩⟩)
   calc ∫⁻ x in {x : ℝ | (ε : ℝ) ≤ |x|}, ENNReal.ofReal (cgmyLevyDensity C G M Y x)
@@ -534,7 +534,7 @@ theorem charFun_cgmyCpLaw (C G M Y : ℝ) (ε : ℝ≥0) (hC : 0 < C) (hG : 0 < 
     charFun (cpLaw (τ * (cgmyJumpMeasure C G M Y ε Set.univ).toNNReal)
         (cgmyJumpLaw C G M Y ε)) t
       = Complex.exp ((τ : ℂ) * cgmyTruncatedExponent C G M Y ε (t : ℂ)) := by
-  haveI hprob : IsProbabilityMeasure (cgmyJumpLaw C G M Y ε) :=
+  have hprob : IsProbabilityMeasure (cgmyJumpLaw C G M Y ε) :=
     cgmyJumpLaw_isProbabilityMeasure C G M Y ε hC hG hM hY hε
   have hmass_lt : cgmyJumpMeasure C G M Y ε Set.univ < ⊤ :=
     cgmyJumpMass_lt_top C G M Y ε hC hG hM hY hε
