@@ -211,7 +211,26 @@ one above — **in the same tree, under the same skeleton**, with all seven of:
    `vgLaw` is already measured (`\|A_ε − ψ₀\|/Y → 0.0375` at `v = 0.5`). The
    landed module stops exactly where 2b starts: no `ε ↓ 0` limit, no tightness,
    no identification — and the limit is conditional convergence, not DCT, since
-   no integrable dominating function exists near zero.
+   no integrable dominating function exists near zero. **Stage 2b is issued as
+   BRIEF_020** (`briefs/BRIEF_020_cgmy_law_stage2b.md`, module name
+   `ImprovedBS/CGMYLaw.lean`), with G1 inside it as §3. Its route-check makes
+   the conditional convergence unconditional: at every `ε > 0` the truncated
+   exponent splits *exactly* (`≤ 7.3e−15`) as
+   `A_ε = ∫_{|x|≥ε}(e^{ivx} − 1 − ivx·1_{|x|≤1})ν + iv·C∫_ε^1 x^{−Y}(e^{−Mx} − e^{−Gx})dx`,
+   and each piece has an integrable dominator on `ℝ ∖ {0}`, so the limit is
+   two `tendsto_setIntegral_of_monotone`s (both at rate `ε^{2−Y}`: slopes
+   1.4996 / 0.9997 / 0.4998 at `Y = ½, 1, 3⁄2`). The paired drift is finite
+   and nonzero (`d₀ = −1.6411` at `Y = 3⁄2`) — the `ivx` pieces *pair*, they
+   do not cancel (ledger C25). The limit law exists by tightness + Prokhorov
+   + subsequence + CF uniqueness (mathlib's `tendsto_of_tendsto_charFun`
+   *takes* the limit; it does not produce one), is defined as `limUnder`, and
+   has CF `cexp (τ L(v))` on **all** of `0 < Y < 2` — `Y = 1` is a pole of
+   the closed form, not of the law (`|ψ_{1±δ} − L₁| = O(δ)`). The
+   identification `L = ψ_Y` for `Y ≠ 1` is G1 (an identity-theorem argument on
+   the shipped real-rate Γ lemma, measured to `2.9e−11`) plus one or two
+   integrations by parts and a real-rate drift identity
+   `C∫_0^∞ x^{−Y}(e^{−Mx} − e^{−Gx}) = m^∞` (measured to `3.0e−10`);
+   `|L − ψ_Y| ≤ 6.2e−10`. §3 is severable from §1–§2 by construction.
 4. **T6's triangle holds at the new exponent.** The Carr–Madan integral
    converges absolutely on the contour, inverts to `e^{−rτ}·E[(S_T − K)⁺]`,
    and is real-valued — the full pricing claim where no closed form exists.

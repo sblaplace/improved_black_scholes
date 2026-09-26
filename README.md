@@ -239,7 +239,15 @@ analytic engine. Four `[VGLaw]` lint clauses
 **Stage 2a has landed as BRIEF_019**: four `[CPoisson]` clauses (48 → 52),
 `test_compound_poisson` with mutants M34–M38, pins 292 → 309,
 audit 256 → 268 — and the module stops where Stage 2b starts: no `ε ↓ 0`
-limit, no tightness, no identification.
+limit, no tightness, no identification. **Stage 2b is issued as BRIEF_020**
+(`ImprovedBS/CGMYLaw.lean`, with G1 inside it): the truncated exponent splits
+*exactly* into a unit-ball-compensated integral and a paired drift
+`C∫_ε^1 x^{−Y}(e^{−Mx} − e^{−Gx})dx`, each absolutely dominated, so the limit is
+two monotone set-integral limits; the law is the Prokhorov + Lévy-continuity
+limit of the compound-Poisson marginals, with CF `cexp (τ L(v))` on all of
+`0 < Y < 2` (including `Y = 1`), and `L = ψ_Y` for `Y ≠ 1` by G1 — an
+identity-theorem argument on the shipped real-rate Γ lemma — plus a real-rate
+drift identity (route-check: `|L − ψ_Y| ≤ 6.2e−10`, G1 to `2.9e−11`).
 Proving the
 obstruction itself — a concrete divergent integral, no finance in it — is the
 cheapest high-value theorem in the research tier. Details in docs/03 §D1.
