@@ -443,12 +443,12 @@ theorem cgmyDriftIntegrand_integrableOn (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G
         ((intervalIntegrable_iff_integrableOn_Ioo_of_le zero_le_one).mpr h)
     exact h'.const_mul _
   refine Integrable.mono' hmaj ?_ ?_
-  · refine (ContinuousOn.mul
+  · exact ContinuousOn.aestronglyMeasurable (ContinuousOn.mul
       (continuousOn_const.mul (continuousOn_id.rpow_const
         fun x (hx : x ∈ Ioc (0 : ℝ) 1) => Or.inl (ne_of_gt hx.1)))
       ((Real.continuous_exp.comp (continuous_const.mul continuous_id)).continuousOn.sub
         (Real.continuous_exp.comp (continuous_const.mul continuous_id)).continuousOn))
-      .aestronglyMeasurable measurableSet_Ioc
+      measurableSet_Ioc
   · filter_upwards [ae_restrict_mem measurableSet_Ioc] with x hx
     have hx0 : 0 < x := hx.1
     rw [Real.norm_eq_abs, abs_mul, abs_mul, abs_of_pos hC,
@@ -894,7 +894,7 @@ theorem cgmyLaw_unique (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G) (hM : 0 < M)
     (hY : 0 < Y) (hY₂ : Y < 2) (τ : ℝ≥0) (μ : Measure ℝ) (hμ : IsProbabilityMeasure μ)
     (hcf : ∀ t : ℝ, charFun μ t = Complex.exp ((τ : ℂ) * cgmyLKExponent C G M Y t)) :
     μ = cgmyLaw C G M Y τ hC hG hM hY hY₂ := by
-  haveI := hμ
+  have := hμ
   refine Measure.ext_of_charFun (funext fun t => ?_)
   rw [hcf t, charFun_cgmyLaw C G M Y hC hG hM hY hY₂ τ t]
 
@@ -1018,7 +1018,6 @@ theorem integral_cpow_mul_cexp_neg_mul_Ioi (s : ℝ) (z : ℂ) (hs : 0 < s) (hz 
     · filter_upwards [ae_restrict_mem measurableSet_Ioi] with x hx w hw
       have hx0 : (0 : ℝ) < x := hx
       have hw' : z₀.re / 2 < w.re := hw
-      beta_reduce
       rw [norm_cgmyGammaIntegrand_deriv hx0, hsre]
       have hpow : x ^ (s - 1) * x = x ^ s := by
         rw [Real.rpow_sub_one hx0.ne', div_mul_cancel₀ _ hx0.ne']
@@ -1714,10 +1713,10 @@ theorem cgmy_leg_measurable (a Y v : ℝ) :
 theorem integrableOn_rpow_mul_exp_neg_mul_Ioi_one {p a : ℝ} (hp : p ≤ 0) (ha : 0 < a) :
     IntegrableOn (fun x : ℝ => x ^ p * Real.exp (-a * x)) (Ioi 1) := by
   refine Integrable.mono' (exp_neg_integrableOn_Ioi 1 ha) ?_ ?_
-  · exact ((continuousOn_id.rpow_const
+  · exact ContinuousOn.aestronglyMeasurable ((continuousOn_id.rpow_const
         fun x (hx : x ∈ Ioi (1 : ℝ)) => Or.inl (ne_of_gt (lt_trans zero_lt_one hx))).mul
       (Real.continuous_exp.comp (continuous_const.mul continuous_id)).continuousOn)
-      .aestronglyMeasurable measurableSet_Ioi
+      measurableSet_Ioi
   · filter_upwards [ae_restrict_mem measurableSet_Ioi] with x hx
     have hx1 : 1 ≤ x := le_of_lt hx
     have hx0 : 0 < x := lt_of_lt_of_le zero_lt_one hx1
@@ -1746,7 +1745,6 @@ theorem cgmyLeg_eq_of_lt_one (a Y : ℝ) (v : ℝ) (ha : 0 < a) (hY : 0 < Y) (hY
     have hx0 : (0 : ℝ) < x := hx
     have hpow : x ^ (-Y) = x * x ^ (-1 - Y) := by
       rw [show (-Y) = 1 + (-1 - Y) by ring, Real.rpow_add hx0, Real.rpow_one]
-    beta_reduce
     simp only [hpow, Complex.ofReal_mul, cgmy_ofReal_exp_neg_mul]
     ring
   have hsplit : EqOn
