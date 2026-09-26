@@ -12,6 +12,7 @@ import ImprovedBS.Corner
 import ImprovedBS.ParetoWitness
 import ImprovedBS.VGLaw
 import ImprovedBS.CompoundPoisson
+import ImprovedBS.CGMYLaw
 
 /-!
 # ImprovedBS
@@ -140,8 +141,25 @@ Root module of the `ImprovedBS` library. Modules imported here are built by
   `ν_ε/λ_ε`, and the truncated exponent
   `A_ε(v) = ∫_{|x| ≥ ε} (e^{ivx} − 1) ν(dx)` as an honest Bochner integral
   (`cgmyTruncatedExponent_integrable`, dominated by `2ν`), with the marginal
-  identity `charFun (cpLaw (τ λ_ε) (ν_ε/λ_ε)) t = exp (τ A_ε(t))`. Stage 2b
-  (the `ε ↓ 0` limit and the CGMY law itself) and G1 stay open.
+  identity `charFun (cpLaw (τ λ_ε) (ν_ε/λ_ε)) t = exp (τ A_ε(t))`.
+* `ImprovedBS.CGMYLaw` — BRIEF_020 (Stage 2b): the CGMY law. §1 the exact
+  decomposition `A_ε = B_ε + iv·d_ε` of the truncated exponent into the
+  compensated integral over `{ε ≤ |x|}` and the *paired* drift
+  `C∫_ε^1 x^{−Y}(e^{−Mx} − e^{−Gx})` (ledger C25), its `ε ↓ 0` limit — two
+  `tendsto_setIntegral_of_monotone`s, no dominated convergence — to the
+  Lévy–Khintchine exponent `cgmyLKExponent`, and the exponent's continuity.
+  §2 the law: `cgmyLaw` is `Filter.limUnder atTop` of the compound-Poisson
+  marginals along `εₙ = 2⁻ⁿ`, made honest by `cgmyLaw_exists` (tightness from
+  `isTightMeasureSet_of_tendsto_charFun`, Prokhorov, a convergent subsequence,
+  Lévy continuity), with `charFun cgmyLaw t = exp (τ L(t))` on all of
+  `0 < Y < 2` and uniqueness by `Measure.ext_of_charFun`. §3 G1, the
+  complex-rate Γ integral `∫₀^∞ x^{s−1}e^{−zx} = Γ(s) z^{−s}` on `Re z > 0` by
+  the identity theorem anchored on the shipped real-rate lemma, the one-sided
+  closed forms by one integration by parts each, the drift identity
+  `C∫₀^∞ x^{−Y}(e^{−Mx} − e^{−Gx}) = CΓ(1−Y)(M^{Y−1} − G^{Y−1})`, and the
+  identification `L = cgmyExponent` for `Y ≠ 1`, so that `cgmyCharFactor` is
+  the characteristic function of a law in the tree
+  (`charFun_cgmyLaw_eq_cgmyCharFactor`).
 
 ## Why the module is not called `Lean.*`
 

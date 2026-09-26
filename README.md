@@ -239,18 +239,26 @@ analytic engine. Four `[VGLaw]` lint clauses
 **Stage 2a has landed as BRIEF_019**: four `[CPoisson]` clauses (48 → 52),
 `test_compound_poisson` with mutants M34–M38, pins 292 → 309,
 audit 256 → 268 — and the module stops where Stage 2b starts: no `ε ↓ 0`
-limit, no tightness, no identification. **Stage 2b is issued as BRIEF_020**
-(`ImprovedBS/CGMYLaw.lean`, with G1 inside it) — its oracle half has landed
-(`test_cgmy_law` with mutants M39–M43; oracle 25 → 26, mutants 39 → 44) and its
-18 theorems are drafted with 11 proofs open, parked outside the library because
-the sorry-ratchet allows none: the truncated exponent splits
+limit, no tightness, no identification. **Stage 2b has landed as BRIEF_020**
+(`ImprovedBS/CGMYLaw.lean`, 6 defs + 18 theorems, with G1 inside it; PR #29,
+lean run 36249141529; pins 309 → 333, audit 268 → 286, `[CGMYLaw]` lint clauses
+R1–R4 with cheats 52 → 56; its oracle half landed first — `test_cgmy_law` with
+mutants M39–M43; oracle 25 → 26, mutants 39 → 44): the truncated exponent splits
 *exactly* into a unit-ball-compensated integral and a paired drift
 `C∫_ε^1 x^{−Y}(e^{−Mx} − e^{−Gx})dx`, each absolutely dominated, so the limit is
-two monotone set-integral limits; the law is the Prokhorov + Lévy-continuity
-limit of the compound-Poisson marginals, with CF `cexp (τ L(v))` on all of
-`0 < Y < 2` (including `Y = 1`), and `L = ψ_Y` for `Y ≠ 1` by G1 — an
-identity-theorem argument on the shipped real-rate Γ lemma — plus a real-rate
-drift identity (route-check: `|L − ψ_Y| ≤ 6.2e−10`, G1 to `2.9e−11`).
+two monotone set-integral limits (`cgmyTruncatedExponent_decomp`,
+`cgmyTruncatedExponent_tendsto`); the law `cgmyLaw` is the Prokhorov +
+Lévy-continuity limit of the compound-Poisson marginals, defined as
+`Filter.limUnder` in `ProbabilityMeasure ℝ` (`cgmyLaw_exists`), with CF
+`cexp (τ L(v))` on all of `0 < Y < 2` including `Y = 1` (`charFun_cgmyLaw`,
+`cgmyLaw_unique`); and `L = ψ_Y` for `Y ≠ 1` by **G1** — now the theorem
+`integral_cpow_mul_cexp_neg_mul_Ioi`, an identity-theorem argument on the
+shipped real-rate Γ lemma — plus the one-sided closed forms and the real-rate
+drift identity, so that `charFun cgmyLaw v = cgmyCharFactor C G M Y τ v` for
+`Y ≠ 1` (`charFun_cgmyLaw_eq_cgmyCharFactor`): the tree's pricing factor is the
+CF of a law in the tree (route-check: `|L − ψ_Y| ≤ 6.2e−10`, G1 to `2.9e−11`).
+The CF is at real `v` only; the mgf on the strip, the Esscher tilt at the law
+and pricing at `cgmyLaw` are the next brief. Ledger row 19, correction C27.
 Proving the
 obstruction itself — a concrete divergent integral, no finance in it — is the
 cheapest high-value theorem in the research tier. Details in docs/03 §D1.
@@ -259,8 +267,8 @@ cheapest high-value theorem in the research tier. Details in docs/03 §D1.
 
 | Layer | what | status |
 |---|---|---|
-| Numeric oracle | independent `d1`/`d2`, independent call and put closed forms, PDE residual, delta identity, quadrature of the risk-neutral expectation, Carr–Madan Fourier inversion, model-free expectation route, Carr–Madan at any strip law, the CGMY exponent's contour and decay, the non-uniqueness witness in exact rationals, the Esscher drift map, its zero and its solvability bound, the normalized CGMY → GBM corner against an independently expanded polynomial, the **published Carr–Madan (1999) anchor** (both parameterizations of the same VG law) and the **term-structure falsifier** (measured ATM-skew exponents vs the cited market band), the **variance-gamma law** (Gamma mgf, two-Gamma factorization, corner ratios, Esscher tilt, model-free bounds) | verified — 24/24 tests |
-| Oracle is a falsifier | mutation harness: 34 seeded bugs, each killed by its targeted test, incl. 2 vacuity canaries | verified — 4/4 harness tests |
+| Numeric oracle | independent `d1`/`d2`, independent call and put closed forms, PDE residual, delta identity, quadrature of the risk-neutral expectation, Carr–Madan Fourier inversion, model-free expectation route, Carr–Madan at any strip law, the CGMY exponent's contour and decay, the non-uniqueness witness in exact rationals, the Esscher drift map, its zero and its solvability bound, the normalized CGMY → GBM corner against an independently expanded polynomial, the **published Carr–Madan (1999) anchor** (both parameterizations of the same VG law) and the **term-structure falsifier** (measured ATM-skew exponents vs the cited market band), the **variance-gamma law** (Gamma mgf, two-Gamma factorization, corner ratios, Esscher tilt, model-free bounds), the **compound-Poisson mixture and truncated CGMY jump law** (BRIEF_019's conventions by measurement) and the **CGMY law's `ε ↓ 0` route** (the exact decomposition, the paired drift, G1 by quadrature, the drift identity, the tightness proxy) | verified — 26/26 tests |
+| Oracle is a falsifier | mutation harness: 44 seeded bugs, each killed by its targeted test, incl. 2 vacuity canaries | verified — 4/4 harness tests |
 | Failure modes + research dirs w/ falsifiers | docs/02, docs/03 | written |
 | Lean definitions | `erf`, Φ, φ, d1, d2, bsCall, bsPut — independent, matching the oracle | machine-checked |
 | Lean theorems | `Phi_add_Phi_neg`, T1, T2, T2′ | **GREEN** — `lake build` + `#print axioms` audit, run 35509578689 |
@@ -280,8 +288,9 @@ cheapest high-value theorem in the research tier. Details in docs/03 §D1.
 | Deferred | *(nothing)* | ratcheted at 0 `sorry`s — `deferred: {}` |
 | Lean theorems | BSM-2 Stage 1: the variance-gamma law as a `Measure ℝ` — difference of two `gammaMeasure`s, mgf `exp(τ·κ₀)` on `(−G, M)`, the `Y ↓ 0` corner as a `𝓝[>] 0` limit, the Esscher tilt, and items 3 and 5 instantiated at it (`ImprovedBS/VGLaw.lean`, 24 declarations) | **GREEN** — lean run 36151499122 (oracle lane 36151499027): `lake build` + `#print axioms` audit (256) + statement pins (elab, all 292) + `lint` + `oracle`; `benchmarks/LEDGER.md` row 17 |
 | Lean theorems | BSM-2 Stage 2a: the compound-Poisson law of a probability jump measure at rate `λ` (the Poisson mixture of convolution powers) and its CF `exp(λ(φ−1))`, plus the truncated CGMY jump law `ν_ε/λ_ε` from the landed `cgmyLevyDensity` and its marginal, exponent `∫_{\|x\|≥ε}(e^{ivx}−1)ν` — conventions fixed by measurement: symmetric truncation, no compensator (`ImprovedBS/CompoundPoisson.lean`, 5 defs + 12 theorems) | **GREEN** — lean run 36228682782 (oracle lane 36228682768): `lake build` + `#print axioms` audit (268) + statement pins (source 309, elab 309) + `lint` + `oracle`; `benchmarks/LEDGER.md` row 18, corrections C23/C24 |
-| Lint is a falsifier | `tests/test_lint.py`: 52 seeded cheats each killed by a named check, 5 legitimate edits green, 1 residual gap asserted open | verified — 7/7 tests |
-| Pinned claims | `tests/golden_statements.json`: 309 declarations — theorem statements, definition bodies | machine-checked (source 309, elab 309); `#check`/axioms layer verified in build job |
+| Lean theorems | BSM-2 Stage 2b: the CGMY law itself — the `ε ↓ 0` limit of the compound-Poisson marginals along `εₙ = 2⁻ⁿ`, the exact split of the truncated exponent into a unit-ball-compensated integral and a paired drift, tightness, existence by Prokhorov + Lévy continuity (`cgmyLaw := Filter.limUnder …` in `ProbabilityMeasure ℝ`), CF `cexp (τ L(v))` on all of `0 < Y < 2`, G1 (the complex-rate Γ integral by the identity theorem), the two one-sided closed forms, the real-rate drift identity, and `charFun cgmyLaw v = cgmyCharFactor C G M Y τ v` for `Y ≠ 1` (`ImprovedBS/CGMYLaw.lean`, 6 defs + 18 theorems) | **GREEN** — lean run 36249141529 (oracle lane 36249141507): `lake build` + `#print axioms` audit (286) + statement pins (source 333, elab 333) + `lint` (incl. `[CGMYLaw]`) + `oracle`; `benchmarks/LEDGER.md` row 19, correction C27 |
+| Lint is a falsifier | `tests/test_lint.py`: 56 seeded cheats each killed by a named check, 5 legitimate edits green, 1 residual gap asserted open | verified — 7/7 tests |
+| Pinned claims | `tests/golden_statements.json`: 333 declarations — theorem statements, definition bodies | machine-checked (source 333, elab 333); `#check`/axioms layer verified in build job |
 | Grading lane | briefs/ + benchmarks/ + 2 CI workflows + toolchain-free lint + pins | standing |
 | First brief | BRIEF_001, re-scoped to what is actually checkable | see briefs/ |
 
@@ -427,12 +436,12 @@ is the formal, machine-checked restatement and the widening question.
 All five harnesses are dependency-free Python; none needs a Lean toolchain.
 
 ```sh
-python3 tests/test_bs.py          # 24/24 — the oracle satisfies the claimed identities
-python3 tests/test_mutants.py     #  4/4  — and those tests can actually fail (34 mutants)
-python3 tests/test_lint.py        #  7/7  — the linter can fail too (48 cheats, 5 controls)
+python3 tests/test_bs.py          # 26/26 — the oracle satisfies the claimed identities
+python3 tests/test_mutants.py     #  4/4  — and those tests can actually fail (44 mutants)
+python3 tests/test_lint.py        #  7/7  — the linter can fail too (56 cheats, 5 controls)
 python3 tests/test_pins.py        # 12/12 — and the pins that back it parse real CI output, and the delta/merge path works
-python3 scripts/lean_lint.py      #  OK   — no sorry in the protected node, ratchet, independence, pins, spine, skeleton, contour, cgmy, nonuniq, esscher, corner, pareto, vglaw (15 files, 345 declarations)
-python3 scripts/pin_statements.py --check   # 292 statements match tests/golden_statements.json
+python3 scripts/lean_lint.py      #  OK   — no sorry in the protected node, ratchet, independence, pins, spine, skeleton, contour, cgmy, nonuniq, esscher, corner, pareto, vglaw, cpoisson, cgmylaw (17 files, 437 declarations)
+python3 scripts/pin_statements.py --check   # 333 statements match tests/golden_statements.json (source + elab)
 python3 tests/test_crosscheck.py    #  6/6  — grid + oracle self-consistency, both T3 sides, input-source routing (the cross-check itself needs lake)
 # or, with pytest installed:
 pytest tests/

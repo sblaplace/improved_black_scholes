@@ -553,6 +553,34 @@ REQUIRED = {
     "cgmyTruncatedExponent_integrable": "ImprovedBS/CompoundPoisson.lean",
     "cgmyTruncatedExponent_zero": "ImprovedBS/CompoundPoisson.lean",
     "charFun_cgmyCpLaw": "ImprovedBS/CompoundPoisson.lean",
+    # BRIEF_020: the CGMY law. Six defs (the compensated integrand, the paired
+    # drift integrand, the Lévy–Khintchine exponent, the compound-Poisson
+    # marginal as a `ProbabilityMeasure`, the law as `Filter.limUnder`, and the
+    # complex-rate Γ integral) and 18 theorems, all PROTECTED.
+    "cgmyCompensatedIntegrand": "ImprovedBS/CGMYLaw.lean",
+    "cgmyDriftIntegrand": "ImprovedBS/CGMYLaw.lean",
+    "cgmyLKExponent": "ImprovedBS/CGMYLaw.lean",
+    "cgmyCpProbability": "ImprovedBS/CGMYLaw.lean",
+    "cgmyLaw": "ImprovedBS/CGMYLaw.lean",
+    "gammaIntegralComplexRate": "ImprovedBS/CGMYLaw.lean",
+    "cgmyCompensatedIntegrand_integrable": "ImprovedBS/CGMYLaw.lean",
+    "cgmyDriftIntegrand_integrableOn": "ImprovedBS/CGMYLaw.lean",
+    "cgmyTruncatedExponent_decomp": "ImprovedBS/CGMYLaw.lean",
+    "cgmyTruncatedExponent_tendsto": "ImprovedBS/CGMYLaw.lean",
+    "cgmyLKExponent_zero": "ImprovedBS/CGMYLaw.lean",
+    "cgmyLKExponent_continuous": "ImprovedBS/CGMYLaw.lean",
+    "charFun_cgmyCpProbability_tendsto": "ImprovedBS/CGMYLaw.lean",
+    "cgmyCpProbability_isTight": "ImprovedBS/CGMYLaw.lean",
+    "cgmyLaw_exists": "ImprovedBS/CGMYLaw.lean",
+    "cgmyCpProbability_tendsto_cgmyLaw": "ImprovedBS/CGMYLaw.lean",
+    "charFun_cgmyLaw": "ImprovedBS/CGMYLaw.lean",
+    "cgmyLaw_unique": "ImprovedBS/CGMYLaw.lean",
+    "integral_cpow_mul_cexp_neg_mul_Ioi": "ImprovedBS/CGMYLaw.lean",
+    "cgmyDrift_identity": "ImprovedBS/CGMYLaw.lean",
+    "cgmyOneSidedExponent_eq": "ImprovedBS/CGMYLaw.lean",
+    "cgmyOneSidedCompensated_eq": "ImprovedBS/CGMYLaw.lean",
+    "cgmyLKExponent_eq_cgmyExponent": "ImprovedBS/CGMYLaw.lean",
+    "charFun_cgmyLaw_eq_cgmyCharFactor": "ImprovedBS/CGMYLaw.lean",
 }
 
 # Zero deferred-proof markers allowed. The T1/T2 node per BRIEF_001; the T3/T4
@@ -890,6 +918,31 @@ PROTECTED = {
     "cgmyTruncatedExponent_integrable",
     "cgmyTruncatedExponent_zero",
     "charFun_cgmyCpLaw",
+    # BRIEF_020: all 24 contract declarations of CGMYLaw.lean.
+    "cgmyCompensatedIntegrand",
+    "cgmyDriftIntegrand",
+    "cgmyLKExponent",
+    "cgmyCpProbability",
+    "cgmyLaw",
+    "gammaIntegralComplexRate",
+    "cgmyCompensatedIntegrand_integrable",
+    "cgmyDriftIntegrand_integrableOn",
+    "cgmyTruncatedExponent_decomp",
+    "cgmyTruncatedExponent_tendsto",
+    "cgmyLKExponent_zero",
+    "cgmyLKExponent_continuous",
+    "charFun_cgmyCpProbability_tendsto",
+    "cgmyCpProbability_isTight",
+    "cgmyLaw_exists",
+    "cgmyCpProbability_tendsto_cgmyLaw",
+    "charFun_cgmyLaw",
+    "cgmyLaw_unique",
+    "integral_cpow_mul_cexp_neg_mul_Ioi",
+    "cgmyDrift_identity",
+    "cgmyOneSidedExponent_eq",
+    "cgmyOneSidedCompensated_eq",
+    "cgmyLKExponent_eq_cgmyExponent",
+    "charFun_cgmyLaw_eq_cgmyCharFactor",
 }
 
 # The T5 node, in dependency order, and the two citations docs/04's spine
@@ -1094,6 +1147,44 @@ CPOISSON_COMPENSATOR = (
     "-v*x*I", "-(v*x*I)", "-v*(x:ℂ)*I", "-(v*(x:ℂ)*I)", "-v*x", "-v*(x:ℂ)",
     "-Complex.I*v*x", "-I*v*x", "-v*x*Complex.I",
 )
+
+# BRIEF_020's `[CGMYLaw]` route commitments. The law must be the *limit* of the
+# landed marginals (R1: `Filter.limUnder` of `cgmyCpProbability`, not a
+# hand-rolled density, a pushed-forward law, or a bare `Classical.choose`); the
+# drift must stay *paired* (R2: `cgmyDriftIntegrand` carries both `e^{−Mx}` and
+# `e^{−Gx}`, `cgmyLKExponent` integrates it over `Ioc 0 1`, and no statement in
+# the module integrates a single leg `x^{−Y} e^{−Mx}` / `x^{−Y} e^{−Gx}` over a
+# set that reaches `0` -- each leg alone diverges for `Y ≥ 1`, measured
+# `122.47` at `ε = 2⁻¹⁴`, `Y = 3/2`); the CF at the law must come from Lévy
+# continuity of the marginals identified by `tendsto_nhds_unique` (R3: not
+# from `cgmyExponent`, which enters only in §3); and G1 must be the identity
+# theorem anchored on the shipped real-rate lemma (R4: it cites
+# `integral_cpow_mul_exp_neg_mul_Ioi` and an `eqOn_of_preconnected_*` identity
+# theorem, and does not restate the real Γ integral).
+CGMYLAW_LAW = "cgmyLaw"
+CGMYLAW_LAW_CITES = ("Filter.limUnder", "cgmyCpProbability")
+CGMYLAW_LAW_FORBIDS = (r"\bwithDensity\b", r"\bMeasure\.map\b", r"\bClassical\.choose\b")
+CGMYLAW_DRIFT = "cgmyDriftIntegrand"
+# both legs, whitespace-insensitive
+CGMYLAW_DRIFT_LEGS = ("Real.exp(-M*x)", "Real.exp(-G*x)")
+CGMYLAW_LK = "cgmyLKExponent"
+CGMYLAW_LK_CITES = ("cgmyCompensatedIntegrand", "cgmyDriftIntegrand")
+# a single leg, whitespace-insensitive, in a *statement* (the text before `:=`)
+CGMYLAW_SINGLE_LEG = (
+    "x^(-Y)*Real.exp(-M*x)", "x^(-Y)*Real.exp(-G*x)",
+    "Real.exp(-M*x)*x^(-Y)", "Real.exp(-G*x)*x^(-Y)",
+    "x^(-Y)*rexp(-M*x)", "x^(-Y)*rexp(-G*x)",
+)
+# sets reaching `0` from the right, whitespace-insensitive
+CGMYLAW_NEAR_ZERO = ("Ioc0", "Ioc(0", "Ioo0", "Ioo(0", "Ioi0", "Ioi(0", "Icc0", "Icc(0", "Ico0", "Ico(0")
+CGMYLAW_CF = "charFun_cgmyLaw"
+CGMYLAW_CF_LEVY = ("ProbabilityMeasure.tendsto_iff_tendsto_charFun", "tendsto_of_tendsto_charFun")
+CGMYLAW_CF_CITES = ("tendsto_nhds_unique",)
+CGMYLAW_CF_FORBIDS = (r"\bcgmyExponent\b",)
+CGMYLAW_G1 = "integral_cpow_mul_cexp_neg_mul_Ioi"
+CGMYLAW_G1_CITES = ("integral_cpow_mul_exp_neg_mul_Ioi",)
+CGMYLAW_G1_IDENTITY = ("eqOn_of_preconnected_of_frequently_eq", "eqOn_of_preconnected_of_eventuallyEq")
+CGMYLAW_G1_FORBIDS = (r"\bGamma_eq_integral\b", r"\bGammaIntegral\b")
 
 MARKERS = ("sorry", "admit", "native_decide")
 
@@ -2450,6 +2541,136 @@ def main() -> int:
                 "only density; `cgmyJumpMass_lt_top` inherits `cgmy_levy_far_moment`; "
                 "no declaration truncates a half-line at ε and `cgmyTruncatedExponent` "
                 "carries no compensator"
+            )
+
+    # [CGMYLaw] BRIEF_020: the CGMY law. `lake build` grades that the theorems
+    # are true; this grades that they are the objects the brief asked for -- the
+    # limit of the landed marginals, the paired drift, the CF by Lévy continuity,
+    # and G1 by the identity theorem on the shipped anchor. Bodies are
+    # comment-stripped, so a doc-comment may name the forbidden spellings.
+    cgmylaw_path = os.path.join(ROOT, "ImprovedBS", "CGMYLaw.lean")
+    if not os.path.exists(cgmylaw_path):
+        failures.append("[CGMYLaw] ImprovedBS/CGMYLaw.lean not found")
+    else:
+        cgmylaw_clean = strip_comments(open(cgmylaw_path, encoding="utf-8").read())
+        cgmylaw_bodies = {name: body for _, name, _, body in declarations(cgmylaw_clean)}
+        cgmylaw_failures: list[str] = []
+
+        def cl_body(name: str) -> str:
+            body = cgmylaw_bodies.get(name, "")
+            if body == "":
+                cgmylaw_failures.append(f"[CGMYLaw] `{name}` not found")
+            return body
+
+        def cl_rhs(name: str) -> str:
+            body = cl_body(name)
+            return " ".join((body.split(":=", 1)[1] if ":=" in body else "").split())
+
+        # (R1) the law is the limit of the landed marginals
+        rhs = cl_rhs(CGMYLAW_LAW)
+        if rhs:
+            for cite in CGMYLAW_LAW_CITES:
+                if not re.search(r"\b" + re.escape(cite) + r"\b", rhs):
+                    cgmylaw_failures.append(
+                        f"[CGMYLaw] `{CGMYLAW_LAW}` no longer cites `{cite}`. The law is the "
+                        "`Filter.limUnder` of BRIEF_019's compound-Poisson marginals along "
+                        "`εₙ = 2⁻ⁿ`, not another construction."
+                    )
+            for pat in CGMYLAW_LAW_FORBIDS:
+                if re.search(pat, rhs):
+                    cgmylaw_failures.append(
+                        f"[CGMYLaw] `{CGMYLAW_LAW}` builds the law through {pat!r}: a "
+                        "hand-rolled density, a pushed-forward law, or a bare choice, "
+                        "none of which is the limit `cgmyLaw_exists` constructs."
+                    )
+        # (R2) the drift is paired, and stays paired
+        body = cl_body(CGMYLAW_DRIFT)
+        if body:
+            squashed = re.sub(r"\s+", "", body.split(":=", 1)[1] if ":=" in body else "")
+            for leg in CGMYLAW_DRIFT_LEGS:
+                if leg not in squashed:
+                    cgmylaw_failures.append(
+                        f"[CGMYLaw] `{CGMYLAW_DRIFT}` no longer carries the leg {leg!r}: the "
+                        "drift is `C x^{-Y}(e^{-Mx} - e^{-Gx})` and only the *difference* is "
+                        "integrable at 0 for `Y ≥ 1` (measured: a single leg is `122.47` at "
+                        "`ε = 2⁻¹⁴`, `Y = 3/2`, growing like `ε^{1-Y}`)."
+                    )
+        rhs = cl_rhs(CGMYLAW_LK)
+        if rhs:
+            for cite in CGMYLAW_LK_CITES:
+                if not re.search(r"\b" + re.escape(cite) + r"\b", rhs):
+                    cgmylaw_failures.append(
+                        f"[CGMYLaw] `{CGMYLAW_LK}` no longer cites `{cite}`: the exponent is "
+                        "the compensated integral plus `iv` times the paired drift over "
+                        "`Ioc 0 1`."
+                    )
+        for name, body in cgmylaw_bodies.items():
+            statement = re.sub(r"\s+", "", body.split(":=", 1)[0])
+            if any(leg in statement for leg in CGMYLAW_SINGLE_LEG) and any(
+                z in statement for z in CGMYLAW_NEAR_ZERO
+            ):
+                cgmylaw_failures.append(
+                    f"[CGMYLaw] `{name}` states a single-leg near-zero integral "
+                    "(`x^{-Y} e^{-Mx}` or `x^{-Y} e^{-Gx}` over a set reaching 0): the two "
+                    "legs pair into `cgmyDriftIntegrand`; alone each diverges for `Y ≥ 1`."
+                )
+        # (R3) the CF at the law is Lévy continuity, identified by uniqueness of limits
+        body = cl_body(CGMYLAW_CF)
+        if body:
+            if not any(re.search(r"\b" + re.escape(c) + r"\b", body) for c in CGMYLAW_CF_LEVY):
+                cgmylaw_failures.append(
+                    f"[CGMYLaw] `{CGMYLAW_CF}` cites neither "
+                    "`ProbabilityMeasure.tendsto_iff_tendsto_charFun` nor "
+                    "`tendsto_of_tendsto_charFun`: the CF of the limit comes from Lévy "
+                    "continuity of the marginals, not from a definition."
+                )
+            for cite in CGMYLAW_CF_CITES:
+                if not re.search(r"\b" + re.escape(cite) + r"\b", body):
+                    cgmylaw_failures.append(
+                        f"[CGMYLaw] `{CGMYLAW_CF}` does not cite `{cite}`: the two limits of "
+                        "the marginals' CFs are identified by uniqueness of limits."
+                    )
+            for pat in CGMYLAW_CF_FORBIDS:
+                if re.search(pat, body):
+                    cgmylaw_failures.append(
+                        f"[CGMYLaw] `{CGMYLAW_CF}` mentions `cgmyExponent`: the CF at the law "
+                        "is `exp (τ L)` on all of `0 < Y < 2`; the closed form enters only "
+                        "through §3's identification, for `Y ≠ 1`."
+                    )
+        # (R4) G1 is the identity theorem anchored on the shipped real-rate lemma
+        body = cl_body(CGMYLAW_G1)
+        if body:
+            for cite in CGMYLAW_G1_CITES:
+                if not re.search(r"\b" + re.escape(cite) + r"\b", body):
+                    cgmylaw_failures.append(
+                        f"[CGMYLaw] `{CGMYLAW_G1}` does not cite `{cite}`: the complex-rate "
+                        "integral is anchored on the shipped real-rate Γ integral."
+                    )
+            if not any(re.search(r"\b" + re.escape(c) + r"\b", body) for c in CGMYLAW_G1_IDENTITY):
+                cgmylaw_failures.append(
+                    f"[CGMYLaw] `{CGMYLAW_G1}` cites no identity theorem "
+                    "(`eqOn_of_preconnected_of_frequently_eq` / "
+                    "`eqOn_of_preconnected_of_eventuallyEq`): G1 is analytic continuation "
+                    "from the positive reals, not a contour and not a restatement."
+                )
+            for pat in CGMYLAW_G1_FORBIDS:
+                if re.search(pat, body):
+                    cgmylaw_failures.append(
+                        f"[CGMYLaw] `{CGMYLAW_G1}` restates the real Γ integral ({pat!r}) "
+                        "instead of consuming `integral_cpow_mul_exp_neg_mul_Ioi`."
+                    )
+
+        if cgmylaw_failures:
+            failures.extend(cgmylaw_failures)
+        else:
+            notes.append(
+                "[CGMYLaw] `cgmyLaw` is `Filter.limUnder` of `cgmyCpProbability` with no "
+                "`withDensity`/`Measure.map`/`Classical.choose`; `cgmyDriftIntegrand` "
+                "carries both legs and `cgmyLKExponent` integrates it, no statement "
+                "integrates a single leg near 0; `charFun_cgmyLaw` is Lévy continuity "
+                "plus `tendsto_nhds_unique` and never `cgmyExponent`; "
+                "`integral_cpow_mul_cexp_neg_mul_Ioi` cites the shipped real-rate lemma "
+                "and the identity theorem"
             )
 
     if "--write-baseline" in sys.argv:

@@ -211,28 +211,42 @@ one above — **in the same tree, under the same skeleton**, with all seven of:
    `vgLaw` is already measured (`\|A_ε − ψ₀\|/Y → 0.0375` at `v = 0.5`). The
    landed module stops exactly where 2b starts: no `ε ↓ 0` limit, no tightness,
    no identification — and the limit is conditional convergence, not DCT, since
-   no integrable dominating function exists near zero. **Stage 2b is issued as
-   BRIEF_020** (`briefs/BRIEF_020_cgmy_law_stage2b.md`, module name
-   `ImprovedBS/CGMYLaw.lean`), with G1 inside it as §3; its **oracle half has
-   landed** (`test_cgmy_law`, mutants M39–M43, ledger C26) while the 18
-   theorems remain drafted with 11 proofs open. Its route-check makes
-   the conditional convergence unconditional: at every `ε > 0` the truncated
-   exponent splits *exactly* (`≤ 7.3e−15`) as
+   no integrable dominating function exists near zero. **Stage 2b has landed
+   as BRIEF_020** (`ImprovedBS/CGMYLaw.lean`, 6 defs + 18 theorems; PR #29,
+   lean run 36249141529; statement pins 309 -> 333 in both layers with the
+   309 pre-existing entries byte-identical, audit 268 -> 286, `[CGMYLaw]`
+   R1-R4 with lint cheats 52 -> 56; its oracle half landed first as
+   `test_cgmy_law` with mutants M39–M43, ledger C26), with G1 inside it as
+   §3 — and §3 was not severed. The theorems are the route-check made
+   unconditional: at every `ε > 0` the truncated exponent splits *exactly*
+   (`cgmyTruncatedExponent_decomp`; measured `≤ 7.3e−15`) as
    `A_ε = ∫_{|x|≥ε}(e^{ivx} − 1 − ivx·1_{|x|≤1})ν + iv·C∫_ε^1 x^{−Y}(e^{−Mx} − e^{−Gx})dx`,
-   and each piece has an integrable dominator on `ℝ ∖ {0}`, so the limit is
-   two `tendsto_setIntegral_of_monotone`s (both at rate `ε^{2−Y}`: slopes
+   each piece has an integrable dominator on `ℝ ∖ {0}`
+   (`cgmyCompensatedIntegrand_integrable`, `cgmyDriftIntegrand_integrableOn`),
+   so the limit is two `tendsto_setIntegral_of_monotone`s
+   (`cgmyTruncatedExponent_tendsto`; both at rate `ε^{2−Y}`: slopes
    1.4996 / 0.9997 / 0.4998 at `Y = ½, 1, 3⁄2`). The paired drift is finite
    and nonzero (`d₀ = −1.6411` at `Y = 3⁄2`) — the `ivx` pieces *pair*, they
    do not cancel (ledger C25). The limit law exists by tightness + Prokhorov
-   + subsequence + CF uniqueness (mathlib's `tendsto_of_tendsto_charFun`
-   *takes* the limit; it does not produce one), is defined as `limUnder`, and
-   has CF `cexp (τ L(v))` on **all** of `0 < Y < 2` — `Y = 1` is a pole of
-   the closed form, not of the law (`|ψ_{1±δ} − L₁| = O(δ)`). The
-   identification `L = ψ_Y` for `Y ≠ 1` is G1 (an identity-theorem argument on
-   the shipped real-rate Γ lemma, measured to `2.9e−11`) plus one or two
-   integrations by parts and a real-rate drift identity
-   `C∫_0^∞ x^{−Y}(e^{−Mx} − e^{−Gx}) = m^∞` (measured to `3.0e−10`);
-   `|L − ψ_Y| ≤ 6.2e−10`. §3 is severable from §1–§2 by construction.
+   + subsequence + CF uniqueness (`cgmyCpProbability_isTight`,
+   `cgmyLaw_exists`; mathlib's `tendsto_of_tendsto_charFun` *takes* the
+   limit, it does not produce one), is defined as
+   `cgmyLaw := Filter.limUnder atTop …` in `ProbabilityMeasure ℝ`, and has CF
+   `cexp (τ L(v))` on **all** of `0 < Y < 2` (`charFun_cgmyLaw`,
+   `cgmyLaw_unique`) — `Y = 1` is a pole of the closed form, not of the law
+   (`|ψ_{1±δ} − L₁| = O(δ)`). The identification `L = ψ_Y` for `Y ≠ 1`
+   (`cgmyLKExponent_eq_cgmyExponent`) is G1
+   (`integral_cpow_mul_cexp_neg_mul_Ioi`: an identity-theorem argument on the
+   shipped real-rate Γ lemma, measured to `2.9e−11`) plus one or two
+   integrations by parts (`cgmyOneSidedExponent_eq` on `0 < Y < 1`,
+   `cgmyOneSidedCompensated_eq` on `1 < Y < 2` — the draft's `0 < Y < 2`
+   statement was false at `Y = 1`, ledger C27) and the real-rate drift
+   identity `C∫_0^∞ x^{−Y}(e^{−Mx} − e^{−Gx}) = m^∞` (`cgmyDrift_identity`,
+   measured to `3.0e−10`); `|L − ψ_Y| ≤ 6.2e−10`. The headline
+   `charFun_cgmyLaw_eq_cgmyCharFactor : charFun cgmyLaw v = cgmyCharFactor C G M Y τ v`
+   for `Y ≠ 1` makes the tree's pricing factor the CF of a law in the tree.
+   The CF is at **real** `v` only: the mgf on the strip, the Esscher tilt at
+   the law and items 3/5 at general `Y` are the brief after this one.
 4. **T6's triangle holds at the new exponent.** The Carr–Madan integral
    converges absolutely on the contour, inverts to `e^{−rτ}·E[(S_T − K)⁺]`,
    and is real-valued — the full pricing claim where no closed form exists.
@@ -280,12 +294,16 @@ one above — **in the same tree, under the same skeleton**, with all seven of:
    records the error and the numerical counterexample. The route-check that
    measured all of this is now a committed oracle test
    (`tests/test_bs.py::test_gbm_corner`) with seeded mutants for the doubled
-   scale and the dropped drift correction. Convergence of prices, or a CGMY
-   probability measure to connect this exponent to expectations, is a
+   scale and the dropped drift correction. Convergence of prices is a
    recorded deferral, not a consequence of pointwise convergence: the limit
    holds at each fixed `v`, which is not a uniform dominating bound on the
    pricing contour and does not license an interchange with the Carr–Madan
-   integral.
+   integral. The CGMY probability measure that connects this exponent to
+   expectations now exists — BRIEF_020's `cgmyLaw`, with
+   `charFun cgmyLaw v = cgmyCharFactor C G M Y τ v` for `Y ≠ 1` — but at
+   real `v` only; the expectation-level twin of this corner needs the strip
+   CF at the law and a statement about a *sequence* of laws in `Y`, and it
+   stays gated on the brief after BRIEF_020.
 7. **The selection principle's necessity is a theorem.** The tree contains a
    machine-checked non-uniqueness witness: two distinct probability measures,
    both satisfying the drift condition, giving *different* call prices —
