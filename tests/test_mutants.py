@@ -403,6 +403,40 @@ MUTANTS = [
         "neg = 0.0j",
         ["test_compound_poisson"],
     ),
+    # BRIEF_020: the CGMY law. M39 is the one that is not a rounding cheat --
+    # the UNPAIRED drift leg does not converge at all (122.47 at eps = 2^-14,
+    # growing like eps^{1-Y}), so the limit exponent stops existing. M40-M43
+    # move it by a named amount: the drift is load-bearing (ledger C25).
+    (
+        "M39 drift not paired: only the M leg survives, and it DIVERGES as eps -> 0",
+        "        return (math.expm1(-M * x) - math.expm1(-G * x)) * x ** (-Y)",
+        "        return math.expm1(-M * x) * x ** (-Y)",
+        ["test_cgmy_law"],
+    ),
+    (
+        "M40 drift dropped from the limit exponent: L := B_0 with no i v d_0",
+        "    return b_zero + 1j * v * d_zero",
+        "    return b_zero + 0.0j",
+        ["test_cgmy_law"],
+    ),
+    (
+        "M41 the far-field drift m^inf is missing from the one-sided assembly",
+        "    return compensated + 1j * v * cgmy_drift_identity_closed(C, G, M, Y)",
+        "    return compensated + 0.0j",
+        ["test_cgmy_law"],
+    ),
+    (
+        "M42 drift sign flipped: the paired integrand is negated",
+        "        return (math.expm1(-M * x) - math.expm1(-G * x)) * x ** (-Y)",
+        "        return (math.expm1(-G * x) - math.expm1(-M * x)) * x ** (-Y)",
+        ["test_cgmy_law"],
+    ),
+    (
+        "M43 Gamma(1-Y) -> Gamma(-Y) in the closed form of the drift m^inf",
+        "    return C * math.gamma(1.0 - Y) * (M ** (Y - 1.0) - G ** (Y - 1.0))",
+        "    return C * math.gamma(-Y) * (M ** (Y - 1.0) - G ** (Y - 1.0))",
+        ["test_cgmy_law"],
+    ),
 ]
 
 
