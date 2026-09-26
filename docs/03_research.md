@@ -213,7 +213,9 @@ one above — **in the same tree, under the same skeleton**, with all seven of:
    no identification — and the limit is conditional convergence, not DCT, since
    no integrable dominating function exists near zero. **Stage 2b is issued as
    BRIEF_020** (`briefs/BRIEF_020_cgmy_law_stage2b.md`, module name
-   `ImprovedBS/CGMYLaw.lean`), with G1 inside it as §3. Its route-check makes
+   `ImprovedBS/CGMYLaw.lean`), with G1 inside it as §3; its **oracle half has
+   landed** (`test_cgmy_law`, mutants M39–M43, ledger C26) while the 18
+   theorems remain drafted with 11 proofs open. Its route-check makes
    the conditional convergence unconditional: at every `ε > 0` the truncated
    exponent splits *exactly* (`≤ 7.3e−15`) as
    `A_ε = ∫_{|x|≥ε}(e^{ivx} − 1 − ivx·1_{|x|≤1})ν + iv·C∫_ε^1 x^{−Y}(e^{−Mx} − e^{−Gx})dx`,
