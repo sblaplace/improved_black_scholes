@@ -213,9 +213,11 @@ landed Esscher range `H_Y` degenerates at the corner (`H_Y ~ C/Y → ∞`).
 theorems): the law as the difference of two `gammaMeasure`s, its mgf on the
 strip `(−G, M)` (consuming `integral_rpow_mul_exp_neg_mul_Ioi`), the corner as
 a `𝓝[>] 0` limit, the law-level Esscher tilt, and the expectation-level twins
-of items 3 and 5 at the tilted law. **Stage 2 is issued in two halves**: its
-first half is **BRIEF_019** (`briefs/BRIEF_019_compound_poisson_stage2a.md`),
-the compound-Poisson law of a probability jump measure at rate `λ` — the
+of items 3 and 5 at the tilted law. **Stage 2 lands in two halves**: its first half **is landed as BRIEF_019**
+(`ImprovedBS/CompoundPoisson.lean`, 5 defs + 12 theorems; pins 292 → 309,
+audit 256 → 268, `[CPOISSON]` lint clauses R1–R4 with cheats 48 → 52, oracle
+24 → 25, mutants 34 → 39), the compound-Poisson law of a probability jump
+measure at rate `λ` — the
 Poisson mixture of convolution powers, with the CF `exp(λ(φ−1))` — plus the
 **truncated CGMY jump law** `ν_ε/λ_ε` built from the landed `cgmyLevyDensity`
 and its marginal, whose exponent is the honest Bochner integral
@@ -234,6 +236,10 @@ argument. **G1** (the complex-rate Γ integral) remains open and is that half's
 analytic engine. Four `[VGLaw]` lint clauses
 (44 → 48), `test_vg_law` and mutants M30–M33; pins 268 → 292, audit 237 → 256
 (theorems only — the repo's `#print axioms` list does not cover defs).
+**Stage 2a has landed as BRIEF_019**: four `[CPoisson]` clauses (48 → 52),
+`test_compound_poisson` with mutants M34–M38, pins 292 → 309,
+audit 256 → 268 — and the module stops where Stage 2b starts: no `ε ↓ 0`
+limit, no tightness, no identification.
 Proving the
 obstruction itself — a concrete divergent integral, no finance in it — is the
 cheapest high-value theorem in the research tier. Details in docs/03 §D1.
@@ -262,9 +268,9 @@ cheapest high-value theorem in the research tier. Details in docs/03 §D1.
 | Lean theorems | the obstruction's tail hypothesis is non-vacuous — mathlib's Pareto law has `μ[x,∞) = t^r·x^(−r)`, so `htail` holds with equality and `Levy.lean`'s obstruction is instantiated at a real law by citation; C7's `α ≤ 0` remark is a theorem, giving `(∃ law, htail) ↔ 0 < α`, and a Dirac mass shows the hypothesis can fail (`ImprovedBS/ParetoWitness.lean`, 11 theorems) | **GREEN** — `lake build` + `#print axioms` audit (237 entries) + statement pins (elab, 268), run 36119639468; `benchmarks/LEDGER.md` row 15 |
 | Deferred | *(nothing)* | ratcheted at 0 `sorry`s — `deferred: {}` |
 | Lean theorems | BSM-2 Stage 1: the variance-gamma law as a `Measure ℝ` — difference of two `gammaMeasure`s, mgf `exp(τ·κ₀)` on `(−G, M)`, the `Y ↓ 0` corner as a `𝓝[>] 0` limit, the Esscher tilt, and items 3 and 5 instantiated at it (`ImprovedBS/VGLaw.lean`, 24 declarations) | **GREEN** — lean run 36151499122 (oracle lane 36151499027): `lake build` + `#print axioms` audit (256) + statement pins (elab, all 292) + `lint` + `oracle`; `benchmarks/LEDGER.md` row 17 |
-| Lean theorems | BSM-2 Stage 2a, **issued**: the compound-Poisson law of a probability jump measure at rate `λ` (the Poisson mixture of convolution powers) and its CF `exp(λ(φ−1))`, plus the truncated CGMY jump law `ν_ε/λ_ε` from the landed `cgmyLevyDensity` and its marginal, exponent `∫_{\|x\|≥ε}(e^{ivx}−1)ν` — conventions fixed by measurement: symmetric truncation, no compensator (`briefs/BRIEF_019_compound_poisson_stage2a.md`) | issued — implementation pending; the `ε ↓ 0` limit and the law stay Stage 2b |
-| Lint is a falsifier | `tests/test_lint.py`: 48 seeded cheats each killed by a named check, 5 legitimate edits green, 1 residual gap asserted open | verified — 7/7 tests |
-| Pinned claims | `tests/golden_statements.json`: 292 declarations — theorem statements, definition bodies | machine-checked (source 292, elab 292); `#check`/axioms layer verified in build job |
+| Lean theorems | BSM-2 Stage 2a: the compound-Poisson law of a probability jump measure at rate `λ` (the Poisson mixture of convolution powers) and its CF `exp(λ(φ−1))`, plus the truncated CGMY jump law `ν_ε/λ_ε` from the landed `cgmyLevyDensity` and its marginal, exponent `∫_{\|x\|≥ε}(e^{ivx}−1)ν` — conventions fixed by measurement: symmetric truncation, no compensator (`ImprovedBS/CompoundPoisson.lean`, 5 defs + 12 theorems) | **GREEN** — `lake build` + `#print axioms` audit (268) + statement pins (elab, all 309) + `lint` + `oracle`; `benchmarks/LEDGER.md` row 18, corrections C23/C24 |
+| Lint is a falsifier | `tests/test_lint.py`: 52 seeded cheats each killed by a named check, 5 legitimate edits green, 1 residual gap asserted open | verified — 7/7 tests |
+| Pinned claims | `tests/golden_statements.json`: 309 declarations — theorem statements, definition bodies | machine-checked (source 309, elab 309); `#check`/axioms layer verified in build job |
 | Grading lane | briefs/ + benchmarks/ + 2 CI workflows + toolchain-free lint + pins | standing |
 | First brief | BRIEF_001, re-scoped to what is actually checkable | see briefs/ |
 

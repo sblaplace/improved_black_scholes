@@ -190,9 +190,13 @@ one above — **in the same tree, under the same skeleton**, with all seven of:
    whenever `vgDriftMap θ = r − q`. That is law (c) of the brief's F3, the
    tree's Esscher measure, not the published translated martingale law
    BRIEF_016 prices at. The general-`Y` law (Stage 2) and the complex-rate Γ
-   integral (G1) stay open; item 6's expectation-level twin waits on Stage 2.
-   **Stage 2's first half is issued as BRIEF_019**
-   (`briefs/BRIEF_019_compound_poisson_stage2a.md`): the compound-Poisson law of
+   integral (G1) stay open; item 6's expectation-level twin waits on the second
+   half of Stage 2. **Stage 2's first half has landed as BRIEF_019**
+   (`ImprovedBS/CompoundPoisson.lean`, 5 defs + 12 theorems; statement pins
+   292 -> 309 in both layers with the 292 pre-existing entries byte-identical,
+   audit 256 -> 268, `[CPOISSON]` R1-R4 with lint cheats 48 -> 52, oracle
+   24 -> 25, mutants 34 -> 39; `briefs/BRIEF_019_compound_poisson_stage2a.md`):
+   the compound-Poisson law of
    a probability jump measure at rate `λ` — the Poisson mixture of convolution
    powers, CF `exp(λ(φ−1))` — plus the truncated CGMY jump law `ν_ε/λ_ε` from
    the landed `cgmyLevyDensity` and its marginal, exponent
@@ -204,7 +208,10 @@ one above — **in the same tree, under the same skeleton**, with all seven of:
    step is not dominated convergence, since `λ_ε → ∞` like `ε^{−Y}` and no
    integrable dominating function exists at zero. The limit, the tightness and
    the identification are Stage 2b; the corner cross-check against BRIEF_018's
-   `vgLaw` is already measured (`\|A_ε − ψ₀\|/Y → 0.0375` at `v = 0.5`).
+   `vgLaw` is already measured (`\|A_ε − ψ₀\|/Y → 0.0375` at `v = 0.5`). The
+   landed module stops exactly where 2b starts: no `ε ↓ 0` limit, no tightness,
+   no identification — and the limit is conditional convergence, not DCT, since
+   no integrable dominating function exists near zero.
 4. **T6's triangle holds at the new exponent.** The Carr–Madan integral
    converges absolutely on the contour, inverts to `e^{−rτ}·E[(S_T − K)⁺]`,
    and is real-valued — the full pricing claim where no closed form exists.

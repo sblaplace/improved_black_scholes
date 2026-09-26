@@ -513,8 +513,14 @@ jobs:
               print("no lean-pins.log; nothing to publish")
               raise SystemExit(0)
           text = open(log, encoding="utf-8", errors="replace").read()
-          marker = '{"elab_delta":'
-          idx = text.rfind(marker)
+          # `--elab-check` prints `json.dumps(..., indent=2)`, so the key starts
+          # a line of its own and the compact spelling never occurs. Match the
+          # key, then back up to the block's opening brace (BRIEF_019, C24).
+          idx = text.rfind('"elab_delta":')
+          if idx >= 0:
+              start = text.rfind("{", 0, idx)
+              if start >= 0:
+                  idx = start
           if idx < 0:
               chunk = text[-20000:]
               body = f"### Elaborated pins failed on {sha}\n\nNo `elab_delta` block. Tail:\n\n```\n{chunk}\n```\n"

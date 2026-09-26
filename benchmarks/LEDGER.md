@@ -44,6 +44,7 @@ Verdict discipline:
 
 | 17 | BRIEF_018 (the variance-gamma law — the family's `Y = 0` member, the tree's first CGMY-family probability measure; items 3 and 5 at that law) | arena-ai-coding-agent | [#25](https://github.com/sblaplace/improved_black_scholes/pull/25) | **GREEN** @ `0a9f610`, lean run [36151499122](https://github.com/sblaplace/improved_black_scholes/actions/runs/36151499122) (oracle lane [36151499027](https://github.com/sblaplace/improved_black_scholes/actions/runs/36151499027)) — `lake build` + `#print axioms` audit + **statement pins (elab, all 292)** + the oracle↔Lean cross-verifier + `lint` + `oracle` all pass. `ImprovedBS/VGLaw.lean`: 5 defs (`vgLaw`, `vgCumulant`, `vgDriftMap`, `vgCornerExponent`, `vgTilt`) + 19 theorems. The law is `((gammaMeasure (Cτ) M).prod (gammaMeasure (Cτ) G)).map (p ↦ p.1 − p.2)`; the mgf on `−G < u < M` is `exp(τ · κ₀(u))` with `κ₀` the log form (never an evaluation of `cgmyCumulant` at `Y = 0`); the corner is `Tendsto … (𝓝[>] 0)` on the strip `−M < Im v < G`; the tilt is `withDensity` of `exp(θx)` over the law's own mgf, with `1 < M − θ` cited from `esscher_tilted_numeraire`; `vg_drift_identity` and the three `vg_modelFree_*` instantiations are the expectation-level twins of items 3 and 5. Locally, before the first push: `lean_lint` OK (15 files, 345 declarations, `[VGLaw]` R1–R4), `test_lint.py` 7/7 (48 mutants / 5 controls, V1–V4 killed by `[VGLaw]`), oracle 24/24 including `test_vg_law`, mutants 4/4 (34 seeded, M30–M33 killed by `test_vg_law`). Pins 268 → 292 in both layers (`added 24, changed 0`; the 268 pre-existing entries untouched). Audit list 237 → 256 (the 19 new theorems; defs are pinned whole, not `#print axioms`'d — the repo's convention). `deferred: {}` untouched. Stage 2 and G1 stay open. Correction **C21** records the 22-vs-24 count and the M32 magnitude slip. The arc is elaboration, then the pin bootstrap; see the CI history. |
 | — | *(brief issuance, no theorem)* BRIEF_019 issued: Stage 2's first half — the compound-Poisson law of a probability jump measure at rate `λ` (the Poisson mixture of convolution powers), its characteristic function `exp(λ(φ−1))`, and the truncated CGMY jump law `ν_ε/λ_ε` built from the landed `cgmyLevyDensity` with its compound-Poisson marginal, exponent `∫_{\|x\|≥ε}(e^{ivx}−1)ν`. The route-check at issue decides and *measures* the two conventions the rest of Stage 2 is written against — symmetric truncation (two-sided error `O(ε^{2−Y})`: slopes 1.4904 at `Y = ½`, 0.4947 at `Y = 3⁄2`) and no compensator (compensating everywhere lands on `ψ_Y − iv·m^∞` to 1.2e−15) — and corrects BRIEF_017's F5(iv): `λ_ε → ∞` like `2C/Y·ε^{−Y}` (665216.6196 at `ε = 1e−4`, `Y = 3⁄2`), so the `ε ↓ 0` step cannot be dominated convergence. Also measured: the mixture identity at `ρ = δ₁` against mathlib's own Poisson `charFun` (worst 3.5e−16) and at the truncated CGMY jump law (worst 1.35e−12 at `λ_ε = 20656.1`), the one-sided divergence canary (slope −0.4798 at `Y = 3⁄2`), the corner consistency with BRIEF_018's `vgLaw` (`\|A_ε − ψ₀\|/Y → 0.0375` at `v = 0.5`, `0.1581` at `v = 2.0`), and mutants M34–M38 at log-scale separations `0.74 … 1.07e8`. | arena-ai-coding-agent | [#26](https://github.com/sblaplace/improved_black_scholes/pull/26) | **GREEN** @ `c3f34a9`, lean run [36157438271](https://github.com/sblaplace/improved_black_scholes/actions/runs/36157438271) (oracle lane [36157438250](https://github.com/sblaplace/improved_black_scholes/actions/runs/36157438250)) — `lake build` + `#print axioms` audit + statement pins (all 292) + the oracle↔Lean cross-verifier + `lint` + `oracle` all pass on the docs-only diff (`lint` 7s, `lake build` 5m48s, `oracle` 6m5s; green on the first run). No `.lean` file changed, no pin moved, no lint rule, no workflow; `deferred: {}` untouched. As with the BRIEF_010/012/013/016/017/018 issuance rows above, this verdict is about the **documentation**, not a theorem — nothing in `ImprovedBS/CompoundPoisson.lean` exists yet, so no claim in the brief is machine-checked, and the theorem's verdict gets its own row when the implementation is graded. Named residual risk carried by the brief: the additive twins of `Measure.mconv`'s lemmas are `to_additive`-generated (no explicit names at the tag), so their exact names must be confirmed by `#check` at implementation. Correction **C22** records what the route-check did to BRIEF_017's F5. |
+| 18 | BRIEF_019 (the compound-Poisson law and the truncated CGMY jump law — Stage 2's first half) | arena-ai-coding-agent | [#26](https://github.com/sblaplace/improved_black_scholes/pull/26) | **PENDING** — implemented and locally gated; the CI verdict is what lands here. `ImprovedBS/CompoundPoisson.lean`: 5 defs (`convPow`, `cpLaw`, `cgmyJumpMeasure`, `cgmyJumpLaw`, `cgmyTruncatedExponent`) + 12 theorems (`convPow_isFiniteMeasure`, `convPow_isProbabilityMeasure`, `charFun_convPow`, `cpLaw_isProbabilityMeasure`, `cpLaw_apply_univ`, `charFun_cpLaw`, `cgmyJumpMass_lt_top`, `cgmyJumpMass_pos`, `cgmyJumpLaw_isProbabilityMeasure`, `cgmyTruncatedExponent_integrable`, `cgmyTruncatedExponent_zero`, `charFun_cgmyCpLaw`), all in `REQUIRED` + `PROTECTED`. `cpLaw λ ρ` is the Poisson mixture `Measure.sum (fun n ↦ ofReal (poissonPMFReal λ n) • convPow ρ n)`; its mass identity consumes `hasSum_one_poissonMeasure`; `charFun_cpLaw` proves `cexp (λ (charFun ρ t − 1))` for every *probability* `ρ` by consuming `charFun_conv` and `integral_sum_measure`, closing on `NormedSpace.expSeries_div_hasSum_exp` — exactly the rung mathlib's own `charFun_map_cast_poissonMeasure` (`ρ = δ₁`) uses, and the route-check measures the two agreeing to 3.5e−16. `cgmyJumpMeasure` is the landed `cgmyLevyDensity` under `withDensity` on the **symmetric** set `{x | (ε:ℝ) ≤ \|x\|}` and is the module's only density; `cgmyJumpMass_lt_top` inherits the landed `cgmy_levy_far_moment` on both tails (at `M`, and at `G` after `x ↦ −x`) and bounds the window `Icc (−1) 1` by `C ε^{−1−Y}`; `cgmyJumpMass_pos` uses the window `Ioc ε (ε+1)`; `cgmyJumpLaw = λ_ε⁻¹ • ν_ε` is a probability measure by `ENNReal.inv_mul_cancel`; `cgmyTruncatedExponent = ∫_{\|x\|≥ε}(e^{ivx}−1)ν` is a genuine Bochner integral (`cgmyTruncatedExponent_integrable`, dominated by `2ν`), and `charFun_cgmyCpLaw` lands `cexp (τ · cgmyTruncatedExponent)` at rate `τ λ_ε` — the two `λ_ε` factors cancelling through `Measure.smul_apply`/`integral_smul_measure` and `ENNReal.inv_mul_cancel` — which is the object Stage 2b takes to `cgmyExponent`. Where it stops is part of the claim: no `ε ↓ 0` limit, no tightness, no identification, and no general-`Y` law. Counts: pins 292 → 309 in both layers with the 292 pre-existing entries byte-identical (`added 17, changed 0`), audit 256 → 268 (theorems only), oracle 24 → 25 (`test_compound_poisson`: the two mixture rows against their independent sides, the two growth rows against closed forms, the one-sided divergence canary, the compensation row, the corner row, and the five measured mutant separations) with mutants 34 → 39 (M34–M38, each killed by that test alone), `[CPOISSON]` R1–R4 with lint cheats 48 → 52 and the 5 controls untouched, `deferred: {}` untouched. Locally: `lean_lint` OK (16 files, 362 declarations), `pin_statements` OK (309 source + 309 elab), `test_bs.py` 25/25 (~11 s), `test_mutants.py` 4/4 (39 seeded; ~5 min), `test_lint.py` 7/7 (52 mutants), `test_pins.py` 12/12. Corrections **C23** (M34's quoted separator does not reproduce; the re-derived one is what the test pins) and **C24** (the pins bootstrap, and the publisher's marker never matching its own log) are this row's. See the CI history below. |
 | 16 | BRIEF_016 (the external anchor — the published Carr–Madan (1999) Case-4 table — and the term-structure falsifier; ledger C13 finding 4) | arena-ai-coding-agent | [#24](https://github.com/sblaplace/improved_black_scholes/pull/24) | **GREEN** — oracle lane run `36126534541` (the lean lane is untouched: no `.lean` file, pin, lint rule, audit entry or workflow changed; pins stay 268, audit 237, lint 44/5, `deferred: {}`). The oracle gains TWO routes to the same published law — the VG parameterization `vg_exponent` and the CGMY `Y = 0` corner (`cgmy_zeroth_corner_map` + `cgmy_zeroth_exponent` + `cgmy_zeroth_forward_exponent`) — plus `carr_madan_by_exponent` (the contour quadrature at any log-CF, with the landed GBM route keeping its own `norm_cdf`-free derivation), `implied_vol_bs`, `atm_skew`, `power_law_exponent`/`power_law_fit`. Measured: the three published puts `.6356 / .6787 / .7244` reproduced as `0.635631 / 0.678705 / 0.724436` (`\|diff\|` `3.1e-5 / 4.9e-6 / 3.6e-5`, tol `5e-5`) by both routes, their calls `23.84495 / 22.90044 / 21.95860` failing the literals by `> 21`, the paper's wrong VGPS row rejected by `0.3931 / 0.4488 / 0.8142` (threshold `0.3`), parity at the anchor's numbers through the implied-vol inversion at the bisection floor (`≤ 1e-12`), `ν ↓ 0` recovering GBM with `err/ν -> 2.311` (theory: `(σ²/2)κ₃`-scaled), and the ATM-skew exponents `1.0857` (VG Case 4) and `0.9682` (CGMY `1, 5, 10, .7`) with `\|ψ\|·τ ∈ [0.0447, 0.0492]` on the CGMY set and `\|ψ\|·√τ` falling `4.06×` across the window — so the `τ^(−1/2)` reading is a different model. The RED lands in `docs/02` §A1 (model band `[0.90, 1.15]` vs market `(0.30, 0.50)`, disjoint by `0.40`), with a pointer in `docs/03` §D1. The committed test is `test_term_structure_anchor` (A1–A5, F1–F4, the prescribed-`τ^(−1/2)` canary and the flat-instance canary); tests 22 → 23, mutants 26 → 30 (M26 the corner map's `C`, M27 the `τ/ν` scaling, M28 the `ω` sign, M29 `θ → −θ`, each killed by the new test alone). Correction **C20** records a last-digit slip in the brief's F3 `(G, M)` literals. |
 
 ## Corrections and co-recorded changes to the ask
@@ -1393,3 +1394,62 @@ target for (iii)–(iv) is unchanged, and the one-sided compensated closed form
 that F6's identity is assembled from is already pinned by `test_cgmy_contour`
 (BRIEF_011), so nothing there is re-derived. The brief stands as issued, with
 these two clause-level corrections.
+
+### C23 — BRIEF_019's route-check quoted an M34 separation that does not reproduce (BRIEF_019 implementation)
+
+**Date:** 2026-09-25. **Trigger:** seeding the weight mutant M34 in
+`tests/test_bs.py::test_compound_poisson`.
+
+Four of the five separations the issuance row quotes reproduce, and are pinned
+by the test within its stated tolerance: M35 `106663583.6434` (the row's
+`106663583.68`; the gap is quadrature, and the assertion is at tolerance `0.1`),
+M36 `5164.028168615301` (exactly `τ λ_ε`, the mass the dropped `−1` contributes),
+M37 `0.7398593616493887` (against a scale of `|τ A_ε| = 0.377765442489741`),
+M38 `7.984621002490288` (`τ` times the M-leg one-sided error). M34 does not:
+the quoted `47757.2050` is not produced by any comparison the tree can express.
+It lies between `ln 6178! = 47753.5000` and `ln 6179! = 47762.2290`, which is
+not a coincidence — the mutant's own accumulator reaches `n ≈ 6179` before the
+renormalisation, so the number is a value of the `log n!` the mutant *omitted*,
+read as though it were a separation between the mutant and the truth. The
+implementation therefore measures the separation where the mutant actually goes
+wrong: the mixture's log-scale displacement from the exponent it is supposed to
+reproduce, `|log (Σ_n q_n φ^n) − τ A_ε| = 0.06401029402765948` at the witness
+`(Y, ε, v) = (3/2, 1e−3, 1)` with `N = 6039` terms. That number is a property of
+the harness as well as of the mathematics (the weight tail is renormalised over
+`n ≤ λ + 12√λ + 12`), so the test asserts the band `1e−3 ≤ sep ≤ 0.2` rather
+than a literal, and adds one harness-free row: on the `δ₁` law at `λ = 2.5` the
+same mutant misses the closed form by `1.8427639617425762`, asserted `≥ 0.5`.
+
+One caveat belongs on the record with it: M35's value first came out as `3.6e128`
+because the newly appended oracle primitive `cgmy_levy_density` had its tempering
+**sign inverted** (`rate = -M` with `exp (rate * |x|)` is exponential *growth*,
+so the density route was garbage in the `e^{126}` range). Fixed to
+`exp (−rate * |x|)` with `rate = M if 0 < x else G`, after which the density
+route and the leg route agree to `3.2e−10` relative across
+`Y ∈ {0.5, 0.7, 1.5}`, `ε ∈ {1e−2, 1e−3}`, and M35 lands on the brief's number.
+A separation is a property of the *route* that measures it; both of this row's
+corrections are that observation, once about the model and once about the harness.
+
+### C24 — the pins bootstrap for BRIEF_019, and the publisher's marker never matched its own log (BRIEF_019 implementation)
+
+**Date:** 2026-09-25. **Trigger:** the first build-green CI run for the module.
+
+`2ed97ac` was the repo's usual mid-bootstrap state: the pins layer red *by
+design*, because `pin_statements.py --elab-check` correctly reported that the 17
+new constants are not yet in the committed `elab` block. That is the
+documented convention (rows 8, 14 and 17 each spent a run there), and the
+CI-emitted block was merged verbatim — `added 17, changed 0, elab now 309` —
+which turns the layer green. What was *not* by design is that the step whose
+one job is to publish that block never published it: its marker was the compact
+spelling `{"elab_delta":`, while `--elab-check` prints
+`json.dumps (..., indent = 2)`, so the key starts a line of its own,
+`text.rfind (marker)` returned `-1`, and the step took its fallback branch and
+posted "No `elab_delta` block" — even though the block was in the log it had
+just read. The delta was recoverable only because the *general* failure comment
+tails every log at 25k characters and the tool prints the delta **last**; one
+longer log and the merge would have been unrecoverable from the sandbox, which
+is the whole reason the step exists (C10). Fixed by matching the key and backing
+up to the block's opening brace. Recorded because it is the second time this
+channel has failed silently in the direction of "looks like nothing to publish"
+(C10 was the first), and both times the fix was to read the publisher's own
+output format rather than to trust its message.
