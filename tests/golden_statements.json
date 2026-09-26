@@ -1411,6 +1411,16 @@
       "kind": "theorem",
       "pin": "theorem cgmyCharFactor_add (C G M Y τ₁ τ₂ : ℝ) (v : ℂ) : cgmyCharFactor C G M Y (τ₁ + τ₂) v = cgmyCharFactor C G M Y τ₁ v * cgmyCharFactor C G M Y τ₂ v"
     },
+    "BSM.cgmyCompensatedIntegrand": {
+      "file": "ImprovedBS/CGMYLaw.lean",
+      "kind": "def",
+      "pin": "def cgmyCompensatedIntegrand (v x : ℝ) : ℂ := Complex.exp ((v : ℂ) * (x : ℂ) * I) - 1 - Set.indicator (Icc (-1 : ℝ) 1) (fun y : ℝ => (v : ℂ) * (y : ℂ) * I) x"
+    },
+    "BSM.cgmyCompensatedIntegrand_integrable": {
+      "file": "ImprovedBS/CGMYLaw.lean",
+      "kind": "theorem",
+      "pin": "theorem cgmyCompensatedIntegrand_integrable (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G) (hM : 0 < M) (hY : 0 < Y) (hY₂ : Y < 2) (v : ℝ) : Integrable (fun x : ℝ => cgmyCompensatedIntegrand v x * (cgmyLevyDensity C G M Y x : ℂ))"
+    },
     "BSM.cgmyContour": {
       "file": "ImprovedBS/CGMY.lean",
       "kind": "def",
@@ -1445,6 +1455,21 @@
       "file": "ImprovedBS/Corner.lean",
       "kind": "theorem",
       "pin": "theorem cgmyCornerGamma_tendsto (σ : ℝ) : Tendsto (fun Y : ℝ => cgmyCornerC σ Y * Real.Gamma (-Y)) (𝓝[<] (2 : ℝ)) (𝓝 (σ ^ 2 / 4))"
+    },
+    "BSM.cgmyCpProbability": {
+      "file": "ImprovedBS/CGMYLaw.lean",
+      "kind": "def",
+      "pin": "def cgmyCpProbability (C G M Y : ℝ) (τ : ℝ≥0) (ε : ℝ≥0) (hC : 0 < C) (hG : 0 < G) (hM : 0 < M) (hY : 0 < Y) (hε : 0 < ε) : ProbabilityMeasure ℝ := ⟨cpLaw (τ * (cgmyJumpMeasure C G M Y ε Set.univ).toNNReal) (cgmyJumpLaw C G M Y ε), cpLaw_isProbabilityMeasure _ _ (cgmyJumpLaw_isProbabilityMeasure C G M Y ε hC hG hM hY hε)⟩"
+    },
+    "BSM.cgmyCpProbability_isTight": {
+      "file": "ImprovedBS/CGMYLaw.lean",
+      "kind": "theorem",
+      "pin": "theorem cgmyCpProbability_isTight (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G) (hM : 0 < M) (hY : 0 < Y) (hY₂ : Y < 2) (τ : ℝ≥0) : IsTightMeasureSet (Set.range (fun n : ℕ => (cgmyCpProbability C G M Y τ ((2 : ℝ≥0)⁻¹ ^ n) hC hG hM hY (pow_pos (inv_pos.mpr (by norm_num : (0 : ℝ≥0) < 2)) n) : Measure ℝ)))"
+    },
+    "BSM.cgmyCpProbability_tendsto_cgmyLaw": {
+      "file": "ImprovedBS/CGMYLaw.lean",
+      "kind": "theorem",
+      "pin": "theorem cgmyCpProbability_tendsto_cgmyLaw (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G) (hM : 0 < M) (hY : 0 < Y) (hY₂ : Y < 2) (τ : ℝ≥0) : Tendsto (fun n : ℕ => cgmyCpProbability C G M Y τ ((2 : ℝ≥0)⁻¹ ^ n) hC hG hM hY (pow_pos (inv_pos.mpr (by norm_num : (0 : ℝ≥0) < 2)) n)) atTop (𝓝 (cgmyLaw C G M Y τ hC hG hM hY hY₂))"
     },
     "BSM.cgmyCumulant": {
       "file": "ImprovedBS/Esscher.lean",
@@ -1490,6 +1515,21 @@
       "file": "ImprovedBS/CGMY.lean",
       "kind": "def",
       "pin": "def cgmyDecayThreshold (C G M Y : ℝ) : ℝ := max (M + G) (max (4 * cgmyTemperedCorrection C G M Y / cgmyTemperedRate C Y) (max 1 ((4 * cgmyTemperedConstant C G M Y / cgmyTemperedRate C Y) ^ (1 / Y))))"
+    },
+    "BSM.cgmyDriftIntegrand": {
+      "file": "ImprovedBS/CGMYLaw.lean",
+      "kind": "def",
+      "pin": "def cgmyDriftIntegrand (C G M Y : ℝ) (x : ℝ) : ℝ := C * x ^ (-Y) * (Real.exp (-M * x) - Real.exp (-G * x))"
+    },
+    "BSM.cgmyDriftIntegrand_integrableOn": {
+      "file": "ImprovedBS/CGMYLaw.lean",
+      "kind": "theorem",
+      "pin": "theorem cgmyDriftIntegrand_integrableOn (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G) (hM : 0 < M) (hY : 0 < Y) (hY₂ : Y < 2) : IntegrableOn (cgmyDriftIntegrand C G M Y) (Ioc (0 : ℝ) 1)"
+    },
+    "BSM.cgmyDrift_identity": {
+      "file": "ImprovedBS/CGMYLaw.lean",
+      "kind": "theorem",
+      "pin": "theorem cgmyDrift_identity (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G) (hM : 0 < M) (hY : 0 < Y) (hY₂ : Y < 2) (hY₁ : Y ≠ 1) : ∫ x in Ioi (0 : ℝ), cgmyDriftIntegrand C G M Y x = C * Real.Gamma (1 - Y) * (M ^ (Y - 1) - G ^ (Y - 1))"
     },
     "BSM.cgmyExponent": {
       "file": "ImprovedBS/CGMY.lean",
@@ -1556,6 +1596,41 @@
       "kind": "def",
       "pin": "noncomputable def cgmyJumpMeasure (C G M Y : ℝ) (ε : ℝ≥0) : Measure ℝ := (volume.restrict {x : ℝ | (ε : ℝ) ≤ |x|}).withDensity (fun x => ENNReal.ofReal (cgmyLevyDensity C G M Y x))"
     },
+    "BSM.cgmyLKExponent": {
+      "file": "ImprovedBS/CGMYLaw.lean",
+      "kind": "def",
+      "pin": "def cgmyLKExponent (C G M Y : ℝ) (v : ℝ) : ℂ := (∫ x : ℝ, cgmyCompensatedIntegrand v x * (cgmyLevyDensity C G M Y x : ℂ)) + (v : ℂ) * I * ((∫ x in Ioc (0 : ℝ) 1, cgmyDriftIntegrand C G M Y x) : ℂ)"
+    },
+    "BSM.cgmyLKExponent_continuous": {
+      "file": "ImprovedBS/CGMYLaw.lean",
+      "kind": "theorem",
+      "pin": "theorem cgmyLKExponent_continuous (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G) (hM : 0 < M) (hY : 0 < Y) (hY₂ : Y < 2) : Continuous (cgmyLKExponent C G M Y)"
+    },
+    "BSM.cgmyLKExponent_eq_cgmyExponent": {
+      "file": "ImprovedBS/CGMYLaw.lean",
+      "kind": "theorem",
+      "pin": "theorem cgmyLKExponent_eq_cgmyExponent (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G) (hM : 0 < M) (hY : 0 < Y) (hY₂ : Y < 2) (hY₁ : Y ≠ 1) (v : ℝ) : cgmyLKExponent C G M Y v = cgmyExponent C G M Y (v : ℂ)"
+    },
+    "BSM.cgmyLKExponent_zero": {
+      "file": "ImprovedBS/CGMYLaw.lean",
+      "kind": "theorem",
+      "pin": "theorem cgmyLKExponent_zero (C G M Y : ℝ) : cgmyLKExponent C G M Y 0 = 0"
+    },
+    "BSM.cgmyLaw": {
+      "file": "ImprovedBS/CGMYLaw.lean",
+      "kind": "def",
+      "pin": "def cgmyLaw (C G M Y : ℝ) (τ : ℝ≥0) (hC : 0 < C) (hG : 0 < G) (hM : 0 < M) (hY : 0 < Y) (hY₂ : Y < 2) : ProbabilityMeasure ℝ := Filter.limUnder atTop (fun n : ℕ => cgmyCpProbability C G M Y τ ((2 : ℝ≥0)⁻¹ ^ n) hC hG hM hY (pow_pos (inv_pos.mpr (by norm_num : (0 : ℝ≥0) < 2)) n))"
+    },
+    "BSM.cgmyLaw_exists": {
+      "file": "ImprovedBS/CGMYLaw.lean",
+      "kind": "theorem",
+      "pin": "theorem cgmyLaw_exists (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G) (hM : 0 < M) (hY : 0 < Y) (hY₂ : Y < 2) (τ : ℝ≥0) : ∃ μ₀ : ProbabilityMeasure ℝ, Tendsto (fun n : ℕ => cgmyCpProbability C G M Y τ ((2 : ℝ≥0)⁻¹ ^ n) hC hG hM hY (pow_pos (inv_pos.mpr (by norm_num : (0 : ℝ≥0) < 2)) n)) atTop (𝓝 μ₀)"
+    },
+    "BSM.cgmyLaw_unique": {
+      "file": "ImprovedBS/CGMYLaw.lean",
+      "kind": "theorem",
+      "pin": "theorem cgmyLaw_unique (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G) (hM : 0 < M) (hY : 0 < Y) (hY₂ : Y < 2) (τ : ℝ≥0) (μ : Measure ℝ) (hμ : IsProbabilityMeasure μ) (hcf : ∀ t : ℝ, charFun μ t = Complex.exp ((τ : ℂ) * cgmyLKExponent C G M Y t)) : μ = cgmyLaw C G M Y τ hC hG hM hY hY₂"
+    },
     "BSM.cgmyLevyDensity": {
       "file": "ImprovedBS/CGMY.lean",
       "kind": "def",
@@ -1565,6 +1640,16 @@
       "file": "ImprovedBS/CGMY.lean",
       "kind": "theorem",
       "pin": "theorem cgmyOldContour_base_right_re (G α u : ℝ) : (G + Complex.I * cgmyOldContour α u).re = G - α"
+    },
+    "BSM.cgmyOneSidedCompensated_eq": {
+      "file": "ImprovedBS/CGMYLaw.lean",
+      "kind": "theorem",
+      "pin": "theorem cgmyOneSidedCompensated_eq (a Y : ℝ) (v : ℝ) (ha : 0 < a) (hY₁ : 1 < Y) (hY₂ : Y < 2) : ∫ x in Ioi (0 : ℝ), (Complex.exp ((v : ℂ) * (x : ℂ) * I) - 1 - (v : ℂ) * (x : ℂ) * I) * ((Real.exp (-a * x) * x ^ (-1 - Y) : ℝ) : ℂ) = (Real.Gamma (-Y) : ℂ) * (((a : ℂ) - I * (v : ℂ)) ^ (Y : ℂ) - (a : ℂ) ^ (Y : ℂ) + I * (v : ℂ) * (Y : ℂ) * (a : ℂ) ^ ((Y : ℂ) - 1))"
+    },
+    "BSM.cgmyOneSidedExponent_eq": {
+      "file": "ImprovedBS/CGMYLaw.lean",
+      "kind": "theorem",
+      "pin": "theorem cgmyOneSidedExponent_eq (a Y : ℝ) (v : ℝ) (ha : 0 < a) (hY : 0 < Y) (hY₁ : Y < 1) : ∫ x in Ioi (0 : ℝ), (Complex.exp ((v : ℂ) * (x : ℂ) * I) - 1) * ((Real.exp (-a * x) * x ^ (-1 - Y) : ℝ) : ℂ) = (Real.Gamma (-Y) : ℂ) * (((a : ℂ) - I * (v : ℂ)) ^ (Y : ℂ) - (a : ℂ) ^ (Y : ℂ))"
     },
     "BSM.cgmyTemperedConstant": {
       "file": "ImprovedBS/CGMY.lean",
@@ -1586,10 +1671,20 @@
       "kind": "def",
       "pin": "noncomputable def cgmyTruncatedExponent (C G M Y : ℝ) (ε : ℝ≥0) (v : ℂ) : ℂ := ∫ x in {x : ℝ | (ε : ℝ) ≤ |x|}, (Complex.exp (v * (x : ℂ) * I) - 1) * (cgmyLevyDensity C G M Y x : ℂ)"
     },
+    "BSM.cgmyTruncatedExponent_decomp": {
+      "file": "ImprovedBS/CGMYLaw.lean",
+      "kind": "theorem",
+      "pin": "theorem cgmyTruncatedExponent_decomp (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G) (hM : 0 < M) (hY : 0 < Y) (hY₂ : Y < 2) (ε : ℝ≥0) (hε : 0 < ε) (hε₁ : ε ≤ 1) (v : ℝ) : cgmyTruncatedExponent C G M Y ε (v : ℂ) = (∫ x in {x : ℝ | (ε : ℝ) ≤ |x|}, cgmyCompensatedIntegrand v x * (cgmyLevyDensity C G M Y x : ℂ)) + (v : ℂ) * I * ((∫ x in Ioc (ε : ℝ) 1, cgmyDriftIntegrand C G M Y x) : ℂ)"
+    },
     "BSM.cgmyTruncatedExponent_integrable": {
       "file": "ImprovedBS/CompoundPoisson.lean",
       "kind": "theorem",
       "pin": "theorem cgmyTruncatedExponent_integrable (C G M Y : ℝ) (ε : ℝ≥0) (hC : 0 < C) (hG : 0 < G) (hM : 0 < M) (hY : 0 < Y) (hε : 0 < ε) (v : ℝ) : IntegrableOn (fun x : ℝ => (Complex.exp ((v : ℂ) * (x : ℂ) * I) - 1) * (cgmyLevyDensity C G M Y x : ℂ)) {x : ℝ | (ε : ℝ) ≤ |x|}"
+    },
+    "BSM.cgmyTruncatedExponent_tendsto": {
+      "file": "ImprovedBS/CGMYLaw.lean",
+      "kind": "theorem",
+      "pin": "theorem cgmyTruncatedExponent_tendsto (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G) (hM : 0 < M) (hY : 0 < Y) (hY₂ : Y < 2) (v : ℝ) : Tendsto (fun n : ℕ => cgmyTruncatedExponent C G M Y ((2 : ℝ≥0)⁻¹ ^ n) (v : ℂ)) atTop (𝓝 (cgmyLKExponent C G M Y v))"
     },
     "BSM.cgmyTruncatedExponent_zero": {
       "file": "ImprovedBS/CompoundPoisson.lean",
@@ -1655,6 +1750,21 @@
       "file": "ImprovedBS/CompoundPoisson.lean",
       "kind": "theorem",
       "pin": "theorem charFun_cgmyCpLaw (C G M Y : ℝ) (ε : ℝ≥0) (hC : 0 < C) (hG : 0 < G) (hM : 0 < M) (hY : 0 < Y) (hε : 0 < ε) (τ : ℝ≥0) (t : ℝ) : charFun (cpLaw (τ * (cgmyJumpMeasure C G M Y ε Set.univ).toNNReal) (cgmyJumpLaw C G M Y ε)) t = Complex.exp ((τ : ℂ) * cgmyTruncatedExponent C G M Y ε (t : ℂ))"
+    },
+    "BSM.charFun_cgmyCpProbability_tendsto": {
+      "file": "ImprovedBS/CGMYLaw.lean",
+      "kind": "theorem",
+      "pin": "theorem charFun_cgmyCpProbability_tendsto (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G) (hM : 0 < M) (hY : 0 < Y) (hY₂ : Y < 2) (τ : ℝ≥0) (t : ℝ) : Tendsto (fun n : ℕ => charFun (cgmyCpProbability C G M Y τ ((2 : ℝ≥0)⁻¹ ^ n) hC hG hM hY (pow_pos (inv_pos.mpr (by norm_num : (0 : ℝ≥0) < 2)) n) : Measure ℝ) t) atTop (𝓝 (Complex.exp ((τ : ℂ) * cgmyLKExponent C G M Y t)))"
+    },
+    "BSM.charFun_cgmyLaw": {
+      "file": "ImprovedBS/CGMYLaw.lean",
+      "kind": "theorem",
+      "pin": "theorem charFun_cgmyLaw (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G) (hM : 0 < M) (hY : 0 < Y) (hY₂ : Y < 2) (τ : ℝ≥0) (t : ℝ) : charFun (cgmyLaw C G M Y τ hC hG hM hY hY₂ : Measure ℝ) t = Complex.exp ((τ : ℂ) * cgmyLKExponent C G M Y t)"
+    },
+    "BSM.charFun_cgmyLaw_eq_cgmyCharFactor": {
+      "file": "ImprovedBS/CGMYLaw.lean",
+      "kind": "theorem",
+      "pin": "theorem charFun_cgmyLaw_eq_cgmyCharFactor (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G) (hM : 0 < M) (hY : 0 < Y) (hY₂ : Y < 2) (hY₁ : Y ≠ 1) (τ : ℝ≥0) (t : ℝ) : charFun (cgmyLaw C G M Y τ hC hG hM hY hY₂ : Measure ℝ) t = cgmyCharFactor C G M Y (τ : ℝ) (t : ℂ)"
     },
     "BSM.charFun_convPow": {
       "file": "ImprovedBS/CompoundPoisson.lean",
@@ -2031,6 +2141,11 @@
       "kind": "theorem",
       "pin": "theorem fourierInversion_dampedCallPrice_at {f : ℝ → ℂ} (hcont : Continuous f) (hint : Integrable f) (hFint : Integrable (𝓕 f)) (k : ℝ) : 𝓕⁻ (𝓕 f) k = f k"
     },
+    "BSM.gammaIntegralComplexRate": {
+      "file": "ImprovedBS/CGMYLaw.lean",
+      "kind": "def",
+      "pin": "def gammaIntegralComplexRate (s : ℝ) (z : ℂ) : ℂ := ∫ x in Ioi (0 : ℝ), (x : ℂ) ^ ((s : ℂ) - 1) * Complex.exp (-(z * (x : ℂ)))"
+    },
     "BSM.gammaMeasure_exp_integrable": {
       "file": "ImprovedBS/VGLaw.lean",
       "kind": "theorem",
@@ -2155,6 +2270,11 @@
       "file": "ImprovedBS/Pricing.lean",
       "kind": "theorem",
       "pin": "theorem integral_Ioi_cexp_neg_mul_eq_inv {a : ℂ} (ha : 0 < a.re) : ∫ y in Set.Ioi (0 : ℝ), Complex.exp (-(a * ↑y)) = a⁻¹"
+    },
+    "BSM.integral_cpow_mul_cexp_neg_mul_Ioi": {
+      "file": "ImprovedBS/CGMYLaw.lean",
+      "kind": "theorem",
+      "pin": "theorem integral_cpow_mul_cexp_neg_mul_Ioi (s : ℝ) (z : ℂ) (hs : 0 < s) (hz : 0 < z.re) : gammaIntegralComplexRate s z = (Real.Gamma s : ℂ) * z ^ (-(s : ℂ))"
     },
     "BSM.integral_exp_mul_phi": {
       "file": "ImprovedBS/RiskNeutral.lean",

@@ -72,6 +72,7 @@ CORNER = "ImprovedBS/Corner.lean"
 PARETO = "ImprovedBS/ParetoWitness.lean"
 VGLAW = "ImprovedBS/VGLaw.lean"
 CPOISSON = "ImprovedBS/CompoundPoisson.lean"
+CGMYLAW = "ImprovedBS/CGMYLaw.lean"
 GOLDEN = "tests/golden_statements.json"
 BASELINE = ".github/lean_lint_baseline.json"
 
@@ -737,6 +738,66 @@ MUTANTS = [
                "a TRANSLATED law (1.2e-15 against the landed compensated closed form), "
                "not the tree's exponent. Adding it is a different law that still has a "
                "characteristic function, so only the body-reading clause R4 sees it.",
+    },
+    # ---- BRIEF_020: the CGMY law (the module `[CGMYLaw]` gates). One cheat per
+    # clause, R1-R4.
+    {
+        "name": "P1 cgmyLaw replaced by a bare choice from the existence theorem",
+        "file": CGMYLAW,
+        "from": "  Filter.limUnder atTop\n"
+                "    (fun n : ℕ => cgmyCpProbability C G M Y τ ((2 : ℝ≥0)⁻¹ ^ n) hC hG hM hY\n"
+                "      (pow_pos (inv_pos.mpr (by norm_num : (0 : ℝ≥0) < 2)) n))\n",
+        "to": "  Classical.choose (cgmyLaw_exists C G M Y hC hG hM hY hY₂ τ)\n",
+        "tag": "[CGMYLaw]",
+        "why": "`cgmyLaw` is the `Filter.limUnder` of BRIEF_019's marginals along "
+               "`εₙ = 2⁻ⁿ`; `cgmyCpProbability_tendsto_cgmyLaw` and `charFun_cgmyLaw` "
+               "are theorems *about that limit*. A `Classical.choose` stand-in is some "
+               "probability measure with the right CF and would leave every downstream "
+               "statement provable while no longer saying which object the pins are "
+               "about. Clause R1 reads the citations.",
+    },
+    {
+        "name": "P2 the paired drift integrand loses its `G` leg",
+        "file": CGMYLAW,
+        "from": "  C * x ^ (-Y) * (Real.exp (-M * x) - Real.exp (-G * x))\n",
+        "to": "  C * x ^ (-Y) * Real.exp (-M * x)\n",
+        "tag": "[CGMYLaw]",
+        "why": "Ledger C25: the two sides' `ivx` pieces PAIR into a finite nonzero "
+               "drift; each leg alone is `x^{-Y}`, not integrable at 0 for `Y ≥ 1` "
+               "(measured `122.47` at `ε = 2⁻¹⁴`, `Y = 3/2`, growing like `ε^{1-Y}`). "
+               "A single-leg definition still builds and still has pins; only the "
+               "body-reading clause R2 sees that the drift is no longer the drift.",
+    },
+    {
+        "name": "P3 charFun_cgmyLaw routed through the closed form instead of Lévy continuity",
+        "file": CGMYLAW,
+        "from": "  tendsto_nhds_unique\n"
+                "    (ProbabilityMeasure.tendsto_iff_tendsto_charFun.mp\n"
+                "      (cgmyCpProbability_tendsto_cgmyLaw C G M Y hC hG hM hY hY₂ τ) t)\n"
+                "    (charFun_cgmyCpProbability_tendsto C G M Y hC hG hM hY hY₂ τ t)\n",
+        "to": "  by\n"
+              "    have h : cgmyLKExponent C G M Y t = cgmyExponent C G M Y (t : ℂ) :=\n"
+              "      cgmyLKExponent_eq_cgmyExponent C G M Y hC hG hM hY hY₂ (by norm_num) t\n"
+              "    rw [h]\n"
+              "    exact charFun_cgmyLaw_eq_cgmyCharFactor C G M Y hC hG hM hY hY₂ (by norm_num) τ t\n",
+        "tag": "[CGMYLaw]",
+        "why": "The CF at the law is `exp (τ L)` on ALL of `0 < Y < 2`, obtained from "
+               "the marginals' CFs by Lévy continuity and identified by uniqueness of "
+               "limits; `cgmyExponent` has a pole at `Y = 1` and enters only through §3, "
+               "for `Y ≠ 1`. Routing §2's headline through the closed form is circular "
+               "and false at `Y = 1`. Clause R3 holds the citations.",
+    },
+    {
+        "name": "P4 G1 closed by pretending the rate is real, the identity theorem dropped",
+        "file": CGMYLAW,
+        "from": "  exact hF_an.eqOn_of_preconnected_of_frequently_eq hg_an hUpre h1U hfreq hz\n",
+        "to": "  simpa using hagree z.re hz\n",
+        "tag": "[CGMYLaw]",
+        "why": "G1 is analytic continuation from the positive reals: the identity "
+               "theorem on the convex half-plane, anchored on the shipped real-rate "
+               "lemma. Evaluating the real-rate lemma at `Re z` proves the statement "
+               "only when `Im z = 0`; the CGMY legs need it at `z = M − iv`. Clause R4 "
+               "holds the identity-theorem citation.",
     },
 ]
 

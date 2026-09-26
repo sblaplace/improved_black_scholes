@@ -465,6 +465,25 @@ jobs:
           #print axioms BSM.cgmyTruncatedExponent_integrable
           #print axioms BSM.cgmyTruncatedExponent_zero
           #print axioms BSM.charFun_cgmyCpLaw
+          -- BRIEF_020: the CGMY law
+          #print axioms BSM.cgmyCompensatedIntegrand_integrable
+          #print axioms BSM.cgmyDriftIntegrand_integrableOn
+          #print axioms BSM.cgmyTruncatedExponent_decomp
+          #print axioms BSM.cgmyTruncatedExponent_tendsto
+          #print axioms BSM.cgmyLKExponent_zero
+          #print axioms BSM.cgmyLKExponent_continuous
+          #print axioms BSM.charFun_cgmyCpProbability_tendsto
+          #print axioms BSM.cgmyCpProbability_isTight
+          #print axioms BSM.cgmyLaw_exists
+          #print axioms BSM.cgmyCpProbability_tendsto_cgmyLaw
+          #print axioms BSM.charFun_cgmyLaw
+          #print axioms BSM.cgmyLaw_unique
+          #print axioms BSM.integral_cpow_mul_cexp_neg_mul_Ioi
+          #print axioms BSM.cgmyDrift_identity
+          #print axioms BSM.cgmyOneSidedExponent_eq
+          #print axioms BSM.cgmyOneSidedCompensated_eq
+          #print axioms BSM.cgmyLKExponent_eq_cgmyExponent
+          #print axioms BSM.charFun_cgmyLaw_eq_cgmyCharFactor
           LEAN
           lake env lean /tmp/Audit.lean 2>&1 | tee lean-audit.log
           if grep -q sorryAx lean-audit.log; then
@@ -628,15 +647,17 @@ jobs:
               echo "<details><summary>\`$log\` — each error with its goal context</summary>"
               echo
               echo '```'
-              grep -E "^error:" -A 6 "$log" | head -400 || true
+              # 40 lines per error: an `unsolved goals` message lists every
+              # hypothesis before the `⊢`, and 6 lines cut the goal off.
+              grep -E "^error:" -A 40 "$log" | head -c 42000 || true
               echo '```'
               echo
               echo "</details>"
               echo
-              echo "<details><summary>\`$log\` tail (last 25k characters)</summary>"
+              echo "<details><summary>\`$log\` tail (last 12k characters)</summary>"
               echo
               echo '```'
-              tail -c 25000 "$log"
+              tail -c 12000 "$log"
               echo '```'
               echo
               echo "</details>"
@@ -649,6 +670,10 @@ jobs:
           python3 - <<'PY'
           import json, os, urllib.request
           body = open('/tmp/body.md').read()
+          # GitHub caps a comment at 65536 characters; a 422 here would lose the
+          # only copy of the log a sandboxed reader can reach.
+          if len(body) > 60000:
+              body = body[:60000] + "\n```\n\n_(truncated at 60k characters)_\n"
           req = urllib.request.Request(
               f"https://api.github.com/repos/{os.environ['REPO']}/issues/{os.environ['PR_NUMBER']}/comments",
               data=json.dumps({"body": body}).encode(),
