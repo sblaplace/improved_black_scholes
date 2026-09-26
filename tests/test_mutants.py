@@ -15,7 +15,7 @@ error actually go red.
 
 Two properties this buys:
 
-1. **Detection.** Every seeded bug is caught (22/22 as of this commit).
+1. **Detection.** Every seeded bug is caught (39/39 as of this commit).
 2. **Non-vacuity.** Two of the mutants exist specifically to catch tests that
    compare a quantity against itself:
 
@@ -372,6 +372,36 @@ MUTANTS = [
         # TRUE drift is -0.283720 instead of 0.02. Only the VG test reads
         # `vg_cumulant`.
         ["test_vg_law"],
+    ),
+    (
+        "M34 Poisson weights: the 1/n! factor is dropped from the log-space recursion",
+        "logs.append(logs[-1] + math.log(lam) - math.log(n))",
+        "logs.append(logs[-1] + math.log(lam))",
+        ["test_compound_poisson"],
+    ),
+    (
+        "M35 jump law not normalised: the truncated measure itself is handed to cpLaw",
+        "return (cgmy_truncated_exponent(C, G, M, Y, eps, t, **quad) + lam) / lam",
+        "return cgmy_truncated_exponent(C, G, M, Y, eps, t, **quad) + lam",
+        ["test_compound_poisson"],
+    ),
+    (
+        "M36 truncated exponent drops the -1 of the integrand (the cancelled mass comes back)",
+        "weight = _expm1_complex(z) if minus_one else cmath.exp(z)",
+        "weight = cmath.exp(z)",
+        ["test_compound_poisson"],
+    ),
+    (
+        "M37 tempering legs swapped: the positive leg is tempered by G",
+        "pos = _cgmy_truncated_leg(M, Y, eps, v, minus_one, **quad)",
+        "pos = _cgmy_truncated_leg(G, Y, eps, v, minus_one, **quad)",
+        ["test_compound_poisson"],
+    ),
+    (
+        "M38 one-sided truncation: the mirror leg of the density is dropped",
+        "neg = _cgmy_truncated_leg(G, Y, eps, -v, minus_one, **quad)",
+        "neg = 0.0j",
+        ["test_compound_poisson"],
     ),
 ]
 

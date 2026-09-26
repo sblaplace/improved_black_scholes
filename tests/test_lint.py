@@ -71,6 +71,7 @@ ESSCHER = "ImprovedBS/Esscher.lean"
 CORNER = "ImprovedBS/Corner.lean"
 PARETO = "ImprovedBS/ParetoWitness.lean"
 VGLAW = "ImprovedBS/VGLaw.lean"
+CPOISSON = "ImprovedBS/CompoundPoisson.lean"
 GOLDEN = "tests/golden_statements.json"
 BASELINE = ".github/lean_lint_baseline.json"
 
@@ -687,6 +688,55 @@ MUTANTS = [
                "Re-deriving it by linarith is true and builds, and leaves "
                "esscher_tilted_numeraire decoration. Clause 4 of [VGLaw] holds "
                "the citation.",
+    },
+    # ---- BRIEF_019: the compound-Poisson mixture and the truncated CGMY jump
+    # law (the module `[CPOISSON]` gates). One cheat per clause, R1-R4.
+    {
+        "name": "P1 the mixture replaced by a hand-rolled density law",
+        "file": CPOISSON,
+        "from": "  Measure.sum (fun n => ENNReal.ofReal (poissonPMFReal lam n) • convPow ρ n)\n",
+        "to": "  volume.withDensity (fun x => ENNReal.ofReal (Real.exp (-(lam : ℝ) * x ^ 2)))\n",
+        "tag": "[CPOISSON]",
+        "why": "`cpLaw` is the Poisson mixture of convolution powers. A `withDensity` "
+               "stand-in is a probability measure with a characteristic function, so "
+               "every downstream statement can still be provable -- `cpLaw_apply_univ` "
+               "is then false, but nothing in the toolchain-free lane would say which "
+               "law the CF theorem is about. Clause R1 reads the citations.",
+    },
+    {
+        "name": "P2 charFun_cpLaw proved from the `δ₁` instance, the exchange dropped",
+        "file": CPOISSON,
+        "from": "  rw [cpLaw, charFun_apply_real, integral_sum_measure hint]\n",
+        "to": "  rw [cpLaw, charFun_map_cast_poissonMeasure]\n",
+        "tag": "[CPOISSON]",
+        "why": "Mathlib's `charFun_map_cast_poissonMeasure` IS the `ρ = δ₁` case "
+               "of the general identity, and the route-check uses it as a numeric "
+               "canary. Quoting it for the general theorem is the canary dressed as "
+               "the proof: the sum/integral exchange and `charFun_conv` are gone. "
+               "Clause R2 holds the citations.",
+    },
+    {
+        "name": "P3 cgmyJumpMass_lt_top re-derives the far tail, the landed moment dropped",
+        "file": CPOISSON,
+        "from": "    simpa only [sub_zero] using cgmy_levy_far_moment C M Y 0 hC hY hM\n",
+        "to": "    simpa only [sub_zero] using (exp_neg_integrableOn_Ioi 1 hM).const_mul C\n",
+        "tag": "[CPOISSON]",
+        "why": "Far-field integrability was landed by BRIEF_011's `cgmy_levy_far_moment`; "
+               "re-deriving the exponential half by hand is true and builds, and leaves "
+               "the inherited moment uncited -- which is exactly what clause R3 exists "
+               "to notice (and why it is not a statement pin: both statements are true).",
+    },
+    {
+        "name": "P4 cgmyTruncatedExponent grows a compensator",
+        "file": CPOISSON,
+        "from": "    (Complex.exp (v * (x : ℂ) * I) - 1) * (cgmyLevyDensity C G M Y x : ℂ)\n",
+        "to": "    (Complex.exp (v * (x : ℂ) * I) - 1 - v * (x : ℂ) * I) *\n"
+              "      (cgmyLevyDensity C G M Y x : ℂ)\n",
+        "tag": "[CPOISSON]",
+        "why": "The route-check measures what `- v x I` does: it is `ψ_Y(v) - i v m^∞`, "
+               "a TRANSLATED law (1.2e-15 against the landed compensated closed form), "
+               "not the tree's exponent. Adding it is a different law that still has a "
+               "characteristic function, so only the body-reading clause R4 sees it.",
     },
 ]
 

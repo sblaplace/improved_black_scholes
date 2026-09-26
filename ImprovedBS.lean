@@ -11,6 +11,7 @@ import ImprovedBS.Esscher
 import ImprovedBS.Corner
 import ImprovedBS.ParetoWitness
 import ImprovedBS.VGLaw
+import ImprovedBS.CompoundPoisson
 
 /-!
 # ImprovedBS
@@ -127,6 +128,20 @@ Root module of the `ImprovedBS` library. Modules imported here are built by
   the numéraire derived from `esscher_tilted_numeraire`, §6 items 3 and 5 at
   the tilted law. Stage 2 (general `Y`) and G1 (complex-rate Γ integral) stay
   open.
+* `ImprovedBS.CompoundPoisson` — BRIEF_019 (Stage 2a): the compound-Poisson law
+  and the truncated CGMY jump law. §1 the Poisson mixture of additive
+  convolution powers `cpLaw λ ρ = ∑ₙ pₙ · ρ^{*n}` — finite by `finite_of_finite_mconv`'s
+  additive twin, a probability measure with mass `∑ₙ pₙ = 1`, and characteristic
+  function `exp (λ (φ_ρ − 1))` via the shipped sum/integral exchange
+  (`integrable_sum_measure`, `integral_sum_measure`) and `charFun_conv`. §2 the
+  truncated CGMY jump measure `ν_ε = (volume.restrict {ε ≤ |x|})·cgmyLevyDensity`
+  with its finite mass (`cgmyJumpMass_lt_top`, consuming the landed
+  `cgmy_levy_far_moment` for both tails), positive mass, normalised jump law
+  `ν_ε/λ_ε`, and the truncated exponent
+  `A_ε(v) = ∫_{|x| ≥ ε} (e^{ivx} − 1) ν(dx)` as an honest Bochner integral
+  (`cgmyTruncatedExponent_integrable`, dominated by `2ν`), with the marginal
+  identity `charFun (cpLaw (τ λ_ε) (ν_ε/λ_ε)) t = exp (τ A_ε(t))`. Stage 2b
+  (the `ε ↓ 0` limit and the CGMY law itself) and G1 stay open.
 
 ## Why the module is not called `Lean.*`
 

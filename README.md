@@ -213,10 +213,33 @@ landed Esscher range `H_Y` degenerates at the corner (`H_Y ~ C/Y → ∞`).
 theorems): the law as the difference of two `gammaMeasure`s, its mgf on the
 strip `(−G, M)` (consuming `integral_rpow_mul_exp_neg_mul_Ioi`), the corner as
 a `𝓝[>] 0` limit, the law-level Esscher tilt, and the expectation-level twins
-of items 3 and 5 at the tilted law. **Stage 2** (the general-`Y` law) and
-**G1** (the complex-rate Γ integral) remain open. Four `[VGLaw]` lint clauses
+of items 3 and 5 at the tilted law. **Stage 2 lands in two halves**: its first half **is landed as BRIEF_019**
+(`ImprovedBS/CompoundPoisson.lean`, 5 defs + 12 theorems; pins 292 → 309,
+audit 256 → 268, `[CPOISSON]` lint clauses R1–R4 with cheats 48 → 52, oracle
+24 → 25, mutants 34 → 39), the compound-Poisson law of a probability jump
+measure at rate `λ` — the
+Poisson mixture of convolution powers, with the CF `exp(λ(φ−1))` — plus the
+**truncated CGMY jump law** `ν_ε/λ_ε` built from the landed `cgmyLevyDensity`
+and its marginal, whose exponent is the honest Bochner integral
+`∫_{\|x\|≥ε}(e^{ivx}−1)ν`. Its route-check fixes the two conventions the rest of
+Stage 2 is written against, by measurement: the truncation must be
+**symmetric** (the two-sided error decays like `ε^{2−Y}` — slopes 1.4904 at
+`Y = ½`, 0.4947 at `Y = 3⁄2`; a one-sided truncation *diverges* like `ε^{1−Y}`
+for `Y ≥ 1`, and has no cancellation partner), and it must carry **no
+compensator** (compensating everywhere lands on `ψ_Y − iv·m^∞`, a translated
+law, not the tree's exponent). The second half — the `ε ↓ 0` limit, tightness
+and the identification of the CGMY law — is the next brief, and BRIEF_017's
+F5(iv) "by dominated convergence" is corrected on the record: `λ_ε → ∞` like
+`ε^{−Y}` (measured: 665216.6 at `ε = 1e−4`, `Y = 3⁄2`), so no dominating
+integrable function exists near zero and the step is a conditional-convergence
+argument. **G1** (the complex-rate Γ integral) remains open and is that half's
+analytic engine. Four `[VGLaw]` lint clauses
 (44 → 48), `test_vg_law` and mutants M30–M33; pins 268 → 292, audit 237 → 256
 (theorems only — the repo's `#print axioms` list does not cover defs).
+**Stage 2a has landed as BRIEF_019**: four `[CPoisson]` clauses (48 → 52),
+`test_compound_poisson` with mutants M34–M38, pins 292 → 309,
+audit 256 → 268 — and the module stops where Stage 2b starts: no `ε ↓ 0`
+limit, no tightness, no identification.
 Proving the
 obstruction itself — a concrete divergent integral, no finance in it — is the
 cheapest high-value theorem in the research tier. Details in docs/03 §D1.
@@ -244,9 +267,10 @@ cheapest high-value theorem in the research tier. Details in docs/03 §D1.
 | Lean theorems | BSM-2 kit item 6: the normalized CGMY → GBM corner — at the scale `C_Y = (σ²/2)(2−Y)` the Γ pole cancels and `ψ_Y(v) → −(σ²/2)v² + i(σ²/2)(G−M)v` **pointwise** on `−M < Im v < G`, as a one-sided `Y → 2⁻` limit; route A's algebraic forward normalization `Ψ_Y(v) = ψ_Y(v) + i(r−q−κ_Y(1))v` (numéraire exact at every `Y`, consuming `cgmyExponent_strip`) lands it on the risk-neutral GBM exponent and its factor on `gbmCharFactor`, route B's named `θ₀ = (M−G−1)/2` lands it on the zero-carry GBM exponent with no correction at all (consuming `esscher_cgmy_shift` at the shifted rates), and the drift half-width collapses to `(σ²/2)(G+M−1)` (`ImprovedBS/Corner.lean`, 17 declarations) | **GREEN** — `lake build` + `#print axioms` audit (226 entries) + statement pins (elab, 257), run 36111570530; `benchmarks/LEDGER.md` row 14, correction C17 |
 | Lean theorems | the obstruction's tail hypothesis is non-vacuous — mathlib's Pareto law has `μ[x,∞) = t^r·x^(−r)`, so `htail` holds with equality and `Levy.lean`'s obstruction is instantiated at a real law by citation; C7's `α ≤ 0` remark is a theorem, giving `(∃ law, htail) ↔ 0 < α`, and a Dirac mass shows the hypothesis can fail (`ImprovedBS/ParetoWitness.lean`, 11 theorems) | **GREEN** — `lake build` + `#print axioms` audit (237 entries) + statement pins (elab, 268), run 36119639468; `benchmarks/LEDGER.md` row 15 |
 | Deferred | *(nothing)* | ratcheted at 0 `sorry`s — `deferred: {}` |
-| Lean theorems | BSM-2 Stage 1: the variance-gamma law as a `Measure ℝ` — difference of two `gammaMeasure`s, mgf `exp(τ·κ₀)` on `(−G, M)`, the `Y ↓ 0` corner as a `𝓝[>] 0` limit, the Esscher tilt, and items 3 and 5 instantiated at it (`ImprovedBS/VGLaw.lean`, 24 declarations) | implemented — grading run outstanding; `benchmarks/LEDGER.md` row 17 |
-| Lint is a falsifier | `tests/test_lint.py`: 48 seeded cheats each killed by a named check, 5 legitimate edits green, 1 residual gap asserted open | verified — 7/7 tests |
-| Pinned claims | `tests/golden_statements.json`: 292 declarations — theorem statements, definition bodies | machine-checked (source 292, elab 268 + 24 awaiting the build job); `#check`/axioms layer verified in build job |
+| Lean theorems | BSM-2 Stage 1: the variance-gamma law as a `Measure ℝ` — difference of two `gammaMeasure`s, mgf `exp(τ·κ₀)` on `(−G, M)`, the `Y ↓ 0` corner as a `𝓝[>] 0` limit, the Esscher tilt, and items 3 and 5 instantiated at it (`ImprovedBS/VGLaw.lean`, 24 declarations) | **GREEN** — lean run 36151499122 (oracle lane 36151499027): `lake build` + `#print axioms` audit (256) + statement pins (elab, all 292) + `lint` + `oracle`; `benchmarks/LEDGER.md` row 17 |
+| Lean theorems | BSM-2 Stage 2a: the compound-Poisson law of a probability jump measure at rate `λ` (the Poisson mixture of convolution powers) and its CF `exp(λ(φ−1))`, plus the truncated CGMY jump law `ν_ε/λ_ε` from the landed `cgmyLevyDensity` and its marginal, exponent `∫_{\|x\|≥ε}(e^{ivx}−1)ν` — conventions fixed by measurement: symmetric truncation, no compensator (`ImprovedBS/CompoundPoisson.lean`, 5 defs + 12 theorems) | **GREEN** — lean run 36228682782 (oracle lane 36228682768): `lake build` + `#print axioms` audit (268) + statement pins (source 309, elab 309) + `lint` + `oracle`; `benchmarks/LEDGER.md` row 18, corrections C23/C24 |
+| Lint is a falsifier | `tests/test_lint.py`: 52 seeded cheats each killed by a named check, 5 legitimate edits green, 1 residual gap asserted open | verified — 7/7 tests |
+| Pinned claims | `tests/golden_statements.json`: 309 declarations — theorem statements, definition bodies | machine-checked (source 309, elab 309); `#check`/axioms layer verified in build job |
 | Grading lane | briefs/ + benchmarks/ + 2 CI workflows + toolchain-free lint + pins | standing |
 | First brief | BRIEF_001, re-scoped to what is actually checkable | see briefs/ |
 
@@ -392,12 +416,12 @@ is the formal, machine-checked restatement and the widening question.
 All five harnesses are dependency-free Python; none needs a Lean toolchain.
 
 ```sh
-python3 tests/test_bs.py          # 23/23 — the oracle satisfies the claimed identities
-python3 tests/test_mutants.py     #  4/4  — and those tests can actually fail (30 mutants)
-python3 tests/test_lint.py        #  7/7  — the linter can fail too (44 cheats, 5 controls)
+python3 tests/test_bs.py          # 24/24 — the oracle satisfies the claimed identities
+python3 tests/test_mutants.py     #  4/4  — and those tests can actually fail (34 mutants)
+python3 tests/test_lint.py        #  7/7  — the linter can fail too (48 cheats, 5 controls)
 python3 tests/test_pins.py        # 12/12 — and the pins that back it parse real CI output, and the delta/merge path works
-python3 scripts/lean_lint.py      #  OK   — no sorry in the protected node, ratchet, independence, pins, spine, skeleton, contour, cgmy, nonuniq, esscher, corner, pareto (14 files, 321 declarations)
-python3 scripts/pin_statements.py --check   # 268 statements match tests/golden_statements.json
+python3 scripts/lean_lint.py      #  OK   — no sorry in the protected node, ratchet, independence, pins, spine, skeleton, contour, cgmy, nonuniq, esscher, corner, pareto, vglaw (15 files, 345 declarations)
+python3 scripts/pin_statements.py --check   # 292 statements match tests/golden_statements.json
 python3 tests/test_crosscheck.py    #  6/6  — grid + oracle self-consistency, both T3 sides, input-source routing (the cross-check itself needs lake)
 # or, with pytest installed:
 pytest tests/

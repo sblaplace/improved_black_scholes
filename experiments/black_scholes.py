@@ -1307,3 +1307,206 @@ def bs_pde_residual(S, K, T, t, r, s, q=0.0, option="call", h=1e-3):
     V_SS = (V(S + h, t) - 2.0 * V(S, t) + V(S - h, t)) / (h * h)
     residual = V_t + (r - q) * S * V_S + 0.5 * s * s * S * S * V_SS - r * V(S, t)
     return residual
+
+
+# ---------------------------------------------------------------------------
+# BRIEF_019: the compound-Poisson mixture and the truncated CGMY jump law.
+#
+# The Lean module lands `cpLaw` -- the Poisson mixture of additive convolution
+# powers, `charFun_cpLaw = cexp (lam (phi - 1))` -- and the truncated CGMY jump
+# law, whose marginal's characteristic function is `cexp (tau * A_eps)` with
+#
+#     A_eps(v) = int_{|x| >= eps} (e^{i v x} - 1) nu_eps(dx)
+#
+# written as a Bochner integral (absolutely convergent BECAUSE of the
+# truncation).  The two sides the rows below compare are deliberately different
+# objects:
+#
+#   mixture : the *truncated tsum* `sum_{n <= N} p_n phi(t)^n`, powers
+#             accumulated multiplicatively.  The weights are built in log space
+#             because the rate reaches 20656 in the witnesses: `exp(-lam)`
+#             underflows and `lam^n` overflows before `n!` cancels either.
+#             Every mixture row therefore also carries the Poisson tail bound
+#             of the terms it drops; a residual under that bound is evidence.
+#   closed  : `cexp (lam (phi(t) - 1))`, and at the CGMY law `cexp (tau A_eps)`
+#             with the `-1` of the integrand carrying the mass `lambda_eps`.
+#
+# The scaling rows are the ones that make the truncation SYMMETRIC (`{|x| >=
+# eps}`, the module's R4 clause): the mass grows like `2C/Y eps^{-Y}`, the
+# truncation error `|A_eps - psi_Y|` decays like `eps^{2-Y}`, while the
+# one-sided truncation loses the `i v x` cancellation and, for `Y >= 1`,
+# diverges like `eps^{1-Y}` (the canary row).
+# ---------------------------------------------------------------------------
+
+
+def cgmy_levy_density(C: float, G: float, M: float, Y: float, x: float) -> float:
+    """The oracle's `cgmyLevyDensity C G M Y`: `C e^{-rate |x|} |x|^{-1-Y}`.
+
+    One even-in-`|x|` function with the tempering rate `M` on `x > 0` and `G`
+    on `x < 0`, split in Lean by `cgmyLevyDensity_pos_of_pos` /
+    `_neg_of_neg`.  Written from the definition rather than from either
+    theorem, so the two halves of the test do not share an algebra.
+    """
+    rate = M if x > 0.0 else G
+    return C * math.exp(-rate * abs(x)) * abs(x) ** (-1.0 - Y)
+
+
+def poisson_tail(lam: float, n_max: int) -> float:
+    """Upper bound on `sum_{n > n_max} e^{-lam} lam^n / n!` (Chernoff).
+
+    For any `t > 0`, `P(X > n_max) <= exp(lam (e^t - 1) - (n_max+1) t)`; the
+    minimiser `t = log((n_max+1)/lam)` (valid when `n_max + 1 > lam`) gives
+    `exp(-(n_max+1) log((n_max+1)/lam) + (n_max+1) - lam)`.  Below the mode the
+    bound is vacuous and the function returns 1.
+    """
+    if n_max + 1 <= lam:
+        return 1.0
+    r = (n_max + 1) / lam
+    return math.exp(-(n_max + 1) * math.log(r) + (n_max + 1) - lam)
+
+
+def poisson_weights(lam: float, n_max: int = None):
+    """`(weights, tail)`: Poisson weights `e^{-lam} lam^n / n!`, `n <= n_max`.
+
+    Log space: `log w_n = -lam + n log lam - log n!` accumulated by the
+    recursion `log w_{n+1} = log w_n + log lam - log (n+1)`, exponentiated
+    relative to the mode and normalised by their own sum.  That renormalisation
+    is deliberate -- the returned weights sum to 1 while `tail` (the true
+    omitted mass, bounded by `poisson_tail`) is what a truncated tsum is
+    missing.  `n_max` defaults to twelve standard deviations above the mean.
+    """
+    if n_max is None:
+        n_max = int(math.ceil(lam + 12.0 * math.sqrt(lam) + 12.0))
+    logs = [-lam]
+    for n in range(1, n_max + 1):
+        logs.append(logs[-1] + math.log(lam) - math.log(n))
+    top = max(logs)
+    ws = [math.exp(l - top) for l in logs]
+    total = math.fsum(ws)
+    return [w / total for w in ws], poisson_tail(lam, n_max)
+
+
+def cp_law_cf_mixture(lam: float, jump_cf, t: float, n_max: int = None):
+    """`(value, tail)`: the truncated mixture `sum_{n <= n_max} p_n phi(t)^n`.
+
+    `phi(t)^n` is accumulated by one multiplication per term rather than by
+    `** n`, which is what keeps the small-`n` terms of a 20k-term sum from
+    being rounded away.  This is the *only* place the mixture is formed.
+    """
+    w, tail = poisson_weights(lam, n_max)
+    phi = jump_cf(t)
+    acc = 0.0 + 0.0j
+    power = 1.0 + 0.0j
+    for pn in w:
+        acc += pn * power
+        power *= phi
+    return acc, tail
+
+
+def cp_law_cf_closed(lam: float, jump_cf, t: float) -> complex:
+    """`cexp (lam (phi(t) - 1))` -- the closed form `charFun_cpLaw` proves.
+
+    Nothing here knows about a tsum, which is the point: `charFun_map_cast_poissonMeasure`
+    is this identity at `rho = delta_1`, and the test checks the two sides
+    against each other rather than against a shared expansion.
+    """
+    return cmath.exp(lam * (jump_cf(t) - 1.0))
+
+
+def _cgmy_truncated_leg(
+    rate: float,
+    Y: float,
+    eps: float,
+    v: float,
+    minus_one: bool = True,
+    x_max: float = 60.0,
+    panels: int = 30,
+    n_panel: int = 200,
+) -> complex:
+    """`int_eps^{x_max} (e^{ivx} [- 1]) e^{-rate x} x^{-1-Y} dx`, graded Simpson.
+
+    Dyadic panels `[eps 2^k, eps 2^{k+1}]` up to 1 plus one Simpson pass on
+    `[1, x_max]`: the `x^{-1-Y}` growth at `eps` is what a uniform mesh cannot
+    see.  The `-1` goes through `_expm1_complex`, so the innermost panels keep
+    the `~ i v x` behaviour instead of cancelling it away.
+    """
+    def f(x: float) -> complex:
+        z = 1j * v * x
+        weight = _expm1_complex(z) if minus_one else cmath.exp(z)
+        return weight * math.exp(-rate * x) * x ** (-1.0 - Y)
+
+    total = 0.0 + 0.0j
+    edges = [eps * 2.0 ** k for k in range(panels + 1) if eps * 2.0 ** k < 1.0]
+    edges.append(1.0)
+    for a, b in zip(edges, edges[1:]):
+        total += _simpson(f, a, b, n_panel)
+    total += _simpson(f, 1.0, x_max, 4000)
+    return total
+
+
+def _cgmy_truncated_sum(
+    C: float,
+    G: float,
+    M: float,
+    Y: float,
+    eps: float,
+    v: float,
+    minus_one: bool = True,
+    one_sided: bool = False,
+    **quad,
+) -> complex:
+    """Both legs of the truncated integral (the symmetric truncation), summed.
+
+    `one_sided=True` drops the mirror leg -- the route `[CPoisson]` R4 forbids
+    and the canary row measures; it is a keyword rather than a second function
+    so that a mutant can turn it on inside the same quadrature.
+    """
+    pos = _cgmy_truncated_leg(M, Y, eps, v, minus_one, **quad)
+    if one_sided:
+        return C * pos
+    neg = _cgmy_truncated_leg(G, Y, eps, -v, minus_one, **quad)
+    return C * (pos + neg)
+
+
+def cgmy_jump_mass(C: float, G: float, M: float, Y: float, eps: float, **quad) -> float:
+    """`lambda_eps = int_{|x| >= eps} cgmyLevyDensity dx`, both legs.
+
+    The truncation is what makes this finite (`int_{|x|<eps}` diverges like
+    `eps^{-Y}`) and its growth `2C/Y eps^{-Y}` is why the `eps -> 0` step is a
+    conditional-convergence argument (BRIEF_019 F3).
+    """
+    pos = _cgmy_truncated_leg(M, Y, eps, 0.0, False, **quad)
+    neg = _cgmy_truncated_leg(G, Y, eps, 0.0, False, **quad)
+    return C * (pos.real + neg.real)
+
+
+def cgmy_truncated_exponent(
+    C: float, G: float, M: float, Y: float, eps: float, v: float, **quad
+) -> complex:
+    """`A_eps(v) = int_{|x| >= eps} (e^{ivx} - 1) nu_eps(dx)` -- the Lean def.
+
+    Bochner-integrable exactly because the set excludes `0`: `|e^{ivx} - 1| <= 2`
+    and the density's mass there is finite.
+    """
+    return _cgmy_truncated_sum(C, G, M, Y, eps, v, True, False, **quad)
+
+
+def cgmy_jump_cf(C: float, G: float, M: float, Y: float, eps: float, t: float, **quad) -> complex:
+    """`phi(t)` of the normalised jump law `nu_eps / lambda_eps`.
+
+    `e^{itx} = (e^{itx} - 1) + 1` term by term, so the numerator is `A_eps(t) +
+    lambda_eps` and the division *is* the normalisation (`cgmyJumpLaw`); the
+    mutant that drops the division is the "jump law not normalised" row.
+    """
+    lam = cgmy_jump_mass(C, G, M, Y, eps, **quad)
+    return (cgmy_truncated_exponent(C, G, M, Y, eps, t, **quad) + lam) / lam
+
+
+def cgmy_law_cf(C: float, G: float, M: float, Y: float, eps: float, tau: float, v: float, **quad) -> complex:
+    """The marginal's CF at rate `tau * lambda_eps`: `cexp (tau * A_eps(v))`.
+
+    `charFun_cgmyCpLaw`'s right-hand side; its left-hand side is
+    `cp_law_cf_mixture (tau * lambda_eps) (cgmy_jump_cf ...)`, so the row is the
+    cancellation `lambda_eps * (phi - 1) = A_eps` seen through a 20k-term sum.
+    """
+    return cmath.exp(tau * cgmy_truncated_exponent(C, G, M, Y, eps, v, **quad))

@@ -71,6 +71,19 @@ from experiments.black_scholes import (
     cgmy_exponent_by_pieces,
     cgmy_exponent_one_sided_compensated,
     cgmy_gamma_neg,
+    cgmy_exponent_one_sided,
+    cgmy_levy_density,
+    cgmy_jump_mass,
+    cgmy_jump_cf,
+    cgmy_law_cf,
+    cgmy_truncated_exponent,
+    cp_law_cf_mixture,
+    cp_law_cf_closed,
+    poisson_weights,
+    poisson_tail,
+    _simpson,
+    _cgmy_truncated_leg,
+    _cgmy_truncated_sum,
     cgmy_levy_integral_one_sided,
     cgmy_pricing_contour_v,
     cgmy_tempered_constant,
@@ -1487,6 +1500,259 @@ def test_vg_law():
     fwd90 = S * math.exp(-q * tau) - 90.0 * math.exp(-r * tau)
     assert abs(bs_call(S, 90.0, tau, r, q, 1e-12) - fwd90) < 1e-9
     assert abs(bs_call(S, 90.0, tau, r, q, 1e-12) - 10.370803437464502) < 1e-9
+
+
+def test_compound_poisson():
+    """BRIEF_019 (numerical shadow of `ImprovedBS/CompoundPoisson.lean`).
+
+    Two constructions, each checked against a side that is NOT a re-derivation
+    of it:
+
+      * the Poisson mixture `sum_n p_n rho^{*n}` -- powers accumulated one
+        multiplication at a time -- against `cexp (lam (phi(t) - 1))`, the shape
+        `charFun_cpLaw` proves. At `lam = 0.5, 2.5` the closed side IS mathlib's
+        shipped `charFun_map_cast_poissonMeasure` (`exp (lam (e^{it} - 1))`), so
+        that row checks the machinery against a shipped object;
+      * the truncated CGMY jump law on `{|x| >= eps}` (`cgmyJumpLaw`): its mass
+        against the density integral (an independent log-substituted mesh) and
+        against the `2C/Y eps^{-Y}` asymptote, its exponent against the landed
+        `cgmy_exponent` at the rates F3 predicts, and the marginal
+        `cexp (tau A_eps)` against the mixture (`charFun_cgmyCpLaw`).
+
+    The truncation is the whole story. `lambda_eps` grows like `eps^{-Y}`, so
+    `eps -> 0` is a CONDITIONAL-convergence statement and NOT dominated
+    convergence (F3); the symmetric truncation has error `eps^{2-Y}` while the
+    one-sided half-line moves `eps^{1-Y}` -- decaying for `Y < 1`, DIVERGENT for
+    `Y > 1`. The canary below asserts that divergence: it is a different family
+    (F2), not an approximation error, and it is why `{|x| >= eps}` is the only
+    truncation the module may write (lint R4). `A_eps` is Bochner-integrable
+    because it lives on the truncated set -- it is a plain `∫`, not an improper
+    integral.
+
+    `A_eps` is the cutoff of `psi_Y` in the same sense that BRIEF_018's `vgLaw`
+    is the `Y -> 0` corner: the corner row checks `|A_eps - psi_0| / Y`
+    (`psi_0` = `cgmy_zeroth_exponent`, tied to `vg_exponent` in
+    `test_vg_law`); the F6 row checks that "compensate everywhere" is a
+    *translated* law -- a different target -- and not a choice of notation.
+
+    The last block MEASURES the five cheat classes (mutants M34-M38 in
+    `tests/test_mutants.py`), so "this test kills them" is a number and not an
+    adjective. Metric: the log-scale separation of the corrupted witness from
+    its route-check value (the exponent displacement, since every CF here is
+    `exp` of an exponent).
+    """
+    C, G, M, tau = 0.5, 5.0, 10.0, 0.25
+    delta1_cf = lambda t: cmath.exp(1j * t)
+
+    def sym_err(Y, eps, v):
+        """`|A_eps - psi_Y|`: the symmetric truncation error (F3's rate)."""
+        return abs(cgmy_truncated_exponent(C, G, M, Y, eps, v)
+                   - cgmy_exponent(C, G, M, Y, complex(v)))
+
+    def one_err(Y, eps, v):
+        """The FORBIDDEN one-sided error, against the one-sided closed form."""
+        return abs(C * _cgmy_truncated_leg(M, Y, eps, v, True)
+                   - cgmy_exponent_one_sided(C, M, Y, complex(v)))
+
+    def slope3(Y, v, f):
+        """Log-log slope of `f` against `eps` over {1e-4, 1e-3, 1e-2}.
+
+        Evenly spaced in `log eps`, so the three-point least-squares slope is
+        the mean of the two decade slopes -- the route-check's definition.
+        """
+        return (math.log(abs(f(Y, 1e-2, v))) - math.log(abs(f(Y, 1e-4, v)))) / (2.0 * math.log(10.0))
+
+    def mass_by_density(Y, eps, n=4000):
+        """`int_{|x| >= eps} cgmyLevyDensity C G M Y x dx`: third route.
+
+        `u = log(x/eps)` turns the `x^{-1-Y}` growth at the cutoff into the
+        smooth `eps^{-Y} e^{-Y u}`, so this mesh shares no structure with the
+        dyadic panels of `_cgmy_truncated_leg`. Both legs go through the
+        module's own `cgmy_levy_density`, so a rate/sign change there is caught
+        here (the two legs are summed in quadrature, not in the density).
+        """
+        total = 0.0
+        u_max = math.log(60.0 / eps)
+        for sign in (1.0, -1.0):
+            def f(u, sign=sign):
+                x = sign * eps * math.exp(u)
+                return cgmy_levy_density(C, G, M, Y, x) * eps * math.exp(u)
+            total += _simpson(f, 0.0, u_max, n)
+        return total
+
+    # --- the weights: log space (the rate reaches 20656, where `exp(-lam)`
+    # underflows and `lam^n` overflows before `n!` cancels either), against the
+    # closed form `e^{-lam} lam^n / n!` at a rate where both are representable,
+    # and the omitted mass against its Chernoff bound.
+    for lam in (0.5, 2.5, 5164.028168615301, 20656.112674461205):
+        w, tail = poisson_weights(lam)
+        total = math.fsum(w)
+        assert abs(total - 1.0) <= 1e-12, (lam, total)
+        assert 1.0 - total <= tail + 1e-12, (lam, tail)
+        assert max(w) > 0.0 and min(w) >= 0.0, lam
+    w30, _ = poisson_weights(30.0)
+    worst = max(abs(q - math.exp(-30.0 + n * math.log(30.0) - math.lgamma(n + 1.0)))
+                for n, q in enumerate(w30))
+    assert worst <= 1e-13, worst
+
+    # --- `charFun_cpLaw` at `rho = delta_1`.
+    worst = 0.0
+    for lam in (0.5, 2.5):
+        for t in (0.3, 1.7, -2.2):
+            mix, tail = cp_law_cf_mixture(lam, delta1_cf, t)
+            closed = cp_law_cf_closed(lam, delta1_cf, t)
+            worst = max(worst, abs(mix - closed))
+            assert abs(mix - closed) <= max(1e-13, tail), (lam, t, mix, closed, tail)
+    assert worst <= 3.5e-16, worst
+
+    # --- `charFun_cgmyCpLaw`: the same identity at the truncated jump law,
+    # with rates that reach 2e4 terms. The closed side is `cexp (lam (phi-1))`
+    # with `lam = lambda_eps`; the residual is floating-point summation, and it
+    # does not degrade with the rate.
+    worst, at = 0.0, None
+    for Y in (0.7, 1.5):
+        for eps in (1e-2, 1e-3):
+            lam = cgmy_jump_mass(C, G, M, Y, eps)
+            jcf = (lambda t, Y=Y, eps=eps: cgmy_jump_cf(C, G, M, Y, eps, t))
+            for v in (0.5, 2.0):
+                mix, tail = cp_law_cf_mixture(lam, jcf, v)
+                closed = cp_law_cf_closed(lam, jcf, v)
+                if abs(mix - closed) > worst:
+                    worst, at = abs(mix - closed), (Y, eps, v, lam)
+                assert abs(mix - closed) <= 1e-13, (Y, eps, v)
+    assert worst <= 1e-13 and at[3] > 2e4, (worst, at)
+
+    # --- the mass row: `lambda_eps -> infinity` like `2C/Y eps^{-Y}`, asserted
+    # against the closed form (so a later "simplification" cannot restore a
+    # DCT-shaped proof of the `eps -> 0` step), and against the density route.
+    for Y, slope, lam4 in ((0.5, 0.546475, 190.58166067128686),
+                           (1.5, 1.507914, 665216.6196349466)):
+        l3 = cgmy_jump_mass(C, G, M, Y, 1e-3)
+        l4 = cgmy_jump_mass(C, G, M, Y, 1e-4)
+        assert abs((math.log(l4) - math.log(l3)) / math.log(10.0) - slope) <= 1e-6, (Y, l3, l4)
+        assert abs(l4 - lam4) <= 1e-3, (Y, l4)
+        asym = 2.0 * C / Y * (1e-4) ** (-Y)
+        assert 0.95 <= l4 / asym <= 1.0, (Y, l4 / asym)
+        assert l4 >= 3.0 * l3, (Y, l3, l4)         # the mass grows with every decade of cutoff
+        by_density = mass_by_density(Y, 1e-3)
+        assert abs(by_density - l3) <= 1e-8 * l3, (Y, by_density, l3)
+
+    # --- the truncation error: `|A_eps - psi_Y| ~ eps^{2-Y}` (symmetric: the
+    # only truncation R4 allows).
+    for Y, want in ((0.5, 1.4904), (1.5, 0.4947)):
+        for v in (0.5, 2.0):
+            got = slope3(Y, v, sym_err)
+            assert abs(got - want) <= 1e-4, (Y, v, got)
+
+    # --- the canary: the ONE-SIDED truncation is a different family. For
+    # `Y = 1/2` the error still decays (slope 1 - Y); for `Y = 3/2` it GROWS
+    # like `eps^{-1/2}` -- that divergence is the row, not a value mismatch.
+    for v in (0.5, 2.0):
+        got = slope3(0.5, v, one_err)
+        assert abs(got - 0.4929) <= 1e-4, (0.5, v, got)
+        got = slope3(1.5, v, one_err)
+        assert abs(got + 0.4798) <= 1e-4, (1.5, v, got)
+        assert got < 0.0, (1.5, v, got)
+
+    # --- F6: "compensate everywhere" is a TRANSLATED law, not a convention.
+    for Y, m_inf in ((0.5, -0.116083169), (1.5, -1.641663919)):
+        m = C * cgmy_gamma_neg(Y) * Y * (G ** (Y - 1.0) - M ** (Y - 1.0))
+        assert abs(m - m_inf) <= 1e-9, (Y, m)
+        for v in (0.5, 1.0, 2.0):
+            w = complex(v)
+            lhs = cgmy_exponent(C, G, M, Y, w) - 1j * w * m
+            rhs = (cgmy_exponent_one_sided_compensated(C, M, Y, w)
+                   + cgmy_exponent_one_sided_compensated(C, G, Y, -w))
+            assert abs(lhs - rhs) <= 1.2e-15 * max(1.0, abs(lhs)), (Y, v, lhs, rhs)
+    Y, eps = 1.5, 1e-3
+    m = C * cgmy_gamma_neg(Y) * Y * (G ** (Y - 1.0) - M ** (Y - 1.0))
+    for v in (1.0, 2.0):
+        A = cgmy_truncated_exponent(C, G, M, Y, eps, v)
+        shifted = cmath.exp(tau * (A - 1j * v * m))
+        translated = cmath.exp(-1j * v * tau * m) * cmath.exp(tau * A)
+        assert abs(shifted - translated) <= 1e-15 * max(1.0, abs(translated))
+        assert abs(shifted - cmath.exp(tau * A)) >= 0.1, (v, shifted)
+
+    # --- the corner: `psi_0` is BRIEF_018's `vgLaw` exponent, and the cutoff
+    # error against it is `O(1)` in `Y` after the `1/Y` scaling of the corner.
+    for v, want in ((0.5, 0.037511), (2.0, 0.158055)):
+        A = cgmy_truncated_exponent(C, G, M, 1e-3, 1e-4, v)
+        psi0 = cgmy_zeroth_exponent(C, G, M, complex(v))
+        got = abs(A - psi0) / 1e-3
+        assert abs(got - want) <= 1e-5, (v, got)
+
+    # --- the mutant witness, (Y, eps, v) = (1.5, 1e-3, 1).
+    Y, eps, v = 1.5, 1e-3, 1.0
+    lam = cgmy_jump_mass(C, G, M, Y, eps)
+    rate = tau * lam
+    A = cgmy_truncated_exponent(C, G, M, Y, eps, v)
+    assert abs(lam - 20656.112674461205) <= 1e-6, lam
+    assert abs(A - (-0.306170169269563 - 1.4797187232987774j)) <= 1e-9, A
+    truth = cmath.exp(tau * A)                 # the marginal's exponent is tau*A, NOT rate*A
+    assert abs(truth - (0.8636509648070771 - 0.3349085281853914j)) <= 1e-12, truth
+    mix, _ = cp_law_cf_mixture(rate, lambda t: cgmy_jump_cf(C, G, M, Y, eps, t), v)
+    assert abs(mix - truth) <= 1e-11, (mix, truth)
+
+    # the jump law IS a probability law, the integrand vanishes at `v = 0`, and
+    # BOTH legs of the density are present: three structural rows that no
+    # quadrature can satisfy by accident.
+    assert abs(cgmy_jump_cf(C, G, M, Y, eps, 0.0) - 1.0) <= 1e-13
+    assert abs(cgmy_truncated_exponent(C, G, M, Y, eps, 0.0)) <= 1e-15
+    leg_pos = C * _cgmy_truncated_leg(M, Y, eps, v, True)
+    leg_neg = C * _cgmy_truncated_leg(G, Y, eps, -v, True)
+    assert abs(A - (leg_pos + leg_neg)) <= 1e-15 * max(1.0, abs(A))
+
+    # --- the cheat classes, measured (log-scale separations).
+    # M36: the `-1` of the integrand is dropped; the mass the `-1` cancels
+    # comes back and displaces the exponent by exactly `lambda_eps`.
+    A_plus_mass = _cgmy_truncated_sum(C, G, M, Y, eps, v, False, False)
+    sep_m36 = tau * abs(A_plus_mass - A)
+    assert abs(sep_m36 - 5164.028168615301) <= 1e-6, sep_m36
+
+    # M37: the tempering legs are swapped; the exponent moves against a scale
+    # of `|tau A|`.
+    A_sw = C * (_cgmy_truncated_leg(G, Y, eps, v, True)
+                + _cgmy_truncated_leg(M, Y, eps, -v, True))
+    sep_m37 = abs(tau * (A_sw - A))
+    assert abs(sep_m37 - 0.7398593616493887) <= 1e-6, sep_m37
+    assert abs(abs(tau * A) - 0.377765442489741) <= 1e-9
+
+    # M38: the forbidden one-sided truncation: the error against the ONE-SIDED
+    # closed form is the canary's `eps^{1-Y}` divergence, `tau`-scaled.
+    A_one = C * _cgmy_truncated_leg(M, Y, eps, v, True)
+    sep_m38 = tau * abs(A_one - cgmy_exponent_one_sided(C, M, Y, complex(v)))
+    assert abs(sep_m38 - 7.984621002490288) <= 1e-4, sep_m38
+
+    # M35: the jump law is not normalised, so its CF at 0 is the mass
+    # `lambda_eps` instead of 1 and the marginal reads `exp (rate (lam - 1))`.
+    sep_m35 = abs(rate * (mass_by_density(Y, eps) - 1.0))
+    assert abs(sep_m35 - 106663583.68) <= 0.1, sep_m35
+
+    # M34: the `1/n!` is dropped from the log-space weight recursion; the
+    # weights stop being Poisson weights and the mixture stops being
+    # `exp (rate (phi - 1))`.
+    def no_factorial_weights(lam):
+        n_max = int(math.ceil(lam + 12.0 * math.sqrt(lam) + 12.0))
+        logs = [-lam]
+        for n in range(1, n_max + 1):
+            logs.append(logs[-1] + math.log(lam))       # <- no `- log n`
+        top = max(logs)
+        ws = [math.exp(l - top) for l in logs]
+        total = math.fsum(ws)
+        return [q / total for q in ws]
+
+    acc, power = 0.0 + 0.0j, 1.0 + 0.0j
+    phi = cgmy_jump_cf(C, G, M, Y, eps, v)
+    for q in no_factorial_weights(rate):
+        acc += q * power
+        power *= phi
+    sep_m34 = abs(cmath.log(acc) - tau * A)
+    assert 1e-3 <= sep_m34 <= 0.2, sep_m34
+    acc1, power = 0.0 + 0.0j, 1.0 + 0.0j
+    for q in no_factorial_weights(2.5):
+        acc1 += q * power
+        power *= delta1_cf(0.3)
+    assert abs(acc1 - cp_law_cf_closed(2.5, delta1_cf, 0.3)) >= 0.5
 
 
 if __name__ == "__main__":
