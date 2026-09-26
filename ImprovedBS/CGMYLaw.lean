@@ -110,6 +110,7 @@ theorem cgmyLevyDensity_integrableOn_Ioi_one (C G M Y : ℝ) (hC : 0 < C) (hM : 
   have h : IntegrableOn (fun x : ℝ => C * (Real.exp (-M * x) * x ^ (-1 - Y))) (Ioi 1) := by
     simpa only [sub_zero] using cgmy_levy_far_moment C M Y 0 hC hY hM
   refine h.congr_fun (fun x hx => ?_) measurableSet_Ioi
+  beta_reduce
   rw [cgmyLevyDensity_pos_of_pos (lt_trans zero_lt_one hx)]
   ring
 
@@ -122,6 +123,7 @@ theorem cgmyLevyDensity_integrableOn_Iio_neg_one (C G M Y : ℝ) (hC : 0 < C) (h
   rw [Set.neg_Ioi] at h'
   refine h'.congr_fun (fun x hx => ?_) measurableSet_Iio
   have hx' : x < 0 := lt_trans hx (by norm_num)
+  beta_reduce
   rw [cgmyLevyDensity_neg_of_neg hx', neg_mul_neg]
   ring
 
@@ -140,18 +142,22 @@ theorem cgmyLevyDensity_integrableOn_compl_Icc (C G M Y : ℝ) (hC : 0 < C) (hG 
 `intervalIntegrable_rpow'`, the negative half is its reflection. -/
 theorem integrableOn_abs_rpow_Icc {p : ℝ} (hp : -1 < p) :
     IntegrableOn (fun x : ℝ => |x| ^ p) (Icc (-1 : ℝ) 1) := by
-  have h₊ : IntegrableOn (fun x : ℝ => |x| ^ p) (Ioo (0 : ℝ) 1) := by
+  have hP : IntegrableOn (fun x : ℝ => |x| ^ p) (Ioo (0 : ℝ) 1) := by
     have h : IntegrableOn (fun x : ℝ => x ^ p) (Ioo (0 : ℝ) 1) :=
       (intervalIntegral.integrableOn_Ioo_rpow_iff one_pos).2 hp
-    exact h.congr_fun (fun x hx => by rw [abs_of_pos hx.1]) measurableSet_Ioo
-  have h₋ : IntegrableOn (fun x : ℝ => |x| ^ p) (Ioo (-1 : ℝ) 0) := by
-    have h := h₊.comp_neg
+    refine h.congr_fun (fun x hx => ?_) measurableSet_Ioo
+    beta_reduce
+    rw [abs_of_pos hx.1]
+  have hN : IntegrableOn (fun x : ℝ => |x| ^ p) (Ioo (-1 : ℝ) 0) := by
+    have h := hP.comp_neg
     rw [Set.neg_Ioo, neg_zero] at h
-    exact h.congr_fun (fun x _ => by rw [abs_neg]) measurableSet_Ioo
+    refine h.congr_fun (fun x _ => ?_) measurableSet_Ioo
+    beta_reduce
+    rw [abs_neg]
   have hpos : IntervalIntegrable (fun x : ℝ => |x| ^ p) volume 0 1 :=
-    (intervalIntegrable_iff_integrableOn_Ioo_of_le zero_le_one).mpr h₊
+    (intervalIntegrable_iff_integrableOn_Ioo_of_le zero_le_one).mpr hP
   have hneg : IntervalIntegrable (fun x : ℝ => |x| ^ p) volume (-1) 0 :=
-    (intervalIntegrable_iff_integrableOn_Ioo_of_le (by norm_num)).mpr h₋
+    (intervalIntegrable_iff_integrableOn_Ioo_of_le (by norm_num)).mpr hN
   exact (intervalIntegrable_iff_integrableOn_Icc_of_le (by norm_num)).mp (hneg.trans hpos)
 
 /-- `x² ν(x)` is integrable on the unit ball: it is dominated by `C |x|^{1−Y}`,
@@ -165,7 +171,7 @@ theorem cgmy_sq_mul_levyDensity_integrableOn (C G M Y : ℝ) (hC : 0 < C) (hG : 
   · exact ((continuous_id.pow 2).measurable.mul
       (cgmyLevyDensity_measurable C G M Y)).aestronglyMeasurable
   · filter_upwards [ae_restrict_mem measurableSet_Icc] with x _hx
-    have hν := cgmyLevyDensity_nonneg hC.le x
+    have hν : 0 ≤ cgmyLevyDensity C G M Y x := cgmyLevyDensity_nonneg hC.le x
     rw [Real.norm_eq_abs, abs_of_nonneg (mul_nonneg (sq_nonneg x) hν)]
     calc x ^ 2 * cgmyLevyDensity C G M Y x
         ≤ x ^ 2 * (C * |x| ^ (-1 - Y)) :=
@@ -180,8 +186,8 @@ theorem cgmy_sq_mul_levyDensity_integrableOn (C G M Y : ℝ) (hC : 0 < C) (hG : 
               rw [← sq_abs x, ← Real.rpow_two, ← Real.rpow_add habs]
               congr 1
               ring
-            calc x ^ 2 * (C * |x| ^ (-1 - Y)) = C * (x ^ 2 * |x| ^ (-1 - Y)) := by ring
-              _ = C * |x| ^ (1 - Y) := by rw [hpow]
+            rw [← hpow]
+            exact le_of_eq (by ring)
 
 /-- `‖e^{ivx} − 1‖ ≤ 2` (the far-field bound of BRIEF_019, as a lemma). -/
 theorem norm_cexp_mul_I_sub_one_le_two (v x : ℝ) :
@@ -206,13 +212,13 @@ theorem norm_cexp_sub_one_sub_le (ζ : ℂ) :
   have h1 : 1 ≤ Real.exp (max 0 ζ.re) := by
     rw [← Real.exp_zero]
     exact Real.exp_le_exp.mpr (le_max_left _ _)
-  rcases le_or_lt ‖ζ‖ 1 with h | h
+  rcases le_or_gt ‖ζ‖ 1 with h | h
   · calc ‖Complex.exp ζ - 1 - ζ‖ ≤ ‖ζ‖ ^ 2 := Complex.norm_exp_sub_one_sub_id_le h
       _ ≤ 3 * Real.exp (max 0 ζ.re) * ‖ζ‖ ^ 2 := by
           nlinarith [mul_nonneg (by linarith : (0 : ℝ) ≤ 3 * Real.exp (max 0 ζ.re) - 1)
             (sq_nonneg ‖ζ‖)]
   · calc ‖Complex.exp ζ - 1 - ζ‖ ≤ ‖Complex.exp ζ - 1‖ + ‖ζ‖ := norm_sub_le _ _
-      _ ≤ (‖Complex.exp ζ‖ + ‖(1 : ℂ)‖) + ‖ζ‖ := add_le_add_right (norm_sub_le _ _) _
+      _ ≤ (‖Complex.exp ζ‖ + ‖(1 : ℂ)‖) + ‖ζ‖ := add_le_add (norm_sub_le _ _) le_rfl
       _ ≤ (Real.exp (max 0 ζ.re) + 1) + ‖ζ‖ := by rw [norm_one]; linarith
       _ ≤ Real.exp (max 0 ζ.re) * (2 + ‖ζ‖) := by
           nlinarith [mul_nonneg (sub_nonneg.mpr h1) (norm_nonneg ζ)]
@@ -299,7 +305,7 @@ theorem norm_cgmyCompensated_mul_le_of_mem (C G M Y : ℝ) (hC : 0 ≤ C) {v R x
     (hv : |v| ≤ R) (hx : x ∈ Icc (-1 : ℝ) 1) :
     ‖cgmyCompensatedIntegrand v x * (cgmyLevyDensity C G M Y x : ℂ)‖
       ≤ 3 * R ^ 2 * (x ^ 2 * cgmyLevyDensity C G M Y x) := by
-  have hν := cgmyLevyDensity_nonneg hC x
+  have hν : 0 ≤ cgmyLevyDensity C G M Y x := cgmyLevyDensity_nonneg hC x
   rw [norm_mul, Complex.norm_real, Real.norm_eq_abs, abs_of_nonneg hν]
   have hvx : (v * x) ^ 2 ≤ R ^ 2 * x ^ 2 := by
     have hv2 : v ^ 2 ≤ R ^ 2 := by
@@ -319,7 +325,7 @@ theorem norm_cgmyCompensated_mul_le_of_notMem (C G M Y : ℝ) (hC : 0 ≤ C) (v 
     (hx : x ∉ Icc (-1 : ℝ) 1) :
     ‖cgmyCompensatedIntegrand v x * (cgmyLevyDensity C G M Y x : ℂ)‖
       ≤ 2 * cgmyLevyDensity C G M Y x := by
-  have hν := cgmyLevyDensity_nonneg hC x
+  have hν : 0 ≤ cgmyLevyDensity C G M Y x := cgmyLevyDensity_nonneg hC x
   rw [norm_mul, Complex.norm_real, Real.norm_eq_abs, abs_of_nonneg hν]
   exact mul_le_mul_of_nonneg_right (norm_cgmyCompensatedIntegrand_le_of_notMem hx) hν
 
@@ -355,7 +361,7 @@ It is an honest pair of absolutely convergent integrals on all of `0 < Y < 2`
 `cgmyExponent` has its pole (F2). -/
 def cgmyLKExponent (C G M Y : ℝ) (v : ℝ) : ℂ :=
   (∫ x : ℝ, cgmyCompensatedIntegrand v x * (cgmyLevyDensity C G M Y x : ℂ)) +
-    (v : ℂ) * I * ((∫ x in Ioc (0 : ℝ) 1, cgmyDriftIntegrand C G M Y x) : ℂ)
+    (v : ℂ) * I * ((∫ x in Ioc (0 : ℝ) 1, cgmyDriftIntegrand C G M Y x : ℝ) : ℂ)
 
 /-- The compensated integrand times the density is Bochner-integrable on all of
 `ℝ`. Dominator: `3v²·x²ν(x)` on the unit ball, i.e. `C|x|^{1−Y}` (integrable
@@ -365,7 +371,9 @@ theorem cgmyCompensatedIntegrand_integrable (C G M Y : ℝ) (hC : 0 < C) (hG : 0
     (hM : 0 < M) (hY : 0 < Y) (hY₂ : Y < 2) (v : ℝ) :
     Integrable (fun x : ℝ =>
       cgmyCompensatedIntegrand v x * (cgmyLevyDensity C G M Y x : ℂ)) := by
-  have hmeas := (cgmyCompensated_mul_measurable C G M Y v).aestronglyMeasurable
+  have hmeas : AEStronglyMeasurable
+      (fun x : ℝ => cgmyCompensatedIntegrand v x * (cgmyLevyDensity C G M Y x : ℂ)) volume :=
+    (cgmyCompensated_mul_measurable C G M Y v).aestronglyMeasurable
   have hIcc : IntegrableOn (fun x : ℝ =>
       cgmyCompensatedIntegrand v x * (cgmyLevyDensity C G M Y x : ℂ)) (Icc (-1 : ℝ) 1) := by
     refine Integrable.mono'
@@ -436,7 +444,8 @@ theorem cgmyDriftIntegrand_integrableOn (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G
     exact h'.const_mul _
   refine Integrable.mono' hmaj ?_ ?_
   · refine (ContinuousOn.mul
-      (continuousOn_const.mul (continuousOn_id.rpow_const fun x hx => Or.inl (ne_of_gt hx.1)))
+      (continuousOn_const.mul (continuousOn_id.rpow_const
+        fun x (hx : x ∈ Ioc (0 : ℝ) 1) => Or.inl (ne_of_gt hx.1)))
       ((Real.continuous_exp.comp (continuous_const.mul continuous_id)).continuousOn.sub
         (Real.continuous_exp.comp (continuous_const.mul continuous_id)).continuousOn))
       .aestronglyMeasurable measurableSet_Ioc
@@ -468,7 +477,7 @@ theorem cgmyTruncatedExponent_decomp (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G) (
     cgmyTruncatedExponent C G M Y ε (v : ℂ)
       = (∫ x in {x : ℝ | (ε : ℝ) ≤ |x|},
           cgmyCompensatedIntegrand v x * (cgmyLevyDensity C G M Y x : ℂ))
-        + (v : ℂ) * I * ((∫ x in Ioc (ε : ℝ) 1, cgmyDriftIntegrand C G M Y x) : ℂ) := by
+        + (v : ℂ) * I * ((∫ x in Ioc (ε : ℝ) 1, cgmyDriftIntegrand C G M Y x : ℝ) : ℂ) := by
   have hε' : (0 : ℝ) < ε := NNReal.coe_pos.mpr hε
   have hε₁' : (ε : ℝ) ≤ 1 := by exact_mod_cast hε₁
   have hSmeas : MeasurableSet {x : ℝ | (ε : ℝ) ≤ |x|} :=
@@ -499,7 +508,7 @@ theorem cgmyTruncatedExponent_decomp (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G) (
   have hstep2 : (∫ x in {x : ℝ | (ε : ℝ) ≤ |x|},
         Set.indicator (Icc (-1 : ℝ) 1) (fun y : ℝ => (v : ℂ) * (y : ℂ) * I) x
           * (cgmyLevyDensity C G M Y x : ℂ))
-      = (v : ℂ) * I * ((∫ x in Ioc (ε : ℝ) 1, cgmyDriftIntegrand C G M Y x) : ℂ) := by
+      = (v : ℂ) * I * ((∫ x in Ioc (ε : ℝ) 1, cgmyDriftIntegrand C G M Y x : ℝ) : ℂ) := by
     -- fold the indicator into the domain
     have h1 : (∫ x in {x : ℝ | (ε : ℝ) ≤ |x|},
         Set.indicator (Icc (-1 : ℝ) 1) (fun y : ℝ => (v : ℂ) * (y : ℂ) * I) x
@@ -518,7 +527,7 @@ theorem cgmyTruncatedExponent_decomp (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G) (
       simp only [mem_inter_iff, mem_setOf_eq, mem_Icc, mem_union]
       constructor
       · rintro ⟨h1, h2, h3⟩
-        rcases le_or_lt 0 x with hx | hx
+        rcases le_or_gt 0 x with hx | hx
         · right
           rw [abs_of_nonneg hx] at h1
           exact ⟨h1, h3⟩
@@ -526,11 +535,13 @@ theorem cgmyTruncatedExponent_decomp (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G) (
           rw [abs_of_neg hx] at h1
           exact ⟨h2, by linarith⟩
       · rintro (⟨h1, h2⟩ | ⟨h1, h2⟩)
-        · refine ⟨?_, h1, by linarith⟩
-          rw [abs_of_neg (by linarith)]
+        · have hxneg : x < 0 := by linarith
+          refine ⟨?_, h1, by linarith⟩
+          rw [abs_of_neg hxneg]
           linarith
-        · refine ⟨?_, by linarith, h2⟩
-          rw [abs_of_pos (by linarith)]
+        · have hxpos : 0 < x := by linarith
+          refine ⟨?_, by linarith, h2⟩
+          rw [abs_of_pos hxpos]
           exact h1
     have hdisj : Disjoint (Icc (-1 : ℝ) (-(ε : ℝ))) (Icc (ε : ℝ) 1) := by
       rw [Set.disjoint_left]
@@ -543,7 +554,7 @@ theorem cgmyTruncatedExponent_decomp (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G) (
       · exact ((((continuous_const.mul Complex.continuous_ofReal).mul continuous_const).measurable).mul
           (Complex.continuous_ofReal.measurable.comp hd_meas)).aestronglyMeasurable
       · filter_upwards [ae_restrict_mem (hSmeas.inter measurableSet_Icc)] with x hx
-        have hν := cgmyLevyDensity_nonneg hC.le x
+        have hν : 0 ≤ cgmyLevyDensity C G M Y x := cgmyLevyDensity_nonneg hC.le x
         have hx1 : |x| ≤ 1 := abs_le.mpr ⟨hx.2.1, hx.2.2⟩
         rw [norm_mul, norm_mul, norm_mul, Complex.norm_I, mul_one, Complex.norm_real,
           Complex.norm_real, Complex.norm_real, Real.norm_eq_abs, Real.norm_eq_abs,
@@ -566,18 +577,18 @@ theorem cgmyTruncatedExponent_decomp (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G) (
     have hpos : (∫ x in Icc (ε : ℝ) 1, (v : ℂ) * (x : ℂ) * I * (cgmyLevyDensity C G M Y x : ℂ))
         = ∫ x in (ε : ℝ)..1, (v : ℂ) * (x : ℂ) * I * (cgmyLevyDensity C G M Y x : ℂ) := by
       rw [integral_Icc_eq_integral_Ioc, intervalIntegral.integral_of_le hε₁']
-    have hii₊ : IntervalIntegrable
+    have hiiP : IntervalIntegrable
         (fun x : ℝ => (v : ℂ) * (x : ℂ) * I * (cgmyLevyDensity C G M Y x : ℂ)) volume (ε : ℝ) 1 := by
       rw [intervalIntegrable_iff_integrableOn_Icc_of_le hε₁']
       exact hint.mono_set subset_union_right
-    have hii₋ : IntervalIntegrable
+    have hiiN : IntervalIntegrable
         (fun x : ℝ => (v : ℂ) * ((-x : ℝ) : ℂ) * I * (cgmyLevyDensity C G M Y (-x) : ℂ))
         volume (ε : ℝ) 1 := by
       rw [intervalIntegrable_iff_integrableOn_Icc_of_le hε₁']
       have h := (hint.mono_set subset_union_left).comp_neg
       rw [Set.neg_Icc, neg_neg, neg_neg] at h
       exact h
-    rw [hneg, hpos, ← intervalIntegral.integral_add hii₋ hii₊]
+    rw [hneg, hpos, ← intervalIntegral.integral_add hiiN hiiP]
     -- pointwise on `[ε, 1]` the two legs pair into the drift
     have hpt : ∀ x ∈ uIcc (ε : ℝ) 1,
         (v : ℂ) * ((-x : ℝ) : ℂ) * I * (cgmyLevyDensity C G M Y (-x) : ℂ)
@@ -732,7 +743,7 @@ theorem cgmyLKExponent_continuous (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G) (hM 
       ((∫ x in Icc (-1 : ℝ) 1, cgmyCompensatedIntegrand v x * (cgmyLevyDensity C G M Y x : ℂ))
         + ∫ x in (Icc (-1 : ℝ) 1)ᶜ,
             cgmyCompensatedIntegrand v x * (cgmyLevyDensity C G M Y x : ℂ))
-        + (v : ℂ) * I * ((∫ x in Ioc (0 : ℝ) 1, cgmyDriftIntegrand C G M Y x) : ℂ) := by
+        + (v : ℂ) * I * ((∫ x in Ioc (0 : ℝ) 1, cgmyDriftIntegrand C G M Y x : ℝ) : ℂ) := by
     funext v
     rw [cgmyLKExponent, ← integral_add_compl (measurableSet_Icc : MeasurableSet (Icc (-1 : ℝ) 1))
       (cgmyCompensatedIntegrand_integrable C G M Y hC hG hM hY hY₂ v)]
@@ -1231,8 +1242,9 @@ theorem integral_rpow_mul_cexp_sub_cexp_Ioi (Y : ℝ) (z w : ℂ) (hY : 0 < Y) (
     fun x _ => (hasDerivAt_cexp_neg_mul z x).sub (hasDerivAt_cexp_neg_mul w x)
   have huv' : IntegrableOn (fun x : ℝ => ((x ^ (-Y) : ℝ) : ℂ) / (-(Y : ℂ)) *
       (Complex.exp (-(z * x)) * -(z * 1) - Complex.exp (-(w * x)) * -(w * 1))) (Ioi 0) := by
-    refine ((hIz_int.const_mul (z / Y)).sub (hIw_int.const_mul (w / Y))).congr_fun
-      (fun x _ => ?_) measurableSet_Ioi
+    have h := (hIz_int.const_mul (z / Y)).sub (hIw_int.const_mul (w / Y))
+    refine IntegrableOn.congr_fun h (fun x _ => ?_) measurableSet_Ioi
+    simp only [Pi.sub_apply]
     first
       | ring
       | (field_simp; ring)
@@ -1294,7 +1306,7 @@ theorem integral_rpow_mul_cexp_sub_cexp_Ioi (Y : ℝ) (z w : ℂ) (hY : 0 < Y) (
   -- the `u v'` integral in terms of the two Γ-integrals
   have hcomp : ∫ x in Ioi (0 : ℝ), ((x ^ (-Y) : ℝ) : ℂ) / (-(Y : ℂ)) *
       (Complex.exp (-(z * x)) * -(z * 1) - Complex.exp (-(w * x)) * -(w * 1))
-      = (z / Y) * ∫ x in Ioi (0 : ℝ), ((x ^ (-Y) : ℝ) : ℂ) * Complex.exp (-(z * x))
+      = (z / Y) * (∫ x in Ioi (0 : ℝ), ((x ^ (-Y) : ℝ) : ℂ) * Complex.exp (-(z * x)))
         - (w / Y) * ∫ x in Ioi (0 : ℝ), ((x ^ (-Y) : ℝ) : ℂ) * Complex.exp (-(w * x)) := by
     rw [← integral_const_mul, ← integral_const_mul,
       ← integral_sub (hIz_int.const_mul _) (hIw_int.const_mul _)]
@@ -1401,7 +1413,7 @@ theorem integral_rpow_mul_cexp_compensated_Ioi (Y : ℝ) (z w : ℂ) (hY₁ : 1 
         - (z - w) * w * x * Complex.exp (-(w * x))) x := by
     intro x _
     have h1 := (hasDerivAt_cexp_neg_mul z x).sub (hasDerivAt_cexp_neg_mul w x)
-    have h2 := (((hasDerivAt_id' : HasDerivAt (fun y : ℝ => y) 1 x).ofReal_comp).const_mul
+    have h2 := (((hasDerivAt_id' x : HasDerivAt (fun y : ℝ => y) 1 x).ofReal_comp).const_mul
       (z - w)).mul (hasDerivAt_cexp_neg_mul w x)
     refine (h1.add h2).congr_deriv ?_
     push_cast
@@ -1409,12 +1421,12 @@ theorem integral_rpow_mul_cexp_compensated_Ioi (Y : ℝ) (z w : ℂ) (hY₁ : 1 
   have huv' : IntegrableOn (fun x : ℝ => ((x ^ (-Y) : ℝ) : ℂ) / (-(Y : ℂ)) *
       (-z * Complex.exp (-(z * x)) + z * Complex.exp (-(w * x))
         - (z - w) * w * x * Complex.exp (-(w * x)))) (Ioi 0) := by
-    refine ((hP1_int.const_mul (z / Y)).add (hIw_int.const_mul ((z - w) * w / Y))).congr_fun
-      (fun x hx => ?_) measurableSet_Ioi
+    have h := (hP1_int.const_mul (z / Y)).add (hIw_int.const_mul ((z - w) * w / Y))
+    refine IntegrableOn.congr_fun h (fun x hx => ?_) measurableSet_Ioi
     have hx0 : (0 : ℝ) < x := hx
     have hpow : x ^ (1 - Y) = x ^ (-Y) * x := by
       rw [show (1 - Y) = -Y + 1 by ring, Real.rpow_add hx0, Real.rpow_one]
-    simp only [hpow, Complex.ofReal_mul]
+    simp only [Pi.add_apply, hpow, Complex.ofReal_mul]
     first
       | ring
       | (field_simp; ring)
@@ -1480,7 +1492,7 @@ theorem integral_rpow_mul_cexp_compensated_Ioi (Y : ℝ) (z w : ℂ) (hY₁ : 1 
               + ‖(z - w) * x * Complex.exp (-(w * x))‖ := norm_add_le _ _
         _ ≤ (‖Complex.exp (-(z * x))‖ + ‖Complex.exp (-(w * x))‖)
               + ‖(z - w) * x * Complex.exp (-(w * x))‖ :=
-            add_le_add_right (norm_sub_le _ _) _
+            add_le_add (norm_sub_le _ _) le_rfl
         _ = Real.exp (-z.re * x) + Real.exp (-w.re * x)
               + ‖z - w‖ * x * Real.exp (-w.re * x) := by
             rw [norm_mul, norm_mul, Complex.norm_real, Real.norm_of_nonneg hx.le,
@@ -1504,8 +1516,8 @@ theorem integral_rpow_mul_cexp_compensated_Ioi (Y : ℝ) (z w : ℂ) (hY₁ : 1 
   have hcomp : ∫ x in Ioi (0 : ℝ), ((x ^ (-Y) : ℝ) : ℂ) / (-(Y : ℂ)) *
       (-z * Complex.exp (-(z * x)) + z * Complex.exp (-(w * x))
         - (z - w) * w * x * Complex.exp (-(w * x)))
-      = (z / Y) * ∫ x in Ioi (0 : ℝ), ((x ^ (-Y) : ℝ) : ℂ) *
-            (Complex.exp (-(z * x)) - Complex.exp (-(w * x)))
+      = (z / Y) * (∫ x in Ioi (0 : ℝ), ((x ^ (-Y) : ℝ) : ℂ) *
+            (Complex.exp (-(z * x)) - Complex.exp (-(w * x))))
         + ((z - w) * w / Y) * ∫ x in Ioi (0 : ℝ),
             ((x ^ (1 - Y) : ℝ) : ℂ) * Complex.exp (-(w * x)) := by
     rw [← integral_const_mul, ← integral_const_mul,
@@ -1702,7 +1714,8 @@ theorem cgmy_leg_measurable (a Y v : ℝ) :
 theorem integrableOn_rpow_mul_exp_neg_mul_Ioi_one {p a : ℝ} (hp : p ≤ 0) (ha : 0 < a) :
     IntegrableOn (fun x : ℝ => x ^ p * Real.exp (-a * x)) (Ioi 1) := by
   refine Integrable.mono' (exp_neg_integrableOn_Ioi 1 ha) ?_ ?_
-  · exact ((continuousOn_id.rpow_const fun x hx => Or.inl (ne_of_gt (lt_trans zero_lt_one hx))).mul
+  · exact ((continuousOn_id.rpow_const
+        fun x (hx : x ∈ Ioi (1 : ℝ)) => Or.inl (ne_of_gt (lt_trans zero_lt_one hx))).mul
       (Real.continuous_exp.comp (continuous_const.mul continuous_id)).continuousOn)
       .aestronglyMeasurable measurableSet_Ioi
   · filter_upwards [ae_restrict_mem measurableSet_Ioi] with x hx
@@ -1729,10 +1742,11 @@ theorem cgmyLeg_eq_of_lt_one (a Y : ℝ) (v : ℝ) (ha : 0 < a) (hY : 0 < Y) (hY
       * ((Real.exp (-a * x) * x ^ (-1 - Y) : ℝ) : ℂ)) (Ioi 0) := by
     have h := integrableOn_ofReal_rpow_mul_cexp (by linarith : (-1 : ℝ) < -Y) (z := (a : ℂ))
       (by rw [Complex.ofReal_re]; exact ha)
-    refine (h.const_mul ((v : ℂ) * I)).congr_fun (fun x hx => ?_) measurableSet_Ioi
+    refine IntegrableOn.congr_fun (h.const_mul ((v : ℂ) * I)) (fun x hx => ?_) measurableSet_Ioi
     have hx0 : (0 : ℝ) < x := hx
     have hpow : x ^ (-Y) = x * x ^ (-1 - Y) := by
       rw [show (-Y) = 1 + (-1 - Y) by ring, Real.rpow_add hx0, Real.rpow_one]
+    beta_reduce
     simp only [hpow, Complex.ofReal_mul, cgmy_ofReal_exp_neg_mul]
     ring
   have hsplit : EqOn
@@ -1792,9 +1806,8 @@ theorem cgmyLeg_eq_of_one_lt (a Y : ℝ) (v : ℝ) (ha : 0 < a) (hY₁ : 1 < Y) 
     rw [norm_mul, norm_mul, norm_mul, Complex.norm_I, mul_one, Complex.norm_real,
       Complex.norm_real, Complex.norm_real, Real.norm_eq_abs, Real.norm_of_nonneg hx0.le,
       Real.norm_of_nonneg (mul_nonneg (Real.exp_nonneg _) (Real.rpow_nonneg hx0.le _))]
-    calc |v| * x * (Real.exp (-a * x) * x ^ (-1 - Y))
-        = |v| * ((x * x ^ (-1 - Y)) * Real.exp (-a * x)) := by ring
-      _ = |v| * (x ^ (-Y) * Real.exp (-a * x)) := by rw [hpow]
+    rw [← hpow]
+    exact le_of_eq (by ring)
   have hJ : IntegrableOn (Set.indicator (Ioi (1 : ℝ)) (fun x : ℝ => (v : ℂ) * (x : ℂ) * I
       * ((Real.exp (-a * x) * x ^ (-1 - Y) : ℝ) : ℂ))) (Ioi 0) :=
     ((integrableOn_iff_integrable_of_support_subset Set.support_indicator_subset).mp
@@ -1910,15 +1923,19 @@ theorem cgmyLKExponent_eq_cgmyExponent (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G)
       unfold cgmyDriftIntegrand
       ring
     have hD₁ : IntegrableOn (cgmyDriftIntegrand C G M Y) (Ioi 1) := by
-      refine (((hD M hM).const_mul C).sub ((hD G hG).const_mul C)).congr_fun
-        (fun x _ => ?_) measurableSet_Ioi
-      unfold cgmyDriftIntegrand
+      have h := ((hD M hM).const_mul C).sub ((hD G hG).const_mul C)
+      refine IntegrableOn.congr_fun h (fun x _ => ?_) measurableSet_Ioi
+      simp only [Pi.sub_apply, cgmyDriftIntegrand]
       ring
+    have hdisj : Disjoint (Ioc (0 : ℝ) 1) (Ioi (1 : ℝ)) := by
+      rw [Set.disjoint_left]
+      rintro x ⟨_, hx₂⟩ hx'
+      exact (not_lt.mpr hx₂) hx'
     have hwhole : (∫ x in Ioc (0 : ℝ) 1, cgmyDriftIntegrand C G M Y x)
         + ∫ x in Ioi (1 : ℝ), cgmyDriftIntegrand C G M Y x
         = ∫ x in Ioi (0 : ℝ), cgmyDriftIntegrand C G M Y x := by
-      rw [← setIntegral_union (Set.disjoint_left.mpr fun x hx hx' => (not_lt.mpr hx.2) hx')
-        measurableSet_Ioi (cgmyDriftIntegrand_integrableOn C G M Y hC hG hM hY hY₂) hD₁,
+      rw [← setIntegral_union hdisj measurableSet_Ioi
+        (cgmyDriftIntegrand_integrableOn C G M Y hC hG hM hY hY₂) hD₁,
         Set.Ioc_union_Ioi_eq_Ioi zero_le_one]
     have hΓ : Real.Gamma (1 - Y) = -Y * Real.Gamma (-Y) := by
       rw [show (1 - Y) = -Y + 1 by ring]

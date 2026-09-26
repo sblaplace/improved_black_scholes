@@ -1599,7 +1599,7 @@
     "BSM.cgmyLKExponent": {
       "file": "ImprovedBS/CGMYLaw.lean",
       "kind": "def",
-      "pin": "def cgmyLKExponent (C G M Y : ℝ) (v : ℝ) : ℂ := (∫ x : ℝ, cgmyCompensatedIntegrand v x * (cgmyLevyDensity C G M Y x : ℂ)) + (v : ℂ) * I * ((∫ x in Ioc (0 : ℝ) 1, cgmyDriftIntegrand C G M Y x) : ℂ)"
+      "pin": "def cgmyLKExponent (C G M Y : ℝ) (v : ℝ) : ℂ := (∫ x : ℝ, cgmyCompensatedIntegrand v x * (cgmyLevyDensity C G M Y x : ℂ)) + (v : ℂ) * I * ((∫ x in Ioc (0 : ℝ) 1, cgmyDriftIntegrand C G M Y x : ℝ) : ℂ)"
     },
     "BSM.cgmyLKExponent_continuous": {
       "file": "ImprovedBS/CGMYLaw.lean",
@@ -1674,7 +1674,7 @@
     "BSM.cgmyTruncatedExponent_decomp": {
       "file": "ImprovedBS/CGMYLaw.lean",
       "kind": "theorem",
-      "pin": "theorem cgmyTruncatedExponent_decomp (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G) (hM : 0 < M) (hY : 0 < Y) (hY₂ : Y < 2) (ε : ℝ≥0) (hε : 0 < ε) (hε₁ : ε ≤ 1) (v : ℝ) : cgmyTruncatedExponent C G M Y ε (v : ℂ) = (∫ x in {x : ℝ | (ε : ℝ) ≤ |x|}, cgmyCompensatedIntegrand v x * (cgmyLevyDensity C G M Y x : ℂ)) + (v : ℂ) * I * ((∫ x in Ioc (ε : ℝ) 1, cgmyDriftIntegrand C G M Y x) : ℂ)"
+      "pin": "theorem cgmyTruncatedExponent_decomp (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G) (hM : 0 < M) (hY : 0 < Y) (hY₂ : Y < 2) (ε : ℝ≥0) (hε : 0 < ε) (hε₁ : ε ≤ 1) (v : ℝ) : cgmyTruncatedExponent C G M Y ε (v : ℂ) = (∫ x in {x : ℝ | (ε : ℝ) ≤ |x|}, cgmyCompensatedIntegrand v x * (cgmyLevyDensity C G M Y x : ℂ)) + (v : ℂ) * I * ((∫ x in Ioc (ε : ℝ) 1, cgmyDriftIntegrand C G M Y x : ℝ) : ℂ)"
     },
     "BSM.cgmyTruncatedExponent_integrable": {
       "file": "ImprovedBS/CompoundPoisson.lean",
