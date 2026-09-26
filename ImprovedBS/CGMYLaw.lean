@@ -524,7 +524,7 @@ theorem cgmyTruncatedExponent_decomp (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G) (
     have hset : {x : ℝ | (ε : ℝ) ≤ |x|} ∩ Icc (-1 : ℝ) 1
         = Icc (-1 : ℝ) (-(ε : ℝ)) ∪ Icc (ε : ℝ) 1 := by
       ext x
-      simp only [mem_inter_iff, mem_setOf_eq, mem_Icc, mem_union]
+      simp only [mem_inter_iff, mem_ofPred_eq, mem_Icc, mem_union]
       constructor
       · rintro ⟨h1, h2, h3⟩
         rcases le_or_gt 0 x with hx | hx
@@ -642,7 +642,7 @@ theorem cgmyTruncatedExponent_tendsto (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G) 
     have hint := cgmyCompensatedIntegrand_integrable C G M Y hC hG hM hY hY₂ v
     have hmono : Monotone fun n : ℕ => {x : ℝ | (((2 : ℝ≥0)⁻¹ ^ n : ℝ≥0) : ℝ) ≤ |x|} := by
       intro m n hmn x hx
-      simp only [mem_setOf_eq, hcoe] at hx ⊢
+      simp only [mem_ofPred_eq, hcoe] at hx ⊢
       exact le_trans (hanti m n hmn) hx
     have hmeasS : ∀ n : ℕ, MeasurableSet {x : ℝ | (((2 : ℝ≥0)⁻¹ ^ n : ℝ≥0) : ℝ) ≤ |x|} :=
       fun n => measurableSet_le measurable_const continuous_abs.measurable
@@ -654,7 +654,7 @@ theorem cgmyTruncatedExponent_tendsto (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G) 
       have hx0 : x = 0 := by
         by_contra hne
         obtain ⟨n, hn⟩ := hsmall |x| (abs_pos.mpr hne)
-        exact hx (mem_iUnion.mpr ⟨n, by simp only [mem_setOf_eq, hcoe]; exact hn.le⟩)
+        exact hx (mem_iUnion.mpr ⟨n, by simp only [mem_ofPred_eq, hcoe]; exact hn.le⟩)
       subst hx0
       rw [cgmyLevyDensity_zero C G M Y hY, Complex.ofReal_zero, mul_zero]
     rw [hU] at hT
@@ -1244,9 +1244,7 @@ theorem integral_rpow_mul_cexp_sub_cexp_Ioi (Y : ℝ) (z w : ℂ) (hY : 0 < Y) (
     have h := (hIz_int.const_mul (z / Y)).sub (hIw_int.const_mul (w / Y))
     refine IntegrableOn.congr_fun h (fun x _ => ?_) measurableSet_Ioi
     simp only [Pi.sub_apply]
-    first
-      | ring
-      | (field_simp; ring)
+    ring
   have hu'v := integrableOn_rpow_mul_cexp_sub_cexp Y z w hY hY₁ hz hw
   -- the boundary term at `0⁺`
   have h_zero : Tendsto (fun x : ℝ => ((x ^ (-Y) : ℝ) : ℂ) / (-(Y : ℂ)) *
@@ -1310,9 +1308,7 @@ theorem integral_rpow_mul_cexp_sub_cexp_Ioi (Y : ℝ) (z w : ℂ) (hY : 0 < Y) (
     rw [← integral_const_mul, ← integral_const_mul,
       ← integral_sub (hIz_int.const_mul _) (hIw_int.const_mul _)]
     refine setIntegral_congr_fun measurableSet_Ioi fun x _ => ?_
-    first
-      | ring
-      | (field_simp; ring)
+    ring
   have e1 : -((((-Y : ℝ)) : ℂ) + 1) = (Y : ℂ) - 1 := by
     rw [Complex.ofReal_neg]
     ring
@@ -1324,9 +1320,8 @@ theorem integral_rpow_mul_cexp_sub_cexp_Ioi (Y : ℝ) (z w : ℂ) (hY : 0 < Y) (
   refine hfinal.trans ?_
   rw [← cgmy_mul_cpow_sub_one hz0 (Y : ℂ), ← cgmy_mul_cpow_sub_one hw0 (Y : ℂ)]
   simp only [Complex.ofReal_mul, Complex.ofReal_neg]
-  first
-    | (field_simp; ring)
-    | ring
+  field_simp
+  ring
 
 /-- Integrability of the compensated leg `x^{−1−Y}(e^{−zx} − e^{−wx} + (z−w)xe^{−wx})`
 on `(0, ∞)` for `1 < Y < 2`: dominated by `3‖z−w‖² x^{1−Y}(e^{−Re z·x} + e^{−Re w·x})`. -/
@@ -1426,9 +1421,7 @@ theorem integral_rpow_mul_cexp_compensated_Ioi (Y : ℝ) (z w : ℂ) (hY₁ : 1 
     have hpow : x ^ (1 - Y) = x ^ (-Y) * x := by
       rw [show (1 - Y) = -Y + 1 by ring, Real.rpow_add hx0, Real.rpow_one]
     simp only [Pi.add_apply, hpow, Complex.ofReal_mul]
-    first
-      | ring
-      | (field_simp; ring)
+    ring
   have hu'v := integrableOn_rpow_mul_cexp_compensated Y z w hY₁ hY₂ hz hw
   -- the boundary term at `0⁺`: `‖f‖ = O(x²)`, so `‖u v‖ = O(x^{2−Y})`
   have h_zero : Tendsto (fun x : ℝ => ((x ^ (-Y) : ℝ) : ℂ) / (-(Y : ℂ)) *
@@ -1526,9 +1519,7 @@ theorem integral_rpow_mul_cexp_compensated_Ioi (Y : ℝ) (z w : ℂ) (hY₁ : 1 
     have hpow : x ^ (1 - Y) = x ^ (-Y) * x := by
       rw [show (1 - Y) = -Y + 1 by ring, Real.rpow_add hx0, Real.rpow_one]
     simp only [hpow, Complex.ofReal_mul]
-    first
-      | ring
-      | (field_simp; ring)
+    ring
   -- normalise the Γ-values and the exponents
   have e1 : -((((1 - Y : ℝ)) : ℂ) + 1) = ((Y : ℂ) - 1) - 1 := by
     rw [Complex.ofReal_sub, Complex.ofReal_one]
@@ -1547,9 +1538,8 @@ theorem integral_rpow_mul_cexp_compensated_Ioi (Y : ℝ) (z w : ℂ) (hY₁ : 1 
   rw [← cgmy_mul_cpow_sub_one hz0 (Y : ℂ), ← cgmy_mul_cpow_sub_one hw0 (Y : ℂ),
     ← cgmy_mul_cpow_sub_one hw0 ((Y : ℂ) - 1)]
   simp only [Complex.ofReal_mul, Complex.ofReal_neg, Complex.ofReal_sub, Complex.ofReal_one]
-  first
-    | (field_simp; ring)
-    | ring
+  field_simp
+  ring
 
 /-- The real shadow of the `0 < Y < 1` closed form at real rates:
 `∫₀^∞ x^{−1−Y}(e^{−ax} − e^{−bx}) dx = Γ(−Y)(a^Y − b^Y)`. -/
@@ -1571,9 +1561,8 @@ theorem integral_rpow_mul_exp_sub_exp_Ioi (Y a b : ℝ) (hY : 0 < Y) (hY₁ : Y 
   rw [← integral_complex_ofReal]
   simp_rw [hpt]
   rw [h]
-  first
-    | (push_cast; ring)
-    | push_cast
+  push_cast
+  ring
 
 /-- **The drift identity** (F5, real rate — no G1 involved): the whole paired
 drift over `(0, ∞)` is `C Γ(1−Y)(M^{Y−1} − G^{Y−1}) = m^∞`. For `0 < Y < 1` each

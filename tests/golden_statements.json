@@ -138,6 +138,14 @@
       "axioms": "'BSM.cgmyCharFactor_add' depends on axioms: [propext, Classical.choice, Quot.sound]",
       "type": "BSM.cgmyCharFactor_add : ∀ (C G M Y τ₁ τ₂ : ℝ) (v : ℂ), BSM.cgmyCharFactor C G M Y (τ₁ + τ₂) v = BSM.cgmyCharFactor C G M Y τ₁ v * BSM.cgmyCharFactor C G M Y τ₂ v"
     },
+    "BSM.cgmyCompensatedIntegrand": {
+      "axioms": "'BSM.cgmyCompensatedIntegrand' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.cgmyCompensatedIntegrand : ℝ → ℝ → ℂ"
+    },
+    "BSM.cgmyCompensatedIntegrand_integrable": {
+      "axioms": "'BSM.cgmyCompensatedIntegrand_integrable' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.cgmyCompensatedIntegrand_integrable : ∀ (C G M Y : ℝ), 0 < C → 0 < G → 0 < M → 0 < Y → Y < 2 → ∀ (v : ℝ), MeasureTheory.Integrable (fun x => BSM.cgmyCompensatedIntegrand v x * ↑(BSM.cgmyLevyDensity C G M Y x)) MeasureTheory.volume"
+    },
     "BSM.cgmyContour": {
       "axioms": "'BSM.cgmyContour' depends on axioms: [propext, Classical.choice, Quot.sound]",
       "type": "BSM.cgmyContour : ℝ → ℝ → ℂ"
@@ -165,6 +173,18 @@
     "BSM.cgmyCornerGamma_tendsto": {
       "axioms": "'BSM.cgmyCornerGamma_tendsto' depends on axioms: [propext, Classical.choice, Quot.sound]",
       "type": "BSM.cgmyCornerGamma_tendsto : ∀ (σ : ℝ), Filter.Tendsto (fun Y => BSM.cgmyCornerC σ Y * Real.Gamma (-Y)) (nhdsWithin 2 (Set.Iio 2)) (nhds (σ ^ 2 / 4))"
+    },
+    "BSM.cgmyCpProbability": {
+      "axioms": "'BSM.cgmyCpProbability' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.cgmyCpProbability : (C G M Y : ℝ) → NNReal → (ε : NNReal) → 0 < C → 0 < G → 0 < M → 0 < Y → 0 < ε → MeasureTheory.ProbabilityMeasure ℝ"
+    },
+    "BSM.cgmyCpProbability_isTight": {
+      "axioms": "'BSM.cgmyCpProbability_isTight' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.cgmyCpProbability_isTight : ∀ (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G) (hM : 0 < M) (hY : 0 < Y), Y < 2 → ∀ (τ : NNReal), MeasureTheory.IsTightMeasureSet (Set.range fun n => ↑(BSM.cgmyCpProbability C G M Y τ (2⁻¹ ^ n) hC hG hM hY ⋯))"
+    },
+    "BSM.cgmyCpProbability_tendsto_cgmyLaw": {
+      "axioms": "'BSM.cgmyCpProbability_tendsto_cgmyLaw' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.cgmyCpProbability_tendsto_cgmyLaw : ∀ (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G) (hM : 0 < M) (hY : 0 < Y) (hY₂ : Y < 2) (τ : NNReal), Filter.Tendsto (fun n => BSM.cgmyCpProbability C G M Y τ (2⁻¹ ^ n) hC hG hM hY ⋯) Filter.atTop (nhds (BSM.cgmyLaw C G M Y τ hC hG hM hY hY₂))"
     },
     "BSM.cgmyCumulant": {
       "axioms": "'BSM.cgmyCumulant' depends on axioms: [propext, Classical.choice, Quot.sound]",
@@ -201,6 +221,18 @@
     "BSM.cgmyDecayThreshold": {
       "axioms": "'BSM.cgmyDecayThreshold' depends on axioms: [propext, Classical.choice, Quot.sound]",
       "type": "BSM.cgmyDecayThreshold : ℝ → ℝ → ℝ → ℝ → ℝ"
+    },
+    "BSM.cgmyDriftIntegrand": {
+      "axioms": "'BSM.cgmyDriftIntegrand' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.cgmyDriftIntegrand : ℝ → ℝ → ℝ → ℝ → ℝ → ℝ"
+    },
+    "BSM.cgmyDriftIntegrand_integrableOn": {
+      "axioms": "'BSM.cgmyDriftIntegrand_integrableOn' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.cgmyDriftIntegrand_integrableOn : ∀ (C G M Y : ℝ), 0 < C → 0 < G → 0 < M → 0 < Y → Y < 2 → MeasureTheory.IntegrableOn (BSM.cgmyDriftIntegrand C G M Y) (Set.Ioc 0 1) MeasureTheory.volume"
+    },
+    "BSM.cgmyDrift_identity": {
+      "axioms": "'BSM.cgmyDrift_identity' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.cgmyDrift_identity : ∀ (C G M Y : ℝ), 0 < C → 0 < G → 0 < M → 0 < Y → Y < 2 → Y ≠ 1 → ∫ (x : ℝ) in Set.Ioi 0, BSM.cgmyDriftIntegrand C G M Y x = C * Real.Gamma (1 - Y) * (M ^ (Y - 1) - G ^ (Y - 1))"
     },
     "BSM.cgmyExponent": {
       "axioms": "'BSM.cgmyExponent' depends on axioms: [propext, Classical.choice, Quot.sound]",
@@ -254,6 +286,34 @@
       "axioms": "'BSM.cgmyJumpMeasure' depends on axioms: [propext, Classical.choice, Quot.sound]",
       "type": "BSM.cgmyJumpMeasure : ℝ → ℝ → ℝ → ℝ → NNReal → MeasureTheory.Measure ℝ"
     },
+    "BSM.cgmyLKExponent": {
+      "axioms": "'BSM.cgmyLKExponent' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.cgmyLKExponent : ℝ → ℝ → ℝ → ℝ → ℝ → ℂ"
+    },
+    "BSM.cgmyLKExponent_continuous": {
+      "axioms": "'BSM.cgmyLKExponent_continuous' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.cgmyLKExponent_continuous : ∀ (C G M Y : ℝ), 0 < C → 0 < G → 0 < M → 0 < Y → Y < 2 → Continuous (BSM.cgmyLKExponent C G M Y)"
+    },
+    "BSM.cgmyLKExponent_eq_cgmyExponent": {
+      "axioms": "'BSM.cgmyLKExponent_eq_cgmyExponent' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.cgmyLKExponent_eq_cgmyExponent : ∀ (C G M Y : ℝ), 0 < C → 0 < G → 0 < M → 0 < Y → Y < 2 → Y ≠ 1 → ∀ (v : ℝ), BSM.cgmyLKExponent C G M Y v = BSM.cgmyExponent C G M Y ↑v"
+    },
+    "BSM.cgmyLKExponent_zero": {
+      "axioms": "'BSM.cgmyLKExponent_zero' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.cgmyLKExponent_zero : ∀ (C G M Y : ℝ), BSM.cgmyLKExponent C G M Y 0 = 0"
+    },
+    "BSM.cgmyLaw": {
+      "axioms": "'BSM.cgmyLaw' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.cgmyLaw : (C G M Y : ℝ) → NNReal → 0 < C → 0 < G → 0 < M → 0 < Y → Y < 2 → MeasureTheory.ProbabilityMeasure ℝ"
+    },
+    "BSM.cgmyLaw_exists": {
+      "axioms": "'BSM.cgmyLaw_exists' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.cgmyLaw_exists : ∀ (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G) (hM : 0 < M) (hY : 0 < Y), Y < 2 → ∀ (τ : NNReal), ∃ μ₀, Filter.Tendsto (fun n => BSM.cgmyCpProbability C G M Y τ (2⁻¹ ^ n) hC hG hM hY ⋯) Filter.atTop (nhds μ₀)"
+    },
+    "BSM.cgmyLaw_unique": {
+      "axioms": "'BSM.cgmyLaw_unique' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.cgmyLaw_unique : ∀ (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G) (hM : 0 < M) (hY : 0 < Y) (hY₂ : Y < 2) (τ : NNReal) (μ : MeasureTheory.Measure ℝ), MeasureTheory.IsProbabilityMeasure μ → (∀ (t : ℝ), MeasureTheory.charFun μ t = Complex.exp (↑↑τ * BSM.cgmyLKExponent C G M Y t)) → μ = ↑(BSM.cgmyLaw C G M Y τ hC hG hM hY hY₂)"
+    },
     "BSM.cgmyLevyDensity": {
       "axioms": "'BSM.cgmyLevyDensity' depends on axioms: [propext, Classical.choice, Quot.sound]",
       "type": "BSM.cgmyLevyDensity : ℝ → ℝ → ℝ → ℝ → ℝ → ℝ"
@@ -261,6 +321,14 @@
     "BSM.cgmyOldContour_base_right_re": {
       "axioms": "'BSM.cgmyOldContour_base_right_re' depends on axioms: [propext, Classical.choice, Quot.sound]",
       "type": "BSM.cgmyOldContour_base_right_re : ∀ (G α u : ℝ), (↑G + Complex.I * BSM.cgmyOldContour α u).re = G - α"
+    },
+    "BSM.cgmyOneSidedCompensated_eq": {
+      "axioms": "'BSM.cgmyOneSidedCompensated_eq' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.cgmyOneSidedCompensated_eq : ∀ (a Y v : ℝ), 0 < a → 1 < Y → Y < 2 → ∫ (x : ℝ) in Set.Ioi 0, (Complex.exp (↑v * ↑x * Complex.I) - 1 - ↑v * ↑x * Complex.I) * ↑(Real.exp (-a * x) * x ^ (-1 - Y)) = ↑(Real.Gamma (-Y)) * ((↑a - Complex.I * ↑v) ^ ↑Y - ↑a ^ ↑Y + Complex.I * ↑v * ↑Y * ↑a ^ (↑Y - 1))"
+    },
+    "BSM.cgmyOneSidedExponent_eq": {
+      "axioms": "'BSM.cgmyOneSidedExponent_eq' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.cgmyOneSidedExponent_eq : ∀ (a Y v : ℝ), 0 < a → 0 < Y → Y < 1 → ∫ (x : ℝ) in Set.Ioi 0, (Complex.exp (↑v * ↑x * Complex.I) - 1) * ↑(Real.exp (-a * x) * x ^ (-1 - Y)) = ↑(Real.Gamma (-Y)) * ((↑a - Complex.I * ↑v) ^ ↑Y - ↑a ^ ↑Y)"
     },
     "BSM.cgmyTemperedConstant": {
       "axioms": "'BSM.cgmyTemperedConstant' depends on axioms: [propext, Classical.choice, Quot.sound]",
@@ -278,9 +346,17 @@
       "axioms": "'BSM.cgmyTruncatedExponent' depends on axioms: [propext, Classical.choice, Quot.sound]",
       "type": "BSM.cgmyTruncatedExponent : ℝ → ℝ → ℝ → ℝ → NNReal → ℂ → ℂ"
     },
+    "BSM.cgmyTruncatedExponent_decomp": {
+      "axioms": "'BSM.cgmyTruncatedExponent_decomp' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.cgmyTruncatedExponent_decomp : ∀ (C G M Y : ℝ), 0 < C → 0 < G → 0 < M → 0 < Y → Y < 2 → ∀ (ε : NNReal), 0 < ε → ε ≤ 1 → ∀ (v : ℝ), BSM.cgmyTruncatedExponent C G M Y ε ↑v = (∫ (x : ℝ) in {x | ↑ε ≤ |x|}, BSM.cgmyCompensatedIntegrand v x * ↑(BSM.cgmyLevyDensity C G M Y x)) + ↑v * Complex.I * ↑(∫ (x : ℝ) in Set.Ioc (↑ε) 1, BSM.cgmyDriftIntegrand C G M Y x)"
+    },
     "BSM.cgmyTruncatedExponent_integrable": {
       "axioms": "'BSM.cgmyTruncatedExponent_integrable' depends on axioms: [propext, Classical.choice, Quot.sound]",
       "type": "BSM.cgmyTruncatedExponent_integrable : ∀ (C G M Y : ℝ) (ε : NNReal), 0 < C → 0 < G → 0 < M → 0 < Y → 0 < ε → ∀ (v : ℝ), MeasureTheory.IntegrableOn (fun x => (Complex.exp (↑v * ↑x * Complex.I) - 1) * ↑(BSM.cgmyLevyDensity C G M Y x)) {x | ↑ε ≤ |x|} MeasureTheory.volume"
+    },
+    "BSM.cgmyTruncatedExponent_tendsto": {
+      "axioms": "'BSM.cgmyTruncatedExponent_tendsto' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.cgmyTruncatedExponent_tendsto : ∀ (C G M Y : ℝ), 0 < C → 0 < G → 0 < M → 0 < Y → Y < 2 → ∀ (v : ℝ), Filter.Tendsto (fun n => BSM.cgmyTruncatedExponent C G M Y (2⁻¹ ^ n) ↑v) Filter.atTop (nhds (BSM.cgmyLKExponent C G M Y v))"
     },
     "BSM.cgmyTruncatedExponent_zero": {
       "axioms": "'BSM.cgmyTruncatedExponent_zero' depends on axioms: [propext, Classical.choice, Quot.sound]",
@@ -333,6 +409,18 @@
     "BSM.charFun_cgmyCpLaw": {
       "axioms": "'BSM.charFun_cgmyCpLaw' depends on axioms: [propext, Classical.choice, Quot.sound]",
       "type": "BSM.charFun_cgmyCpLaw : ∀ (C G M Y : ℝ) (ε : NNReal), 0 < C → 0 < G → 0 < M → 0 < Y → 0 < ε → ∀ (τ : NNReal) (t : ℝ), MeasureTheory.charFun (BSM.cpLaw (τ * ((BSM.cgmyJumpMeasure C G M Y ε) Set.univ).toNNReal) (BSM.cgmyJumpLaw C G M Y ε)) t = Complex.exp (↑↑τ * BSM.cgmyTruncatedExponent C G M Y ε ↑t)"
+    },
+    "BSM.charFun_cgmyCpProbability_tendsto": {
+      "axioms": "'BSM.charFun_cgmyCpProbability_tendsto' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.charFun_cgmyCpProbability_tendsto : ∀ (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G) (hM : 0 < M) (hY : 0 < Y), Y < 2 → ∀ (τ : NNReal) (t : ℝ), Filter.Tendsto (fun n => MeasureTheory.charFun (↑(BSM.cgmyCpProbability C G M Y τ (2⁻¹ ^ n) hC hG hM hY ⋯)) t) Filter.atTop (nhds (Complex.exp (↑↑τ * BSM.cgmyLKExponent C G M Y t)))"
+    },
+    "BSM.charFun_cgmyLaw": {
+      "axioms": "'BSM.charFun_cgmyLaw' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.charFun_cgmyLaw : ∀ (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G) (hM : 0 < M) (hY : 0 < Y) (hY₂ : Y < 2) (τ : NNReal) (t : ℝ), MeasureTheory.charFun (↑(BSM.cgmyLaw C G M Y τ hC hG hM hY hY₂)) t = Complex.exp (↑↑τ * BSM.cgmyLKExponent C G M Y t)"
+    },
+    "BSM.charFun_cgmyLaw_eq_cgmyCharFactor": {
+      "axioms": "'BSM.charFun_cgmyLaw_eq_cgmyCharFactor' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.charFun_cgmyLaw_eq_cgmyCharFactor : ∀ (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G) (hM : 0 < M) (hY : 0 < Y) (hY₂ : Y < 2), Y ≠ 1 → ∀ (τ : NNReal) (t : ℝ), MeasureTheory.charFun (↑(BSM.cgmyLaw C G M Y τ hC hG hM hY hY₂)) t = BSM.cgmyCharFactor C G M Y ↑τ ↑t"
     },
     "BSM.charFun_convPow": {
       "axioms": "'BSM.charFun_convPow' depends on axioms: [propext, Classical.choice, Quot.sound]",
@@ -634,6 +722,10 @@
       "axioms": "'BSM.fourierInversion_dampedCallPrice_at' depends on axioms: [propext, Classical.choice, Quot.sound]",
       "type": "BSM.fourierInversion_dampedCallPrice_at : ∀ {f : ℝ → ℂ}, Continuous f → MeasureTheory.Integrable f MeasureTheory.volume → MeasureTheory.Integrable (FourierTransform.fourier f) MeasureTheory.volume → ∀ (k : ℝ), FourierTransformInv.fourierInv (FourierTransform.fourier f) k = f k"
     },
+    "BSM.gammaIntegralComplexRate": {
+      "axioms": "'BSM.gammaIntegralComplexRate' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.gammaIntegralComplexRate : ℝ → ℂ → ℂ"
+    },
     "BSM.gammaMeasure_exp_integrable": {
       "axioms": "'BSM.gammaMeasure_exp_integrable' depends on axioms: [propext, Classical.choice, Quot.sound]",
       "type": "BSM.gammaMeasure_exp_integrable : ∀ (a r u : ℝ), 0 < a → 0 < r → u < r → MeasureTheory.Integrable (fun x => Real.exp (u * x)) (ProbabilityTheory.gammaMeasure a r)"
@@ -733,6 +825,10 @@
     "BSM.integral_Ioi_cexp_neg_mul_eq_inv": {
       "axioms": "'BSM.integral_Ioi_cexp_neg_mul_eq_inv' depends on axioms: [propext, Classical.choice, Quot.sound]",
       "type": "BSM.integral_Ioi_cexp_neg_mul_eq_inv : ∀ {a : ℂ}, 0 < a.re → ∫ (y : ℝ) in Set.Ioi 0, Complex.exp (-(a * ↑y)) = a⁻¹"
+    },
+    "BSM.integral_cpow_mul_cexp_neg_mul_Ioi": {
+      "axioms": "'BSM.integral_cpow_mul_cexp_neg_mul_Ioi' depends on axioms: [propext, Classical.choice, Quot.sound]",
+      "type": "BSM.integral_cpow_mul_cexp_neg_mul_Ioi : ∀ (s : ℝ) (z : ℂ), 0 < s → 0 < z.re → BSM.gammaIntegralComplexRate s z = ↑(Real.Gamma s) * z ^ (-↑s)"
     },
     "BSM.integral_exp_mul_phi": {
       "axioms": "'BSM.integral_exp_mul_phi' depends on axioms: [propext, Classical.choice, Quot.sound]",
