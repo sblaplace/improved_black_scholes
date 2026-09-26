@@ -1510,3 +1510,381 @@ def cgmy_law_cf(C: float, G: float, M: float, Y: float, eps: float, tau: float, 
     cancellation `lambda_eps * (phi - 1) = A_eps` seen through a 20k-term sum.
     """
     return cmath.exp(tau * cgmy_truncated_exponent(C, G, M, Y, eps, v, **quad))
+
+
+# ---------------------------------------------------------------------------
+# BRIEF_020: the CGMY law -- the `eps -> 0` limit of the truncated exponent.
+#
+# BRIEF_019 landed the truncated family and its CF; its F3 recorded that
+# `eps -> 0` is a CONDITIONAL-convergence statement -- `lambda_eps` grows like
+# `2C/Y eps^{-Y}`, so no dominated-convergence theorem applies to the unsplit
+# integral `A_eps(v) = int_{|x| >= eps} (e^{ivx} - 1) nu_eps(dx)`.
+#
+# BRIEF_020 §1 makes it unconditional with an IDENTITY that holds at every
+# `eps > 0` (ledger correction C25 -- the near-zero `i v x` pieces *pair*, they
+# do not cancel):
+#
+#     A_eps(v) = B_eps(v) + i v d_eps,
+#     B_eps(v) = int_{|x| >= eps} (e^{ivx} - 1 - i v x 1_{|x| <= 1}) nu_eps(dx),
+#     d_eps    = C int_eps^1 x^{-Y} (e^{-M x} - e^{-G x}) dx,
+#
+# and each piece is now dominated on all of `R \ {0}`: the compensated
+# integrand is `O(x^{1-Y})` at 0 (integrable for every `Y < 2`) and `<= 2` far
+# out, while the PAIRED drift integrand is `O(x^{1-Y})` because
+# `e^{-Mx} - e^{-Gx} = O(x)`. The limit
+#
+#     L(v) = B_0(v) + i v d_0
+#
+# is the Levy-Khintchine exponent with the unit-ball compensator, finite on
+# all of `0 < Y < 2` INCLUDING `Y = 1` (the pole at `Y = 1` belongs to the
+# closed form `Gamma(-Y)`, not to the law), and it is the exponent of the law
+# `cgmyLaw` that §2 constructs as the `limUnder` of the compound-Poisson
+# marginals along `eps_n = 2^{-n}`.
+#
+# The drift is load-bearing and it is NOT zero: `d_0 = -0.115465 / -0.346002 /
+# -1.641132` at `Y = 1/2, 1, 3/2` for `(C, G, M) = (0.5, 5, 10)`. The
+# *unpaired* leg `C int_eps^1 x^{-Y} e^{-Mx} dx` alone is `122.5` at
+# `eps = 2^{-14}`, `Y = 3/2`, and grows like `eps^{1-Y}` -- which is why
+# `[CGMYLaw]` R2 forbids writing either leg on its own and why mutant M39 below
+# is a divergence canary rather than a rounding canary.
+#
+# HOW THE LIMITS ARE QUADRATURED. A cutoff at `inner` leaves an un-tailed piece
+# of size `inner^{2-Y}` (compensated) or `inner^{1-Y}` (uncompensated), and at
+# `inner = 1e-12` -- the floor the landed `cgmy_levy_integral_one_sided` uses --
+# that piece is `~1e-6`, four decades above anything this brief resolves. So
+# every limit here is a dyadic-panel integral down to `2^-60` PLUS the analytic
+# `int_0^{inner}` of the same integrand, taken from its own power series
+# (`_cgmy_ball_tail`, `_cgmy_uncompensated_tail`, `_gamma_series_tail`). The
+# series and the panels are different objects -- one is a local expansion, the
+# other a mesh -- so their sum is a genuine route, not a self-comparison.
+#
+# `n_panel = 400` per dyadic panel is the floor these rows need and no more:
+# the panel error goes like `n^{-4}` (measured `1.6e-11 / 9.7e-13 / 6.0e-14` at
+# `n = 200 / 400 / 800` for the `x^{-1/2}` Gamma integrand), so 400 lands every
+# row an order of magnitude inside the issue-time route-check's own residuals.
+# ---------------------------------------------------------------------------
+
+# The inner cutoff of every `eps = 0` limit row. `2^-60` keeps the first
+# neglected series term below `1e-50` for every `Y` in `(0, 2)`.
+CGMY_LIMIT_INNER = 2.0 ** -60
+
+
+def _simpson_far(f, x_max: float = 60.0, x_lo: float = 1.0, n_panel: int = 200):
+    """Graded Simpson on the far field `[x_lo, x_max]`: `[1,2],[2,4],[4,8],...`
+
+    One uniform pass over `[1, 60]` is the trap here. The tempered integrand is
+    smooth but its derivatives grow like `rate^k`, so a single mesh of step
+    `59/4000` leaves a FIXED residual of a few `1e-11` that no amount of
+    near-zero panel refinement removes (measured: `2.96e-11` at the real-rate
+    Gamma anchor with 200, 800 and 1600 points per near panel). Doubling panels
+    cut the step where the integrand is largest and dropped the same residual
+    below `1e-14`, which is where the rest of this brief's rows live.
+    """
+    total = 0.0
+    edges = [x_lo]
+    while edges[-1] * 2.0 < x_max:
+        edges.append(edges[-1] * 2.0)
+    edges.append(x_max)
+    for a, b in zip(edges, edges[1:]):
+        total += _simpson(f, a, b, n_panel)
+    return total
+
+
+def _cgmy_ball_tail(rate: float, Y: float, v: float, delta: float) -> complex:
+    """`int_0^delta (e^{ivx} - 1 - i v x) e^{-rate x} x^{-1-Y} dx`, from the series.
+
+    Expanding both factors, the compensated integrand is
+
+        -(v^2/2) x^{1-Y} + ((v^2 rate)/2 - i v^3/6) x^{2-Y} + O(x^{3-Y}),
+
+    so the omitted piece is `O(delta^{2-Y})` and the two terms below leave a
+    residual of `O(delta^{4-Y})` -- at `delta = 2^-60` that is `1e-54`, i.e.
+    nothing. This is the analytic half of every `eps = 0` row; the dyadic
+    panels are the other half and they never see `x < delta`.
+    """
+    c2 = -0.5 * v * v
+    c3 = 0.5 * v * v * rate - 1j * (v ** 3) / 6.0
+    return (c2 * delta ** (2.0 - Y) / (2.0 - Y)
+            + c3 * delta ** (3.0 - Y) / (3.0 - Y))
+
+
+def _cgmy_uncompensated_tail(rate: float, Y: float, v: float, delta: float) -> complex:
+    """`int_0^delta (e^{ivx} - 1) e^{-rate x} x^{-1-Y} dx`, from the series.
+
+    The uncompensated integrand is `i v x^{-Y} + (-i v rate - v^2/2) x^{1-Y} +
+    ...`, so the omitted piece is `O(delta^{1-Y})`: integrable for `0 < Y < 1`
+    (the range the uncompensated one-sided form is valid on) and *divergent*
+    for `Y >= 1`, which is exactly the obstruction BRIEF_019 F3 named.
+    """
+    c1 = 1j * v
+    c2 = -1j * v * rate - 0.5 * v * v
+    return (c1 * delta ** (1.0 - Y) / (1.0 - Y)
+            + c2 * delta ** (2.0 - Y) / (2.0 - Y))
+
+
+def _cgmy_one_sided_leg(
+    rate: float,
+    Y: float,
+    inner: float,
+    v: float,
+    mode: str = "ball",
+    x_max: float = 60.0,
+    n_panel: int = 400,
+    to_zero: bool = False,
+) -> complex:
+    """One tempering leg of a CGMY exponent integral, graded Simpson + series tail.
+
+    `int_inner^{x_max} w(x) e^{-rate x} x^{-1-Y} dx`, plus -- when `to_zero`,
+    i.e. when the leg stands for the IMPROPER integral from `0` and `inner` is
+    only its innermost panel edge -- the analytic `int_0^{inner}` of the same
+    integrand. A leg that genuinely starts at a truncation `eps > 0` must pass
+    `to_zero=False`: adding the tail there would quietly turn `B_eps` into `B_0`
+    and make the whole `eps -> 0` limit vacuous. `w` is
+
+      * `"ball"`: `e^{ivx} - 1 - i v x` on `x <= 1` and `e^{ivx} - 1` beyond --
+        the UNIT-BALL compensator of the Levy-Khintchine form `L`;
+      * `"full"`: `e^{ivx} - 1 - i v x` everywhere -- the FULLY compensated
+        form, which BRIEF_011's `cgmy_exponent_one_sided_compensated` closes;
+      * `"none"`: `e^{ivx} - 1` everywhere -- the uncompensated form
+        `cgmy_exponent_one_sided` closes, convergent only for `0 < Y < 1`.
+
+    Dyadic panels `[inner 2^k, inner 2^{k+1}]` up to 1 resolve the `x^{-1-Y}`
+    growth at the cutoff that a uniform mesh cannot see; one Simpson pass
+    covers `[1, x_max]`. The small-`x` weight goes through
+    `_expm1_minus_z_complex` / `_expm1_complex`, so the innermost panels keep
+    their `x^2` (resp. `x`) behaviour instead of cancelling it away.
+    """
+    if not 0.0 < inner < 1.0:
+        raise ValueError("_cgmy_one_sided_leg needs 0 < inner < 1")
+    if mode not in ("ball", "full", "none"):
+        raise ValueError(f"unknown compensation mode {mode!r}")
+
+    def weight(x: float, compensated: bool) -> complex:
+        z = 1j * v * x
+        if compensated:
+            return _expm1_minus_z_complex(z)
+        return _expm1_complex(z)
+
+    def near(x: float) -> complex:
+        return (weight(x, mode != "none") * math.exp(-rate * x) * x ** (-1.0 - Y))
+
+    def far(x: float) -> complex:
+        return (weight(x, mode == "full") * math.exp(-rate * x) * x ** (-1.0 - Y))
+
+    total = 0.0 + 0.0j
+    edges = [inner * 2.0 ** k for k in range(200) if inner * 2.0 ** k < 1.0]
+    edges.append(1.0)
+    for a, b in zip(edges, edges[1:]):
+        total += _simpson(near, a, b, n_panel)
+    total += _simpson_far(far, x_max, n_panel=n_panel)
+    if to_zero:
+        if mode == "none":
+            total += _cgmy_uncompensated_tail(rate, Y, v, inner)
+        else:
+            total += _cgmy_ball_tail(rate, Y, v, inner)
+    return total
+
+
+def cgmy_compensated_exponent(
+    C: float, G: float, M: float, Y: float, eps: float, v: float, **quad
+) -> complex:
+    """`B_eps(v) = int_{|x| >= eps} (e^{ivx} - 1 - i v x 1_{|x| <= 1}) nu_eps(dx)`.
+
+    The Lean `cgmyLKExponent`'s first term (its `eps = 0` value `B_0` is the
+    integral over all of `R \\ {0}`). `eps = 0` means the LIMIT: the panels run
+    down to `CGMY_LIMIT_INNER` and `_cgmy_ball_tail` supplies `int_0^{inner}`,
+    so `B_0` is not a cutoff value wearing a limit's clothes. The two legs are
+    mirrored (`v -> -v`, rate `G`), which is the substitution `x |-> -x` on the
+    negative half-line -- the same reflection the Lean proof takes through
+    `integral_comp_neg_Ioi`.
+    """
+    if eps < 0.0 or eps > 1.0:
+        raise ValueError("cgmy_compensated_exponent is stated for 0 <= eps <= 1")
+    to_zero = eps <= 0.0
+    inner = CGMY_LIMIT_INNER if to_zero else eps
+    pos = _cgmy_one_sided_leg(M, Y, inner, v, "ball", to_zero=to_zero, **quad)
+    neg = _cgmy_one_sided_leg(G, Y, inner, -v, "ball", to_zero=to_zero, **quad)
+    return C * (pos + neg)
+
+
+def cgmy_paired_drift(
+    C: float, G: float, M: float, Y: float, eps: float, n_panel: int = 400
+) -> float:
+    """`d_eps = C int_eps^1 x^{-Y} (e^{-M x} - e^{-G x}) dx` -- the PAIRED drift.
+
+    The `eps -> 0` limit `d_0` is the drift of the Levy-Khintchine form `L`,
+    and it is nonzero (`-1.641132` at `Y = 3/2`, `(C,G,M) = (0.5,5,10)`). Both
+    legs sit inside ONE integrand on purpose: each leg on its own diverges like
+    `eps^{1-Y}` at `0` for `Y >= 1` (mutant M39 measures `122.5` at
+    `eps = 2^{-14}`, `Y = 3/2`), and only the difference is `O(x^{1-Y})`.
+
+    `expm1` on both legs is what keeps the difference honest at the innermost
+    panel: `exp(-M x) - exp(-G x)` computed directly loses every digit there,
+    while `expm1(-M x) - expm1(-G x)` cancels the `1`s exactly. For `eps = 0`
+    the analytic `int_0^{inner}` is `(G-M) inner^{2-Y}/(2-Y) +
+    (M^2-G^2) inner^{3-Y}/(2(3-Y))` from the same expansion.
+    """
+    if eps < 0.0 or eps > 1.0:
+        raise ValueError("cgmy_paired_drift is stated for 0 <= eps <= 1")
+
+    def f(x: float) -> float:
+        return (math.expm1(-M * x) - math.expm1(-G * x)) * x ** (-Y)
+
+    if eps <= 0.0:
+        inner = CGMY_LIMIT_INNER
+        total = ((G - M) * inner ** (2.0 - Y) / (2.0 - Y)
+                 + 0.5 * (M * M - G * G) * inner ** (3.0 - Y) / (3.0 - Y))
+    else:
+        inner, total = eps, 0.0
+    edges = [inner * 2.0 ** k for k in range(200) if inner * 2.0 ** k < 1.0]
+    edges.append(1.0)
+    for a, b in zip(edges, edges[1:]):
+        total += _simpson(f, a, b, n_panel)
+    return C * total
+
+
+def cgmy_far_drift(C: float, G: float, M: float, Y: float, x_max: float = 60.0) -> float:
+    """`d_far = C int_{|x| > 1} x nu(dx) = C int_1^inf x^{-Y}(e^{-Mx} - e^{-Gx}) dx`.
+
+    The far-field half of the drift. `d_0 + d_far` is the WHOLE drift
+    `C int_0^inf x^{-Y}(e^{-Mx} - e^{-Gx}) dx`, which `cgmy_drift_identity_closed`
+    evaluates as `m^inf` -- so the split at 1 is a route to `m^inf` that shares
+    nothing with the `Gamma` closed form, and the row that compares them is the
+    real-rate statement of BRIEF_020 §3's `cgmyDrift_identity`.
+
+    Plain `exp` rather than `expm1` here, unlike `cgmy_paired_drift`: on
+    `x >= 1` the two exponentials are nowhere near each other, so there is
+    no small-argument cancellation to protect -- and keeping the two
+    integrands textually distinct is what lets the mutation harness target
+    the paired one (M39, M42).
+    """
+    def f(x: float) -> float:
+        return (math.exp(-M * x) - math.exp(-G * x)) * x ** (-Y)
+
+    return C * _simpson_far(f, x_max, n_panel=400)
+
+
+def cgmy_lk_exponent(
+    C: float, G: float, M: float, Y: float, v: float, n_panel: int = 400, **quad
+) -> complex:
+    """`L(v) = B_0(v) + i v d_0` -- the `eps -> 0` limit of `A_eps(v)`.
+
+    The Lean `cgmyLKExponent C G M Y v`: the exponent of the law `cgmyLaw`, by
+    quadrature and with no `Gamma` anywhere in it. That is what makes the row
+    `|L - psi_Y|` a real check of `cgmyLKExponent_eq_cgmyExponent`: the closed
+    side is a difference of `Gamma(-Y)` values with a pole at `Y = 1`, while
+    this side is finite there.
+    """
+    b_zero = cgmy_compensated_exponent(C, G, M, Y, 0.0, v, n_panel=n_panel, **quad)
+    d_zero = cgmy_paired_drift(C, G, M, Y, 0.0, n_panel=n_panel)
+    return b_zero + 1j * v * d_zero
+
+
+def cgmy_one_sided_exponent_integral(a: float, Y: float, v: float, **quad) -> complex:
+    """`int_0^inf (e^{ivx} - 1) e^{-a x} x^{-1-Y} dx` -- the UNCOMPENSATED leg.
+
+    `cgmy_exponent_one_sided(1, a, Y, v)`'s integral, convergent exactly for
+    `0 < Y < 1` (the `i v x^{-Y}` behaviour at 0). The landed
+    `cgmy_levy_integral_one_sided` computes the same integral but stops at
+    `inner = 1e-12` with no analytic tail, which leaves `i v inner^{1-Y}/(1-Y)`
+    -- `~1e-6` at `Y = 1/2` -- unaccounted for, i.e. four decades above what
+    this brief resolves; hence the separate route here.
+    """
+    if not 0.0 < Y < 1.0:
+        raise ValueError("the uncompensated one-sided integral needs 0 < Y < 1")
+    inner = quad.pop("inner", CGMY_LIMIT_INNER)
+    return _cgmy_one_sided_leg(a, Y, inner, v, "none", to_zero=True, **quad)
+
+
+def cgmy_one_sided_compensated_integral(a: float, Y: float, v: float, **quad) -> complex:
+    """`int_0^inf (e^{ivx} - 1 - i v x) e^{-a x} x^{-1-Y} dx` -- the FULLY compensated leg.
+
+    `cgmy_exponent_one_sided_compensated(1, a, Y, v)`'s integral, convergent on
+    all of `0 < Y < 2` (the integrand is `O(x^{1-Y})` at 0). The two one-sided
+    forms are the statements BRIEF_011's oracle already pins and `test_cgmy_contour`
+    already measures; §3 of BRIEF_020 turns them into theorems by one and two
+    integrations by parts from G1.
+    """
+    if not 0.0 < Y < 2.0:
+        raise ValueError("the compensated one-sided integral needs 0 < Y < 2")
+    inner = quad.pop("inner", CGMY_LIMIT_INNER)
+    return _cgmy_one_sided_leg(a, Y, inner, v, "full", to_zero=True, **quad)
+
+
+def _gamma_series_tail(s: float, z: complex, delta: float) -> complex:
+    """`int_0^delta x^{s-1} e^{-z x} dx`, from `e^{-zx}`'s own power series.
+
+    Term by term, `sum_k (-z)^k delta^{s+k} / (k! (s+k))`; two terms leave
+    `O(delta^{s+2})`, which at `delta = 2^-60` is below `1e-50` for `s >= 1/2`.
+    """
+    return (delta ** s / s - z * delta ** (s + 1.0) / (s + 1.0))
+
+
+def gamma_integral_complex_rate(
+    s: float, z: complex, x_max: float = 60.0, n_panel: int = 400, **quad
+) -> complex:
+    """G1's left side: `int_0^inf x^{s-1} e^{-z x} dx` for `0 < s`, `0 < Re z`.
+
+    The complex-rate Gamma integral. mathlib at the pinned tag ships the
+    REAL-rate version `integral_cpow_mul_exp_neg_mul_Ioi`, and `CGMYLaw.lean`'s
+    G1 (`integral_cpow_mul_cexp_neg_mul_Ioi`) extends it to `Re z > 0` by the
+    identity theorem -- differentiability in `z` under the integral, analyticity
+    of both sides on the half-plane, agreement on the positive reals where the
+    shipped lemma applies. This quadrature is the numeric shadow: the right side
+    is `Gamma(s) z^{-s}`, and the residual at `z = M - i v` is the same as at
+    the real anchor `z = M` (`2.9e-11`), i.e. the quadrature's, not the
+    identity's.
+    """
+    if not s > 0.0:
+        raise ValueError("gamma_integral_complex_rate needs 0 < s")
+    if not z.real > 0.0:
+        raise ValueError("gamma_integral_complex_rate needs 0 < Re z")
+    inner = quad.pop("inner", CGMY_LIMIT_INNER)
+
+    def f(x: float) -> complex:
+        return x ** (s - 1.0) * cmath.exp(-z * x)
+
+    total = _gamma_series_tail(s, z, inner)  # the improper integral starts at 0
+    edges = [inner * 2.0 ** k for k in range(200) if inner * 2.0 ** k < 1.0]
+    edges.append(1.0)
+    for a, b in zip(edges, edges[1:]):
+        total += _simpson(f, a, b, n_panel)
+    total += _simpson_far(f, x_max, n_panel=n_panel)
+    return total
+
+
+def cgmy_drift_identity_closed(C: float, G: float, M: float, Y: float) -> float:
+    """`m^inf = C Gamma(1-Y) (M^{Y-1} - G^{Y-1})` -- the closed form of the drift.
+
+    The real-rate, Frullani-type statement of BRIEF_020 §3: one integration by
+    parts turns `int_0^inf x^{-Y}(e^{-Mx} - e^{-Gx}) dx` into a difference of
+    two `Gamma(1-Y)` integrals. It is what the tree's uncompensated
+    `cgmy_exponent` differs from the fully compensated Levy-Khintchine form by
+    (`i v m^inf`), and it is finite on all of `0 < Y < 2, Y != 1`:
+    `-0.116083169` at `Y = 1/2`, `-1.641663919` at `Y = 3/2`.
+    """
+    if Y == 1.0:
+        raise ValueError("cgmy_drift_identity_closed has a pole at Y = 1")
+    return C * math.gamma(1.0 - Y) * (M ** (Y - 1.0) - G ** (Y - 1.0))
+
+
+def cgmy_lk_exponent_via_one_sided(C: float, G: float, M: float, Y: float, v: float) -> complex:
+    """`L(v)` assembled from the two one-sided FULLY compensated closed forms.
+
+        L(v) = [one-sided compensated at (M, v)] + [one-sided compensated at (G, -v)]
+               + i v m^inf
+
+    The bracket is `cgmyExponent - i v m^inf` (the extra `i v Y a^{Y-1}` of each
+    compensated leg is `-i v Gamma(1-Y) a^{Y-1}` after `Gamma(1-Y) = -Y Gamma(-Y)`),
+    so this equals the tree's `cgmy_exponent` -- and the point of writing it out
+    is that the drift term `i v m^inf` is then VISIBLE: dropping it (mutant M41)
+    moves `L` by `|v m^inf| = 1.641664` at `(Y, v) = (3/2, 1)`, and replacing
+    `Gamma(1-Y)` by `Gamma(-Y)` in it (mutant M43) by `2.736107`.
+
+    This side is closed-form, so the load-bearing comparison is not this
+    function against `cgmy_exponent` (algebraically the same expression) but
+    `cgmy_lk_exponent` -- quadrature -- against either of them.
+    """
+    compensated = (cgmy_exponent_one_sided_compensated(C, M, Y, complex(v))
+                   + cgmy_exponent_one_sided_compensated(C, G, Y, complex(-v)))
+    return compensated + 1j * v * cgmy_drift_identity_closed(C, G, M, Y)

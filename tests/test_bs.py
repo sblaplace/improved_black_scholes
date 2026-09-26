@@ -54,6 +54,15 @@ from experiments.black_scholes import (
     bs_put_by_parity,
     carr_madan_by_exponent,
     carr_madan_by_law,
+    cgmy_compensated_exponent,
+    cgmy_drift_identity_closed,
+    cgmy_far_drift,
+    cgmy_lk_exponent,
+    cgmy_lk_exponent_via_one_sided,
+    cgmy_one_sided_compensated_integral,
+    cgmy_one_sided_exponent_integral,
+    cgmy_paired_drift,
+    gamma_integral_complex_rate,
     cgmy_zeroth_corner_map,
     cgmy_zeroth_exponent,
     cgmy_zeroth_forward_exponent,
@@ -1753,6 +1762,293 @@ def test_compound_poisson():
         acc1 += q * power
         power *= delta1_cf(0.3)
     assert abs(acc1 - cp_law_cf_closed(2.5, delta1_cf, 0.3)) >= 0.5
+
+
+def test_cgmy_law():
+    """BRIEF_020 (numerical shadow of `ImprovedBS/CGMYLaw.lean`).
+
+    Stage 2b takes the `eps -> 0` limit of BRIEF_019's truncated exponent and
+    lands it as the exponent of a law. Three routes meet here, and every row
+    below compares two that are NOT re-derivations of each other:
+
+      * `cgmy_truncated_exponent` -- the LANDED `A_eps`, an integral of
+        `e^{ivx} - 1` over `{|x| >= eps}` (BRIEF_019's route);
+      * `cgmy_compensated_exponent` + `cgmy_paired_drift` -- the Levy-Khintchine
+        split `B_eps + i v d_eps`, quadratured from its own integrands, with the
+        `eps = 0` limit supplied by dyadic panels down to `2^-60` PLUS the
+        analytic `int_0^{inner}` of the same integrand;
+      * `cgmy_exponent` / `cgmy_drift_identity_closed` / `gamma_integral_complex_rate`
+        -- the closed forms: a difference of `Gamma(-Y)` values, the Frullani-type
+        drift `C Gamma(1-Y)(M^{Y-1} - G^{Y-1})`, and the complex-rate Gamma
+        integral G1 `int_0^inf x^{s-1} e^{-zx} dx = Gamma(s) z^{-s}`.
+
+    The rows, in the order the Lean module proves them:
+
+      1. THE DECOMPOSITION (F1, correction C25). `A_eps = B_eps + i v d_eps` is
+         an IDENTITY at every `eps > 0`, not a limit. Checked twice: on the unit
+         ball with both routes on the same dyadic mesh -- where the identity
+         holds node by node, so the residual is rounding (`8.2e-15`) -- and over
+         the whole line with independent meshes, which is what proves it is not
+         a mesh artifact (`5.2e-10`, the two routes' far-field difference).
+      2. THE TWO LIMITS (F1). `B_eps -> B_0` and `d_eps -> d_0` along
+         `eps_n = 2^-n`, both at the rate `eps^{2-Y}`: deep-end slopes
+         `1.4996 / 0.9997 / 0.4998` at `Y = 1/2, 1, 3/2`. The drift is NOT zero
+         (`d_0 = -0.115465 / -0.346002 / -1.641132`) -- that is C25.
+      3. THE IDENTIFICATION (F5). `L = B_0 + i v d_0` against the landed closed
+         form `psi_Y`, and against the same closed form reassembled from the two
+         one-sided compensated legs plus `i v m^inf`.
+      4. `Y = 1` IS NOT A POLE OF THE LAW (F2). `L` is finite there and the
+         closed form approaches it from both sides at `O(delta)`: the pole is
+         the FORMULA's, so the law's range is all of `0 < Y < 2`.
+      5. G1 (F4). The complex-rate Gamma integral at `z = M - i v`, `G + i v`
+         and the real anchor `z = M`, where mathlib's shipped lemma lives.
+      6. THE IBP CHAINS (F5). The one-sided uncompensated and fully compensated
+         integrals against BRIEF_011's pinned closed forms.
+      7. THE DRIFT IDENTITY (F5, real rate). `d_0 + d_far = m^inf`, three ways:
+         the split at 1 by quadrature, the `Gamma(1-Y)` closed form, and (for
+         `Y < 1`, where each leg converges on its own) two G1 integrals.
+      8. THE CF LADDER (F8). `Re A_eps < 0` all along the ladder and
+         `|e^{tau A_eps} - e^{tau L}| <= tau |A_eps - L|` -- the CF convergence
+         is no slower than the exponent's, which is why `Tendsto.cexp` suffices
+         in the Lean proof and no second estimate is needed.
+      9. THE TIGHTNESS PROXY (F3). mathlib's own bound
+         `(R/2) int_{-2/R}^{2/R} (1 - Re phi_n(t)) dt`: monotone in `n`,
+         converging to the limit law's value, decreasing in `R`. That is
+         tightness, measured.
+     10. THE `Y -> 0` END (F7). `|L - psi_0| / Y` against BRIEF_018's `vgLaw`
+         corner `cgmy_zeroth_exponent`.
+     11. THE FIVE CHEAT CLASSES, measured (mutants M39-M43). The one that
+         matters is M39: the UNPAIRED drift leg `C int_eps^1 x^{-Y} e^{-Mx} dx`
+         does not converge at all -- `122.47` at `eps = 2^-14` and growing like
+         `eps^{1-Y}` (deep-end slope `-0.5011`) -- while the paired integrand
+         sits at `-1.6021`, within `0.04` of `d_0`. Only the difference is
+         integrable at 0 for `Y >= 1`; that is lint clause `[CGMYLaw]` R2.
+
+    Metric for row 11: the displacement of the corrupted exponent from its
+    route-check value, since every CF here is `exp` of an exponent.
+    """
+    C, G, M, tau = 0.5, 5.0, 10.0, 0.25
+    NP = 400  # Simpson points per dyadic panel; the error goes like n^{-4}
+
+    # --- 1. the decomposition, an identity at every eps (F1 / C25).
+    # Ball-restricted with a SHARED mesh: the integrand identity
+    # `e^{ivx} - 1 = (e^{ivx} - 1 - ivx) + ivx` holds at every quadrature node,
+    # so the two routes' panel errors cancel and what is left is rounding.
+    worst_ball, worst_full, at = 0.0, 0.0, None
+    for Y in (0.5, 1.0, 1.5):
+        for v in (0.5, 2.0):
+            for eps in (1e-1, 1e-2, 1e-3):
+                A = cgmy_truncated_exponent(C, G, M, Y, eps, v, x_max=1.0, n_panel=NP)
+                B = cgmy_compensated_exponent(C, G, M, Y, eps, v, x_max=1.0, n_panel=NP)
+                d = cgmy_paired_drift(C, G, M, Y, eps, n_panel=NP)
+                r = abs(A - (B + 1j * v * d))
+                if r > worst_ball:
+                    worst_ball, at = r, (Y, v, eps, abs(A))
+                assert r <= 1e-13, (Y, v, eps, r)
+                # ... and with INDEPENDENT meshes over the whole line, where the
+                # only disagreement left is the two routes' far-field meshes.
+                A2 = cgmy_truncated_exponent(C, G, M, Y, eps, v, n_panel=200)
+                B2 = cgmy_compensated_exponent(C, G, M, Y, eps, v, n_panel=NP)
+                d2 = cgmy_paired_drift(C, G, M, Y, eps, n_panel=200)
+                worst_full = max(worst_full, abs(A2 - (B2 + 1j * v * d2)))
+    assert worst_ball <= 5e-14, (worst_ball, at)   # ~15 ulp of |A| ~ 3.2
+    assert worst_full <= 2e-9, worst_full
+
+    # --- 2. the two limits, and the rate `eps^{2-Y}` (F1).
+    def deep_slope(f, n_lo=12, n_hi=14):
+        """Log-log slope of `f(2^-n)` over the last two rungs: the asymptotic rate."""
+        a, b = f(2.0 ** -n_lo), f(2.0 ** -n_hi)
+        return (math.log(abs(b)) - math.log(abs(a))) / ((n_lo - n_hi) * math.log(2.0))
+
+    d0_ref = {0.5: -0.115465, 1.0: -0.346002, 1.5: -1.641132}
+    for Y in (0.5, 1.0, 1.5):
+        v0 = 0.5
+        b0 = cgmy_compensated_exponent(C, G, M, Y, 0.0, v0, n_panel=NP)
+        d0 = cgmy_paired_drift(C, G, M, Y, 0.0, n_panel=NP)
+        # the drift is finite, nonzero and negative -- C25's correction.
+        assert abs(d0 - d0_ref[Y]) <= 2e-6, (Y, d0)
+        assert d0 < -0.1, (Y, d0)
+        for tag, f in (("B", lambda e, Y=Y, v0=v0: cgmy_compensated_exponent(
+                            C, G, M, Y, e, v0, n_panel=NP) - b0),
+                       ("d", lambda e, Y=Y: cgmy_paired_drift(
+                            C, G, M, Y, e, n_panel=NP) - d0)):
+            slope = deep_slope(f)
+            assert abs(slope - (2.0 - Y)) <= 5e-3, (tag, Y, slope)
+
+    # --- 3. the identification L = psi_Y, two closed-form routes (F5).
+    worst_ident = 0.0
+    for Y in (0.5, 1.5):
+        for v in (0.5, 2.0):
+            L = cgmy_lk_exponent(C, G, M, Y, v, n_panel=NP)
+            psi = cgmy_exponent(C, G, M, Y, complex(v))
+            worst_ident = max(worst_ident, abs(L - psi))
+            assert abs(L - psi) <= 2e-11, (Y, v, abs(L - psi))
+            assembled = cgmy_lk_exponent_via_one_sided(C, G, M, Y, v)
+            # the same closed form reassembled from its one-sided pieces plus the
+            # far-field drift: algebraically identical, so this pins that the
+            # drift term is the one that closes the identification.
+            assert abs(assembled - psi) <= 1e-12, (Y, v, abs(assembled - psi))
+            assert abs(assembled - L) <= 2e-11, (Y, v, abs(assembled - L))
+    assert worst_ident <= 7e-12, worst_ident
+
+    # --- 4. Y = 1: the pole is the formula's, not the law's (F2).
+    for v in (0.5, 2.0):
+        L1 = cgmy_lk_exponent(C, G, M, 1.0, v, n_panel=NP)
+        assert abs(L1) < 1.0 and math.isfinite(L1.real) and math.isfinite(L1.imag), L1
+        err = {}
+        for delta in (1e-3, 1e-4):
+            for sgn in (1.0, -1.0):
+                err[(delta, sgn)] = abs(
+                    cgmy_exponent(C, G, M, 1.0 + sgn * delta, complex(v)) - L1)
+        for sgn in (1.0, -1.0):
+            # O(delta) and not O(1) or O(delta^2): a decade in delta buys a
+            # decade in the residual, from BOTH sides of the pole. `Gamma(-Y)`
+            # has a simple pole at Y = 1 whose residue the bracket cancels, and
+            # what is left is the law's honest integral.
+            ratio = err[(1e-3, sgn)] / err[(1e-4, sgn)]
+            assert 9.0 <= ratio <= 11.0, (v, sgn, ratio)
+    L1_half = cgmy_lk_exponent(C, G, M, 1.0, 0.5, n_panel=NP)
+    assert abs(L1_half - complex(-0.018727, -0.172975)) <= 2e-6, L1_half
+
+    # --- 5. G1, the complex-rate Gamma integral (F4).
+    worst_g1 = 0.0
+    for s in (0.5, 1.5):
+        for v in (0.5, 2.0):
+            for z in (M - 1j * v, G + 1j * v, complex(M)):
+                q = gamma_integral_complex_rate(s, z, n_panel=NP)
+                closed = math.gamma(s) * z ** (-s)
+                worst_g1 = max(worst_g1, abs(q - closed))
+                assert abs(q - closed) <= 5e-12, (s, z, abs(q - closed))
+    # the residual is the quadrature's, not the identity's: the real anchor
+    # (where mathlib's shipped real-rate lemma lives) is no better.
+    real_anchor = abs(gamma_integral_complex_rate(0.5, complex(M), n_panel=NP)
+                      - math.gamma(0.5) * M ** -0.5)
+    assert worst_g1 <= 5e-12 and real_anchor <= 2e-12, (worst_g1, real_anchor)
+
+    # --- 6. the IBP chains from G1 (F5): the two one-sided closed forms.
+    for v in (0.5, 2.0):
+        unc = cgmy_one_sided_exponent_integral(M, 0.5, v, n_panel=NP)
+        assert abs(unc - cgmy_exponent_one_sided(1.0, M, 0.5, complex(v))) <= 5e-12, v
+        comp = cgmy_one_sided_compensated_integral(M, 1.5, v, n_panel=NP)
+        assert abs(comp - cgmy_exponent_one_sided_compensated(
+            1.0, M, 1.5, complex(v))) <= 5e-12, v
+
+    # --- 7. the drift identity, three routes (F5, real rate).
+    minf_ref = {0.5: -0.116083169, 1.5: -1.641663919}
+    for Y in (0.5, 1.5):
+        whole = cgmy_paired_drift(C, G, M, Y, 0.0, n_panel=NP) + cgmy_far_drift(C, G, M, Y)
+        minf = cgmy_drift_identity_closed(C, G, M, Y)
+        assert abs(minf - minf_ref[Y]) <= 2e-9, (Y, minf)
+        assert abs(whole - minf) <= 1e-11, (Y, whole, minf)
+        if Y < 1.0:
+            # each leg converges on its own here, so G1 gives a third route.
+            via_g1 = C * (gamma_integral_complex_rate(1.0 - Y, complex(M), n_panel=NP)
+                          - gamma_integral_complex_rate(1.0 - Y, complex(G), n_panel=NP))
+            assert abs(via_g1.real - minf) <= 1e-11, (Y, via_g1, minf)
+
+    # --- 8. the CF ladder: exp is 1-Lipschitz on the left half-plane (F8).
+    ladder = {}
+    for Y in (0.5, 1.5):
+        v = 1.0
+        L = cgmy_lk_exponent(C, G, M, Y, v, n_panel=200)
+        max_re, worst_ratio = -1e9, 0.0
+        for n in range(1, 15):
+            A = cgmy_truncated_exponent(C, G, M, Y, 2.0 ** -n, v, n_panel=200)
+            max_re = max(max_re, A.real)          # must stay < 0 (F8)
+            gap = abs(A - L)
+            ratio = abs(cmath.exp(tau * A) - cmath.exp(tau * L)) / (tau * gap)
+            worst_ratio = max(worst_ratio, ratio)
+            if n == 14:
+                ladder[Y] = gap
+        assert max_re < 0.0, (Y, max_re)
+        assert worst_ratio <= 1.0, (Y, worst_ratio)   # no slower than the exponent
+    assert abs(ladder[0.5] - 8.1e-7) <= 4e-7, ladder       # eps^{2-Y} at Y = 1/2
+    assert abs(ladder[1.5] - 3.98e-2) <= 2e-2, ladder      # the Y -> 2 degeneration
+
+    # --- 9. the tightness proxy: monotone in n, finite at the limit (F3).
+    # mathlib's own estimate, `sup_n mu_n(|X| > R) <= (R/2) int (1 - Re phi_n)`,
+    # with `Re phi_n(t) = exp(tau Re A) cos(tau Im A)` -- dropping the cosine is
+    # the wrong bound and changes the numbers by up to a factor of 2.
+    grid = [j / 40.0 for j in range(41)]      # shared nodes for R = 2 and R = 5
+
+    def re_phi(Y, n, t):
+        A = (cgmy_lk_exponent(C, G, M, Y, t, n_panel=100) if n is None else
+             cgmy_truncated_exponent(C, G, M, Y, 2.0 ** -n, t, n_panel=100))
+        return math.exp(tau * A.real) * math.cos(tau * A.imag)
+
+    def tightness_proxy(Y, n, R):
+        k = int(round((2.0 / R) * 40))
+        vals = [1.0 - re_phi(Y, n, t) for t in grid[: k + 1]]
+        acc = vals[0] + vals[-1]
+        for i in range(1, k):
+            acc += (4 if i % 2 else 2) * vals[i]
+        return (R / 2.0) * 2.0 * acc * (1.0 / 40.0) / 3.0
+
+    limit_ref = {(0.5, 2.0): 0.00471, (0.5, 5.0): 0.00076,
+                 (1.5, 2.0): 0.10771, (1.5, 5.0): 0.01788}
+    for Y in (0.5, 1.5):
+        cache = {}
+        for n in (1, 3, 6, 9, 12):
+            cache[n] = {R: tightness_proxy(Y, n, R) for R in (2.0, 5.0)}
+        lim = {R: tightness_proxy(Y, None, R) for R in (2.0, 5.0)}
+        for R in (2.0, 5.0):
+            seq = [cache[n][R] for n in (1, 3, 6, 9, 12)]
+            # monotone in n and approaching the limit law's value from below.
+            # The approach is only `eps_n^{2-Y}`, so at Y = 3/2 the n = 12 rung
+            # is still 7% short -- which is the rate row 2 measured, seen again.
+            assert all(a <= b + 1e-9 for a, b in zip(seq, seq[1:])), (Y, R, seq)
+            assert seq[-1] <= lim[R] + 1e-9, (Y, R, seq[-1], lim[R])
+            assert abs(seq[-1] - lim[R]) <= 0.1 * lim[R], (Y, R, seq[-1], lim[R])
+            assert abs(seq[0] - lim[R]) > abs(seq[-1] - lim[R]), (Y, R, seq, lim[R])
+            assert abs(lim[R] - limit_ref[(Y, R)]) <= 5e-5, (Y, R, lim[R])
+        assert lim[5.0] < lim[2.0], (Y, lim)   # decreasing in R: that IS tightness
+
+    # --- 10. the Y -> 0 end against BRIEF_018's vgLaw corner (F7).
+    for v, ref in ((0.5, 0.037518), (2.0, 0.158082)):
+        prev = None
+        for Y in (1e-2, 1e-3):
+            ratio = abs(cgmy_lk_exponent(C, G, M, Y, v, n_panel=NP)
+                        - cgmy_zeroth_exponent(C, G, M, complex(v))) / Y
+            if prev is not None:
+                assert abs(ratio - prev) < 0.2 * prev, (v, Y, ratio, prev)  # settling
+            prev = ratio
+        assert abs(prev - ref) <= 2e-5, (v, prev, ref)
+
+    # --- 11. the five cheat classes, measured (M39-M43).
+    Y, v = 1.5, 1.0
+    L = cgmy_lk_exponent(C, G, M, Y, v, n_panel=NP)
+    psi = cgmy_exponent(C, G, M, Y, complex(v))
+    assert abs(L - psi) <= 2e-11, abs(L - psi)          # the reference residual
+    d0 = cgmy_paired_drift(C, G, M, Y, 0.0, n_panel=NP)
+    minf = cgmy_drift_identity_closed(C, G, M, Y)
+    seps = {
+        "M39 unpaired drift leg": None,                  # measured below: it DIVERGES
+        "M40 drift dropped": abs(v * d0),
+        "M41 missing m^inf": abs(v * minf),
+        "M42 flipped drift sign": abs(2.0 * v * d0),
+        "M43 Gamma(1-Y) -> Gamma(-Y)": abs(
+            v * C * (math.gamma(1.0 - Y) - math.gamma(-Y)) * (M ** (Y - 1.0) - G ** (Y - 1.0))),
+    }
+    for name in ("M40 drift dropped", "M41 missing m^inf",
+                 "M42 flipped drift sign", "M43 Gamma(1-Y) -> Gamma(-Y)"):
+        assert seps[name] >= 1.0, (name, seps[name])
+    assert abs(seps["M40 drift dropped"] - 1.641132) <= 2e-6, seps
+    assert abs(seps["M43 Gamma(1-Y) -> Gamma(-Y)"] - 2.736107) <= 2e-6, seps
+
+    def unpaired_drift_leg(eps):
+        """`C int_eps^1 x^{-Y} e^{-M x} dx` -- the M leg of the drift ALONE."""
+        f = lambda x: math.exp(-M * x) * x ** (-Y)
+        edges = [eps * 2.0 ** k for k in range(200) if eps * 2.0 ** k < 1.0]
+        edges.append(1.0)
+        return C * sum(_simpson(f, a, b, 200) for a, b in zip(edges, edges[1:]))
+
+    leg14 = unpaired_drift_leg(2.0 ** -14)
+    assert leg14 > 100.0, leg14                          # 122.47, and growing
+    slope14 = (math.log(unpaired_drift_leg(1e-6)) - math.log(unpaired_drift_leg(1e-8))) \
+        / (2.0 * math.log(10.0))     # log-log slope in eps: -0.5011, i.e. 1 - Y
+    assert abs(slope14 - (1.0 - Y)) <= 2e-2, slope14      # eps^{1-Y}: DIVERGENT
+    # ... while the paired integrand converges to the same d_0 the rows above use.
+    assert abs(cgmy_paired_drift(C, G, M, Y, 2.0 ** -14, n_panel=200) - d0) <= 0.05
 
 
 if __name__ == "__main__":

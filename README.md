@@ -240,7 +240,10 @@ analytic engine. Four `[VGLaw]` lint clauses
 `test_compound_poisson` with mutants M34–M38, pins 292 → 309,
 audit 256 → 268 — and the module stops where Stage 2b starts: no `ε ↓ 0`
 limit, no tightness, no identification. **Stage 2b is issued as BRIEF_020**
-(`ImprovedBS/CGMYLaw.lean`, with G1 inside it): the truncated exponent splits
+(`ImprovedBS/CGMYLaw.lean`, with G1 inside it) — its oracle half has landed
+(`test_cgmy_law` with mutants M39–M43; oracle 25 → 26, mutants 39 → 44) and its
+18 theorems are drafted with 11 proofs open, parked outside the library because
+the sorry-ratchet allows none: the truncated exponent splits
 *exactly* into a unit-ball-compensated integral and a paired drift
 `C∫_ε^1 x^{−Y}(e^{−Mx} − e^{−Gx})dx`, each absolutely dominated, so the limit is
 two monotone set-integral limits; the law is the Prokhorov + Lévy-continuity
