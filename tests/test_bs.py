@@ -57,8 +57,11 @@ from experiments.black_scholes import (
     cgmy_compensated_exponent,
     cgmy_drift_identity_closed,
     cgmy_far_drift,
+    cgmy_complex_mgf,
     cgmy_lk_exponent,
     cgmy_lk_exponent_via_one_sided,
+    cgmy_mgf,
+    cgmy_mgf_exponent,
     cgmy_one_sided_compensated_integral,
     cgmy_one_sided_exponent_integral,
     cgmy_paired_drift,
@@ -2049,6 +2052,293 @@ def test_cgmy_law():
     assert abs(slope14 - (1.0 - Y)) <= 2e-2, slope14      # eps^{1-Y}: DIVERGENT
     # ... while the paired integrand converges to the same d_0 the rows above use.
     assert abs(cgmy_paired_drift(C, G, M, Y, 2.0 ** -14, n_panel=200) - d0) <= 0.05
+
+
+
+def test_cgmy_strip():
+    r"""BRIEF_021 (numerical shadow of `ImprovedBS/CgmyStrip.lean`).
+
+    The strip at the law: the mgf line of BRIEF_020's composite exponent, the
+    Esscher tilt of the law itself, and the first pricing statement at
+    `cgmyLaw`. Three new primitives carry the rows -- `cgmy_mgf_exponent`
+    (the composite `B_0(-I u) + u d_0`, quadrature + analytic tail, finite on
+    all of `0 < Y < 2` INCLUDING `Y = 1`), `cgmy_mgf` (its exponential,
+    refusing the closed strip), `cgmy_complex_mgf` (the closed-form target of
+    the identity theorem). Every row compares two independently derived
+    routes:
+
+      1. COMPOSITE vs CLOSED FORM (F1): `cgmy_mgf_exponent` (quadrature at
+         `v = -I u`) against `cgmy_cumulant` (`Gamma(-Y)` closed form), six
+         strip points, both `Y = 1/2` and `Y = 3/2` -- 2.76e-12 / 2.66e-11,
+         imaginary part EXACTLY zero (the line's integrand is real). The
+         mgf-level row re-derives `exp(tau kappa)` from both sides.
+      2. THE LADDER (the `Tendsto`): `|A_eps(4) - composite|` along
+         `eps = 2^-n` at rate `2 - Y` (slopes 1.44 / 0.95 / 0.47 over the
+         `2^-4 ... 2^-11` window, errors 6.36e-7 / 1.22e-4 / 3.13e-2 at
+         `2^-14`), INCLUDING `Y = 1` where the ladder converges but the
+         closed form refuses (F2).
+      3. THE `Y = 1` MGF (F2): the composite is finite and symmetric about
+         `(M - G)/2 = 2.5`, pinned to 1e-9 -- the `Gamma(-1) = 0` trap lives
+         in `cgmy_cumulant` alone (canary below).
+      4. THE OPEN STRIP (F3/M48): at `u = M` the ladder is finite at both
+         ends of the witness -- `2.5442 -> 2.5745` at `Y = 1/2` (the residual
+         `0.129` gap to the closed form is the `x_max = 60` tail) and
+         `12.053 -> 16.510 -> 17.678` at `Y = 3/2`, whose gap to the closed
+         form shrinks at the `eps^{2-Y}` rate (6.016 -> 0.391 over the three
+         rungs) -- still 0.39 away at `2^-14`, three decades above the
+         `Y = 1/2` end. The one-sided near-zero jump integral
+         `int (e^{Mx} - 1) e^{-Mx} x^{-1-Y}` is finite exactly for `Y < 1`;
+         the statements keep `Ioo` and `cgmy_mgf` refuses the edge (M48).
+      5. THE COMPLEX STRIP (F5): the ladder against `psi(-I z)` at four strip
+         points (`5.09e-7 ... 1.61e-6` at `Y = 1/2`, `2.50e-2 ... 7.93e-2`
+         at `Y = 3/2`, rate `eps^{2-Y}`), and the composite against the same
+         closed form at five points including `z = 7 + i` (7.0e-13 / 9.3e-12)
+         -- the identity theorem's two sides.
+      6. F4's UNIFORM MOMENT: `sup_n M_eps(u')` over the whole ladder at
+         `u' = -4.9, 9.7`, against the closed-form limit -- the bounded
+         sequence the Markov tail below is multiplied by.
+      7. F4's MARKOV TAIL: `K^{1 - u'/u} sup M_eps(u')` at `u = 4`,
+         `u' = 9.7` -- `3.06e-3` at `K = 10^3`, `1.62e-7` at `K = 10^6`,
+         against the constant `57.602045` the `u' = u` mutant would leave
+         (the bound must DECAY in `K`).
+      8. THE DRIFT IDENTITY (item 3, F6/F7): at the solved `theta*`
+         (`g(theta*) = r - q` to 6.8e-16) the composite mgf ratio
+         `M(theta*+1)/M(theta*)` equals `exp(tau (r-q))` to 1.3e-14, and the
+         LADDER ratio tracks it at the `eps^{2-Y}` rate (worst over
+         `n = 4..14`: 1.38e-3 / 5.03e-3, monotone).
+      9. ITEM 5 AT THE TILT: the Carr-Madan call through `esscher_exponent`
+         at `theta*` (5.24603314 / 28.43523097 at horizon 1) inside the
+         model-free bounds `[0, 98.01986733]`, drift check
+         `psi^theta(-i) = r - q` -- measured independently of every mgf row.
+     10. WHY THE SKELETON LANDS AT THE TILT (F7): the RAW law's `kappa(1)`
+         (`-0.0907 / -1.3071`) gives `exp(tau kappa(1)) = 0.9776 / 0.7212`
+         against the forward `1.0075282`, and its raw call prices
+         `1.8367 / 0.6658` -- measurably not the tilted one.
+     11. THE PRICING LINE (F8): `L(v)` against `psi(v)` on
+         `v = u - i(alpha+1)` at `u = 0, 2, 10` (3.5e-12 / 5.7e-11, the
+         `|v| <= 10` region where the `eps = 0` series is valid), ladder at
+         `eps = 2^-8, 2^-12, 2^-16`.
+     12. THE `Y -> 0` CORNER (against BRIEF_018's `vg_mgf`): 
+         `|kappa_Y - kappa_VG| / Y` shrinks with `Y` at `u = 0.5, 4` --
+         `0.033605 -> 0.033309`, `0.059296 -> 0.058772`.
+
+    Canary: the `cgmy_mgf` refusal at `u in {-G, M, M + 1}` (M48) and
+    `cgmy_cumulant`'s `Y = 1` refusal (F2) are asserted as `ValueError`s --
+    the guards that keep rows 3/4 honest -- plus F2's positive side: the mgf
+    itself works AT `Y = 1`.
+    """
+    C, G, M, tau, r, q = 0.5, 5.0, 10.0, 0.25, 0.05, 0.02
+    S, K, ALPHA, NP = 100.0, 110.0, 1.5, 400
+    six_u = (-4.5, -2.0, 0.5, 4.0, 7.0, 9.5)
+
+    # --- 1. composite vs closed form on the strip (F1 / cgmyLaw_mgf).
+    for Y, expo_tol, mgf_tol in ((0.5, 3.5e-12, 3.0e-12), (1.5, 3.5e-11, 1.0e-9)):
+        worst, mgf_worst = 0.0, 0.0
+        for u in six_u:
+            d = cgmy_mgf_exponent(C, G, M, Y, u) - cgmy_cumulant(C, G, M, Y, u)
+            assert d.imag == 0.0, (Y, u, d.imag)   # the line is real, exactly
+            worst = max(worst, abs(d))
+            m = cgmy_mgf(C, G, M, Y, tau, u)
+            mgf_worst = max(mgf_worst, abs(m - math.exp(tau * cgmy_cumulant(C, G, M, Y, u))))
+        assert worst <= expo_tol, (Y, worst)       # measured 2.7571e-12 / 2.6567e-11
+        assert mgf_worst <= mgf_tol, (Y, mgf_worst)
+
+    # --- 2. the ladder's Tendsto at rate 2 - Y, Y = 1 included (F2).
+    for Y in (0.5, 1.0, 1.5):
+        comp = cgmy_mgf_exponent(C, G, M, Y, 4.0)
+        errs = {n: abs(cgmy_truncated_exponent(C, G, M, Y, 2.0 ** -n, complex(0, -4.0)) - comp)
+                for n in range(4, 15)}
+        slope = (math.log(errs[4]) - math.log(errs[11])) / (7.0 * math.log(2.0))
+        assert abs(slope - (2.0 - Y)) <= 6e-2, (Y, slope)   # 1.4443 / 0.9541 / 0.4701
+        for n in range(4, 14):
+            assert errs[n + 1] < errs[n], (Y, n, errs[n], errs[n + 1])
+        assert errs[14] <= {0.5: 6.4e-7, 1.0: 1.3e-4, 1.5: 3.2e-2}[Y], (Y, errs[14])
+
+    # --- 3. Y = 1: finite and symmetric where the closed form refuses (F2).
+    y1 = {u: cgmy_mgf_exponent(C, G, M, 1.0, u) for u in six_u}
+    for u, v in y1.items():
+        assert v.imag == 0.0, (u, v.imag)
+    for u, pin in ((-4.5, 3.6777706672), (-2.0, 1.0208380857),
+                   (0.5, -0.1548269490), (4.0, -0.2737312404),
+                   (7.0, 1.0208380857), (9.5, 3.6777706672)):
+        assert abs(y1[u].real - pin) <= 1e-9, (u, y1[u].real, pin)
+    assert abs(y1[-4.5].real - y1[9.5].real) <= 1e-9   # symmetric about (M-G)/2
+    assert abs(y1[-2.0].real - y1[7.0].real) <= 1e-9
+    # and the mgf works at Y = 1 too -- only the Gamma(-Y) closed form is out
+    m1 = cgmy_mgf(C, G, M, 1.0, tau, 4.0)
+    assert math.isfinite(m1) and abs(m1 - math.exp(tau * y1[4.0].real)) <= 1e-12
+
+    # --- 4. the edge of the strip: finite both ways, gap at rate eps^{2-Y} (F3/M48).
+    # Y = 1/2: converges; the residual 0.129 to the closed form is the
+    # x_max = 60 tail, the same on both rungs (2^-6 and 2^-14).
+    a6 = cgmy_truncated_exponent(C, G, M, 0.5, 2.0 ** -6, complex(0, -M)).real
+    a14 = cgmy_truncated_exponent(C, G, M, 0.5, 2.0 ** -14, complex(0, -M)).real
+    closed_half = cgmy_cumulant(C, G, M, 0.5, M)
+    assert 2.54 < a6 < 2.55 and 2.57 < a14 < 2.58, (a6, a14)
+    assert a6 <= a14 and 0.12 < closed_half - a14 < 0.14, closed_half - a14
+    assert abs(math.exp(tau * a14) - 1.903381) <= 2e-6
+    assert abs(math.exp(tau * closed_half) - 1.965818) <= 2e-6
+    # Y = 3/2: climbs 12.053 -> 16.510 -> 17.678 towards the closed form
+    # 18.0691 with gap 6.016 -> 1.559 -> 0.391 (rate eps^{2-Y} = eps^{1/2}:
+    # x4 per 16x eps step) -- still 0.39 away at 2^-14, three decades above
+    # the Y = 1/2 end. The mgf-level numbers are the M48 documentation row.
+    closed_three = cgmy_cumulant(C, G, M, 1.5, M)
+    rungs = [cgmy_truncated_exponent(C, G, M, 1.5, 2.0 ** -n, complex(0, -M)).real
+             for n in (6, 10, 14)]
+    gaps = [closed_three - a for a in rungs]
+    assert abs(rungs[0] - 12.053) <= 5e-3 and abs(rungs[2] - 17.678) <= 5e-3, rungs
+    assert rungs[0] < rungs[1] < rungs[2] < closed_three, (rungs, closed_three)
+    assert 5.9 < gaps[0] < 6.1 and 0.38 < gaps[2] < 0.40, gaps
+    assert 14.0 < gaps[0] / gaps[2] < 17.0, gaps     # the 16 = (2^4)^{2-Y}
+    assert abs(math.exp(tau * rungs[2]) - 83.051856) <= 2e-6
+    assert abs(math.exp(tau * closed_three) - 91.586680) <= 2e-6
+    assert math.exp(tau * closed_three) - math.exp(tau * rungs[2]) > 8.0
+
+    # --- 5. the complex strip: ladder and composite against psi(-I z) (F5).
+    zs = (complex(0.5, 0.5), complex(0.5, 2.0), complex(4.0, 0.5), complex(4.0, -1.5))
+    for Y, lo, hi in ((0.5, 4e-7, 1.7e-6), (1.5, 2.4e-2, 8.0e-2)):
+        errs = [abs(cgmy_truncated_exponent(C, G, M, Y, 2.0 ** -14, -1j * z)
+                    - cgmy_exponent(C, G, M, Y, -1j * z)) for z in zs]
+        assert min(errs) >= lo and max(errs) <= hi, (Y, errs)
+    for Y, tol in ((0.5, 8e-13), (1.5, 1.0e-11)):
+        worst = 0.0
+        for z in zs + (complex(7.0, 1.0),):
+            worst = max(worst, abs(cgmy_mgf_exponent(C, G, M, Y, z)
+                                   - cgmy_exponent(C, G, M, Y, -1j * z)))
+        assert worst <= tol, (Y, worst)   # 7.0104e-13 / 9.2841e-12
+    # the closed-form mgf target agrees with the composite on the real axis,
+    # and is real there -- two primitives, one value (M47 lives in the complex
+    # line's conjugate flip, killed below by the z-point).
+    for Y in (0.5, 1.5):
+        z0 = cgmy_complex_mgf(C, G, M, Y, tau, 4.0)
+        assert z0.imag == 0.0 and abs(z0 - cgmy_mgf(C, G, M, Y, tau, 4.0)) <= 1e-9, (Y, z0)
+    zc = cgmy_complex_mgf(C, G, M, 1.5, tau, complex(4.0, 0.5))
+    assert abs(zc - cmath.exp(tau * cgmy_exponent(C, G, M, 1.5, -1j * complex(4.0, 0.5)))) <= 1e-9
+    assert abs(zc - cmath.exp(tau * cgmy_exponent(C, G, M, 1.5, 1j * complex(4.0, 0.5)))) > 1.0
+
+    # --- 6. F4's uniform moment: sup over the ladder, against the closed limit.
+    for Y, sup_half, sup_nine, lim_half, lim_nine in (
+            (0.5, 1.718594, 1.569021, 1.718607, 1.569024),
+            (1.5, 70.850003, 52.695428, 77.889934, 57.602045)):
+        for u_prime, sup_measured, lim_measured in ((-4.9, sup_half, lim_half),
+                                                    (9.7, sup_nine, lim_nine)):
+            sup = max(math.exp(tau * cgmy_truncated_exponent(
+                C, G, M, Y, 2.0 ** -n, complex(0, -u_prime)).real) for n in range(15))
+            lim = math.exp(tau * cgmy_cumulant(C, G, M, Y, u_prime))
+            assert abs(sup - sup_measured) <= 1e-4, (Y, u_prime, sup)
+            assert abs(lim - lim_measured) <= 1e-4, (Y, u_prime, lim)
+            assert sup <= lim, (Y, u_prime, sup, lim)   # bounded, from below
+
+    # --- 7. F4's Markov tail: decays in K, against the u' = u constant.
+    u, u_prime = 4.0, 9.7
+    sup = math.exp(tau * cgmy_cumulant(C, G, M, 1.5, u_prime))
+    assert abs(sup - 57.602045) <= 1e-4
+    b3 = (10.0 ** 3) ** (1.0 - u_prime / u) * sup
+    b6 = (10.0 ** 6) ** (1.0 - u_prime / u) * sup
+    assert 3.0e-3 <= b3 <= 3.1e-3, b3          # 3.0579e-3 (measured 3.06e-3)
+    assert 1.5e-7 <= b6 <= 1.7e-7, b6          # 1.6235e-7 (measured 1.62e-7)
+    assert b6 < b3 < sup / 100.0               # decays; the u'=u mutant's is
+    assert sup > 57.0                           # the CONSTANT 57.602045
+
+    # --- 8. the drift identity at the solved theta (item 3, F6/F7).
+    target = math.exp(tau * (r - q))
+    for Y, th_pin, ratio_tol, ladder_tol in ((0.5, 2.689658466, 1.5e-14, 1.4e-3),
+                                             (1.5, 2.046326895, 1.5e-14, 5.1e-3)):
+        th = esscher_solve(C, G, M, Y, r - q)
+        assert th is not None and abs(th - th_pin) <= 1e-6, (Y, th)
+        assert 1.0 < M - th and -G < th, (Y, th)   # the numeraire, cited
+        assert abs(esscher_drift_map(C, G, M, Y, th) - (r - q)) <= 1e-14, (Y,)
+        ratio = cgmy_mgf(C, G, M, Y, tau, th + 1.0) / cgmy_mgf(C, G, M, Y, tau, th)
+        assert abs(ratio - target) <= ratio_tol, (Y, ratio)   # 1.33e-14 / 1.35e-14
+        # the ladder ratio, worst over n = 4..14, monotone at rate 2 - Y
+        errs = {}
+        for n in range(4, 15):
+            e = 2.0 ** -n
+            m1 = math.exp(tau * cgmy_truncated_exponent(C, G, M, Y, e, complex(0, -(th + 1.0))).real)
+            m0 = math.exp(tau * cgmy_truncated_exponent(C, G, M, Y, e, complex(0, -th)).real)
+            errs[n] = abs(m1 / m0 - target)
+        assert max(errs.values()) <= ladder_tol, (Y, max(errs.values()))
+        for n in range(4, 14):
+            assert errs[n + 1] < errs[n], (Y, n)
+
+    # --- 9. item 5 at the tilted law: Carr-Madan inside the bounds (F6/F7).
+    for Y, call_pin in ((0.5, 5.24603314), (1.5, 28.43523097)):
+        th = esscher_solve(C, G, M, Y, r - q)
+        expf = lambda v, th=th: esscher_exponent(C, G, M, Y, th, v)  # noqa: E731
+        call = carr_madan_by_exponent(expf, S, K, 1.0, r, q,
+                                      alpha=ALPHA, u_max=2000.0, n=80000)
+        lower = max(S * math.exp(-q) - K * math.exp(-r), 0.0)
+        upper = S * math.exp(-q)
+        assert abs(upper - 98.01986733) <= 1e-8, upper
+        assert abs(call - call_pin) <= 1e-6, (Y, call)      # 5.24603314 / 28.43523097
+        assert lower <= call <= upper, (Y, call, lower, upper)
+        # the drift check, measured through the tilted exponent itself
+        z = esscher_exponent(C, G, M, Y, th, complex(0, -1))
+        assert abs(z.imag) <= 1e-15, (Y, z.imag)
+        assert abs(z.real - (r - q)) <= 1e-14, (Y, z.real)  # 6.8e-16 / 6.2e-15
+
+    # --- 10. the RAW law is measurably not risk-neutral (F7): why the
+    # skeleton's item 3 lands at cgmyTilt, not at cgmyLaw.
+    for Y, k1_pin, e1_pin, call_pin in ((0.5, -0.090650566, 0.977592227, 1.83672700),
+                                        (1.5, -1.307099676, 0.721246064, 0.66582913)):
+        k1 = cgmy_cumulant(C, G, M, Y, 1.0)
+        e1 = math.exp(tau * k1)
+        assert abs(k1 - k1_pin) <= 1e-9, (Y, k1)
+        assert abs(e1 - e1_pin) <= 1e-9, (Y, e1)
+        assert abs(e1 - target) > 0.02, (Y, e1)   # 0.9776 / 0.7212 vs 1.0075282
+        raw = carr_madan_by_exponent(lambda v, Y=Y: cgmy_exponent(C, G, M, Y, v),
+                                     S, K, 1.0, r, q,
+                                     alpha=ALPHA, u_max=2000.0, n=80000)
+        assert abs(raw - call_pin) <= 1e-6, (Y, raw)
+
+    # --- 11. the pricing line: composite and ladder against psi, |v| <= 10 (F8).
+    for Y, tol in ((0.5, 5e-12), (1.5, 7e-11)):
+        worst = 0.0
+        for uu in (0.0, 2.0, 10.0):
+            v = complex(uu, -(ALPHA + 1.0))
+            worst = max(worst, abs(cgmy_lk_exponent(C, G, M, Y, v)
+                                   - cgmy_exponent(C, G, M, Y, v)))
+        assert worst <= tol, (Y, worst)          # 3.5292e-12 / 5.7018e-11
+    for Y, caps in ((0.5, (8.6e-3, 1.4e-4, 2.2e-6)),
+                    (1.5, (6.6e0, 1.7e0, 4.2e-1))):
+        prev = None
+        for n, cap in zip((8, 12, 16), caps):
+            errs = [abs(cgmy_truncated_exponent(C, G, M, Y, 2.0 ** -n, complex(uu, -(ALPHA + 1.0)))
+                        - cgmy_exponent(C, G, M, Y, complex(uu, -(ALPHA + 1.0))))
+                    for uu in (0.0, 2.0, 10.0)]
+            assert max(errs) <= cap, (Y, n, max(errs))
+            if prev is not None:
+                assert max(errs) < prev, (Y, n)
+            prev = max(errs)
+
+    # --- 12. the Y -> 0 corner against BRIEF_018's vgLaw (the O(Y) claim).
+    for u, pins in ((0.5, ((0.033605, 0.008355), (0.033309, 0.008282))),
+                    (4.0, ((0.059296, 0.014681), (0.058772, 0.014552)))):
+        expo_r, mgf_r = [], []
+        for Y, (e_pin, m_pin) in zip((1e-2, 1e-3), pins):
+            k_y = cgmy_cumulant(C, G, M, Y, u)
+            k_v = vg_cumulant(C, G, M, u)
+            e_r = abs(k_y - k_v) / Y
+            m_r = abs(math.exp(tau * k_y) - math.exp(tau * k_v)) / Y
+            assert abs(e_r - e_pin) <= 2e-5, (u, Y, e_r, e_pin)
+            assert abs(m_r - m_pin) <= 2e-5, (u, Y, m_r, m_pin)
+            expo_r.append(e_r)
+            mgf_r.append(m_r)
+        assert expo_r[1] < expo_r[0] and mgf_r[1] < mgf_r[0], (u, expo_r, mgf_r)
+        assert expo_r[0] - expo_r[1] < 1e-3, (u, expo_r)   # O(Y): converging
+
+    # --- canary: the strip refusal and the Y = 1 trap, both as ValueErrors.
+    for u in (-G, M, M + 1.0):
+        try:
+            cgmy_mgf(C, G, M, 0.5, tau, u)
+            raise AssertionError(f"cgmy_mgf must refuse u = {u}")
+        except ValueError:
+            pass
+    try:
+        cgmy_cumulant(C, G, M, 1.0, 0.5)
+        raise AssertionError("cgmy_cumulant must refuse Y = 1")
+    except ValueError:
+        pass
 
 
 if __name__ == "__main__":

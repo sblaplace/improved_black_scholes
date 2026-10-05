@@ -1888,3 +1888,81 @@ def cgmy_lk_exponent_via_one_sided(C: float, G: float, M: float, Y: float, v: fl
     compensated = (cgmy_exponent_one_sided_compensated(C, M, Y, complex(v))
                    + cgmy_exponent_one_sided_compensated(C, G, Y, complex(-v)))
     return compensated + 1j * v * cgmy_drift_identity_closed(C, G, M, Y)
+
+
+# ---------------------------------------------------------------------------
+# BRIEF_021: the strip at the law -- the mgf line of the composite exponent.
+#
+# BRIEF_020 landed the law and its CF at real `v`; the mgf is the line
+# `v = -I u`, where the landed truncated exponent `A_eps(-I u)` becomes the
+# REAL exponential integral `int_{|x| >= eps} (e^{u x} - 1) nu` with no `I`
+# anywhere. The composite below is that line's `eps -> 0` limit,
+#
+#     kappa(u) = B_0(-I u) + u d_0,
+#
+# quadrature plus analytic tail (the BRIEF_020 route at the new argument), and
+# it is finite for ALL `0 < Y < 2` INCLUDING `Y = 1`, where the closed form
+# `cgmyCumulant = C Gamma(-Y) [...]` refuses (`Gamma(-1)` trap, F2). On the
+# open strip `-G < u < M` it equals `cgmy_cumulant` for `Y != 1` to 2.8e-12 /
+# 2.7e-11 (route-check row 1). At `u = M` the ladder's gap to the closed form
+# is the `x_max = 60` tail for `Y < 1` (0.129) and the slow `eps^{2-Y}` rate
+# for `Y = 3/2` (gap 0.391 at `eps = 2^-14`, closing x4 per 16x eps) -- and
+# every statement keeps the strip OPEN because §1's sandwich needs a stricter
+# moment `u'` deeper in the strip (F3: the edge is outside the proof's reach,
+# not a measured falsehood), with mutant M48 as its refusal row.
+
+
+def cgmy_mgf_exponent(
+    C: float, G: float, M: float, Y: float, u: complex, n_panel: int = 400, **quad
+) -> complex:
+    """`B_0(-I u) + u d_0` -- the composite L-K exponent on the mgf line.
+
+    The `u * d_zero` term is `i v d_0` at `v = -I u` (`i * (-I u) = u`) and
+    it is load-bearing: dropping it (mutant M45) displaces the composite by
+    `|u d_0| = 6.564529` at `(Y, u) = (3/2, 4)` where `d_0 = -1.641132`.
+    Reflecting the strip point instead (mutant M44, `u -> -u`) evaluates the
+    composite at the MIRRORED point, where the closed cumulant sits
+    `|kappa(4) - kappa(-4)| = 13.808910` away at `Y = 3/2`; row 1 sees the
+    corrupted value 0.679853 off target.
+
+    The imaginary part is EXACTLY zero: at `v = -I u` the weight
+    `e^{i v x} - 1 - i v x 1_{|x|<=1}` is the real expression
+    `e^{u x} - 1 - u x 1_{|x|<=1}`, and every quadrature node stays on the
+    real axis (row 1 asserts it as `diff.imag == 0.0`, not a tolerance).
+    """
+    b_zero = cgmy_compensated_exponent(C, G, M, Y, 0.0, -1j * u,
+                                       n_panel=n_panel, **quad)
+    d_zero = cgmy_paired_drift(C, G, M, Y, 0.0, n_panel=n_panel)
+    return b_zero + u * d_zero
+
+
+def cgmy_mgf(C: float, G: float, M: float, Y: float, tau: float, u: float) -> float:
+    """`exp(tau * kappa(u))` -- the mgf of `cgmyLaw` on the open strip
+    (Lean `cgmyLaw_mgf`), through the composite above.
+
+    The strip is enforced STRICTLY (F3, mutant M48): §1's sandwich proves
+    the open strip only (its Markov tail needs a stricter interior moment),
+    so this primitive's contract refuses the closed strip -- asserted as
+    `ValueError` at `u in {-G, M, M + 1}`, the canary that keeps R2's `Ioo`
+    honest. The refusal documents scope, not a measured falsehood: the
+    PAIRED ladder at `u = M` closes on the closed form at rate `eps^{2-Y}`
+    (row 4), while each leg ALONE is finite exactly for `Y < 1`.
+    `Y = 1` needs no hypothesis here: the composite has no `Gamma(-Y)`.
+    """
+    if not (-G < u < M):
+        raise ValueError("cgmy_mgf needs -G < u < M (the open strip)")
+    return math.exp(tau * cgmy_mgf_exponent(C, G, M, Y, u).real)
+
+
+def cgmy_complex_mgf(
+    C: float, G: float, M: float, Y: float, tau: float, z: complex
+) -> complex:
+    """`exp(tau * psi(-I z))` -- the complex-mgf target of F5 (Lean
+    `complexMGF_cgmyLaw`), through the CLOSED form `cgmy_exponent`.
+
+    On the open strip `-G < z.re < M` both bases `M - (-I z)` and
+    `G + (-I z)` sit in the right half-plane (the branch is off its cut), and
+    the conjugate line (mutant M47, `psi(-I z) -> psi(I z)`) displaces the
+    value by 21.370699 at `z = 4 + 0.5i`, `tau = 0.25`.
+    """
+    return cmath.exp(tau * cgmy_exponent(C, G, M, Y, -1j * z))
