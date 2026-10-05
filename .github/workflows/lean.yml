@@ -484,6 +484,29 @@ jobs:
           #print axioms BSM.cgmyOneSidedCompensated_eq
           #print axioms BSM.cgmyLKExponent_eq_cgmyExponent
           #print axioms BSM.charFun_cgmyLaw_eq_cgmyCharFactor
+          #print axioms BSM.mgf_conv
+          #print axioms BSM.mgf_convPow
+          #print axioms BSM.cgmyJumpLaw_exp_integrable
+          #print axioms BSM.cgmyCpProbability_mgf
+          #print axioms BSM.cgmyMgfTruncatedExponent_decomp
+          #print axioms BSM.cgmyMgfTruncatedExponent_tendsto
+          #print axioms BSM.cgmyMgfOneSided_eq
+          #print axioms BSM.cgmyMgf_uniformBound
+          #print axioms BSM.cgmyMgf_markovTail
+          #print axioms BSM.cgmyLaw_exp_integrable
+          #print axioms BSM.openStrip_subset_integrableExpSet
+          #print axioms BSM.cgmyLaw_mgf
+          #print axioms BSM.cgmyStrip_target_analyticOnNhd
+          #print axioms BSM.complexMGF_cgmyLaw
+          #print axioms BSM.contourCharFun_cgmyLaw
+          #print axioms BSM.cgmyTilt_isProbabilityMeasure
+          #print axioms BSM.cgmy_tilt_numeraire
+          #print axioms BSM.cgmy_tilt_mgf
+          #print axioms BSM.cgmy_drift_identity
+          #print axioms BSM.cgmy_modelFree_parity
+          #print axioms BSM.cgmy_modelFree_call_bounds
+          #print axioms BSM.cgmy_modelFree_put_bounds
+          #print axioms BSM.cgmy_carrMadan_eq_modelFreeCall
           LEAN
           lake env lean /tmp/Audit.lean 2>&1 | tee lean-audit.log
           if grep -q sorryAx lean-audit.log; then
