@@ -13,6 +13,7 @@ import ImprovedBS.ParetoWitness
 import ImprovedBS.VGLaw
 import ImprovedBS.CompoundPoisson
 import ImprovedBS.CGMYLaw
+import ImprovedBS.CgmyStrip
 
 /-!
 # ImprovedBS
