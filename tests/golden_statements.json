@@ -1562,6 +1562,11 @@
       "kind": "theorem",
       "pin": "theorem cgmyCpProbability_isTight (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G) (hM : 0 < M) (hY : 0 < Y) (hY₂ : Y < 2) (τ : ℝ≥0) : IsTightMeasureSet (Set.range (fun n : ℕ => (cgmyCpProbability C G M Y τ ((2 : ℝ≥0)⁻¹ ^ n) hC hG hM hY (pow_pos (inv_pos.mpr (by norm_num : (0 : ℝ≥0) < 2)) n) : Measure ℝ)))"
     },
+    "BSM.cgmyCpProbability_mgf": {
+      "file": "ImprovedBS/CgmyStrip.lean",
+      "kind": "theorem",
+      "pin": "theorem cgmyCpProbability_mgf (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G) (hM : 0 < M) (hY : 0 < Y) (τ ε : ℝ≥0) (hε : 0 < ε) (u : ℝ) (hu₁ : -G < u) (hu₂ : u < M) : mgf id (cgmyCpProbability C G M Y τ ε hC hG hM hY hε : Measure ℝ) u = Real.exp ((τ : ℝ) * (cgmyTruncatedExponent C G M Y ε (-(Complex.I * u))).re)"
+    },
     "BSM.cgmyCpProbability_tendsto_cgmyLaw": {
       "file": "ImprovedBS/CGMYLaw.lean",
       "kind": "theorem",
@@ -1672,6 +1677,11 @@
       "kind": "def",
       "pin": "noncomputable def cgmyJumpLaw (C G M Y : ℝ) (ε : ℝ≥0) : Measure ℝ := (cgmyJumpMeasure C G M Y ε Set.univ)⁻¹ • cgmyJumpMeasure C G M Y ε"
     },
+    "BSM.cgmyJumpLaw_exp_integrable": {
+      "file": "ImprovedBS/CgmyStrip.lean",
+      "kind": "theorem",
+      "pin": "theorem cgmyJumpLaw_exp_integrable (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G) (hM : 0 < M) (hY : 0 < Y) (ε : ℝ≥0) (hε : 0 < ε) (u : ℝ) (hu₁ : -G < u) (hu₂ : u < M) : Integrable (fun x : ℝ => Real.exp (u * x)) (cgmyJumpLaw C G M Y ε)"
+    },
     "BSM.cgmyJumpLaw_isProbabilityMeasure": {
       "file": "ImprovedBS/CompoundPoisson.lean",
       "kind": "theorem",
@@ -1722,6 +1732,16 @@
       "kind": "theorem",
       "pin": "theorem cgmyLaw_exists (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G) (hM : 0 < M) (hY : 0 < Y) (hY₂ : Y < 2) (τ : ℝ≥0) : ∃ μ₀ : ProbabilityMeasure ℝ, Tendsto (fun n : ℕ => cgmyCpProbability C G M Y τ ((2 : ℝ≥0)⁻¹ ^ n) hC hG hM hY (pow_pos (inv_pos.mpr (by norm_num : (0 : ℝ≥0) < 2)) n)) atTop (𝓝 μ₀)"
     },
+    "BSM.cgmyLaw_exp_integrable": {
+      "file": "ImprovedBS/CgmyStrip.lean",
+      "kind": "theorem",
+      "pin": "theorem cgmyLaw_exp_integrable (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G) (hM : 0 < M) (hY : 0 < Y) (hY₂ : Y < 2) (hY₁ : Y ≠ 1) (τ : ℝ≥0) (u : ℝ) (hu₁ : -G < u) (hu₂ : u < M) : Integrable (fun x : ℝ => Real.exp (u * x)) (cgmyLaw C G M Y τ hC hG hM hY hY₂ : Measure ℝ)"
+    },
+    "BSM.cgmyLaw_mgf": {
+      "file": "ImprovedBS/CgmyStrip.lean",
+      "kind": "theorem",
+      "pin": "theorem cgmyLaw_mgf (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G) (hM : 0 < M) (hY : 0 < Y) (hY₂ : Y < 2) (hY₁ : Y ≠ 1) (τ : ℝ≥0) (u : ℝ) (h₁ : -G < u) (h₂ : u < M) : mgf id (cgmyLaw C G M Y τ hC hG hM hY hY₂) u = Real.exp ((τ : ℝ) * cgmyCumulant C G M Y u)"
+    },
     "BSM.cgmyLaw_unique": {
       "file": "ImprovedBS/CGMYLaw.lean",
       "kind": "theorem",
@@ -1731,6 +1751,36 @@
       "file": "ImprovedBS/CGMY.lean",
       "kind": "def",
       "pin": "def cgmyLevyDensity (C G M Y : ℝ) (x : ℝ) : ℝ := C * Real.exp (-(if 0 < x then M else G) * |x|) * |x| ^ (-1 - Y)"
+    },
+    "BSM.cgmyMgfOneSided_eq": {
+      "file": "ImprovedBS/CgmyStrip.lean",
+      "kind": "theorem",
+      "pin": "theorem cgmyMgfOneSided_eq (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G) (hM : 0 < M) (hY : 0 < Y) (hY₁ : Y ≠ 1) (u : ℝ) (h₁ : -G < u) (h₂ : u < M) : (∫ x in {x : ℝ | (0 : ℝ) ≤ x}, (Real.exp (u * x) - 1 - Set.indicator (Icc 0 1) (fun y => u * y) x) * (cgmyLevyDensity C G M Y x : ℝ)) + (∫ x in {x : ℝ | x < 0}, (Real.exp (u * x) - 1 - Set.indicator (Icc (-1) 0) (fun y => u * y) x) * (cgmyLevyDensity C G M Y x : ℝ)) = cgmyCumulant C G M Y u - u * (cgmyDriftIdentity C G M Y)"
+    },
+    "BSM.cgmyMgfTruncatedExponent": {
+      "file": "ImprovedBS/CgmyStrip.lean",
+      "kind": "def",
+      "pin": "noncomputable def cgmyMgfTruncatedExponent (C G M Y : ℝ) (ε : ℝ≥0) (u : ℝ) : ℝ := (cgmyTruncatedExponent C G M Y ε (-(Complex.I * u))).re"
+    },
+    "BSM.cgmyMgfTruncatedExponent_decomp": {
+      "file": "ImprovedBS/CgmyStrip.lean",
+      "kind": "theorem",
+      "pin": "theorem cgmyMgfTruncatedExponent_decomp (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G) (hM : 0 < M) (hY : 0 < Y) (ε : ℝ≥0) (hε : 0 < ε) (hε₁ : ε ≤ 1) (u : ℝ) : cgmyMgfTruncatedExponent C G M Y ε u = (∫ x in {x | (ε : ℝ) ≤ |x|}, (Real.exp (u * x) - 1 - Set.indicator (Icc (-1) 1) (fun y => u * y) x) * (cgmyLevyDensity C G M Y x : ℝ)) + u * (∫ x in Ioc (ε : ℝ) 1, cgmyDriftIntegrand C G M Y x)"
+    },
+    "BSM.cgmyMgfTruncatedExponent_tendsto": {
+      "file": "ImprovedBS/CgmyStrip.lean",
+      "kind": "theorem",
+      "pin": "theorem cgmyMgfTruncatedExponent_tendsto (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G) (hM : 0 < M) (hY : 0 < Y) (u : ℝ) (h₁ : -G < u) (h₂ : u < M) : Tendsto (fun n : ℕ => cgmyMgfTruncatedExponent C G M Y ((2 : ℝ≥0)⁻¹ ^ n) u) atTop (𝓝 (cgmyCumulant C G M Y u))"
+    },
+    "BSM.cgmyMgf_markovTail": {
+      "file": "ImprovedBS/CgmyStrip.lean",
+      "kind": "theorem",
+      "pin": "theorem cgmyMgf_markovTail (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G) (hM : 0 < M) (hY : 0 < Y) (τ : ℝ≥0) (u u' K : ℝ) (h₁ : -G < u) (h₂ : u < M) (h₁' : -G < u') (h₂' : u' < M) (huu' : u < u') (hK : 0 < K) : ∃ c : ℝ, ∀ n : ℕ, volume {x : ℝ | K ≤ Real.exp (u * x)} ≤ c / K ^ (u' - u)"
+    },
+    "BSM.cgmyMgf_uniformBound": {
+      "file": "ImprovedBS/CgmyStrip.lean",
+      "kind": "theorem",
+      "pin": "theorem cgmyMgf_uniformBound (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G) (hM : 0 < M) (hY : 0 < Y) (τ : ℝ≥0) (u u' : ℝ) (h₁ : -G < u') (h₂ : u' < M) (huu' : u ≤ u') (hY₁ : Y ≠ 1) : ∃ B : ℝ, ∀ n : ℕ, cgmyMgfTruncatedExponent C G M Y ((2 : ℝ≥0)⁻¹ ^ n) u ≤ B"
     },
     "BSM.cgmyOldContour_base_right_re": {
       "file": "ImprovedBS/CGMY.lean",
@@ -1747,6 +1797,11 @@
       "kind": "theorem",
       "pin": "theorem cgmyOneSidedExponent_eq (a Y : ℝ) (v : ℝ) (ha : 0 < a) (hY : 0 < Y) (hY₁ : Y < 1) : ∫ x in Ioi (0 : ℝ), (Complex.exp ((v : ℂ) * (x : ℂ) * I) - 1) * ((Real.exp (-a * x) * x ^ (-1 - Y) : ℝ) : ℂ) = (Real.Gamma (-Y) : ℂ) * (((a : ℂ) - I * (v : ℂ)) ^ (Y : ℂ) - (a : ℂ) ^ (Y : ℂ))"
     },
+    "BSM.cgmyStrip_target_analyticOnNhd": {
+      "file": "ImprovedBS/CgmyStrip.lean",
+      "kind": "theorem",
+      "pin": "theorem cgmyStrip_target_analyticOnNhd (C G M Y τ : ℝ) (hG : 0 < G) (hM : 0 < M) (hY : 0 < Y) (hcontour : ∀ z : ℂ, -G < z.re → z.re < M → HasStrictDerivAt id 0 z) : AnalyticOnNhd ℂ (fun z : ℂ => Complex.exp (τ * cgmyExponent C G M Y (-(Complex.I * z)))) {z : ℂ | -G < z.re ∧ z.re < M}"
+    },
     "BSM.cgmyTemperedConstant": {
       "file": "ImprovedBS/CGMY.lean",
       "kind": "def",
@@ -1761,6 +1816,16 @@
       "file": "ImprovedBS/CGMY.lean",
       "kind": "def",
       "pin": "def cgmyTemperedRate (C Y : ℝ) : ℝ := 2 * C * |Real.Gamma (-Y) * Real.cos (Real.pi * Y / 2)|"
+    },
+    "BSM.cgmyTilt": {
+      "file": "ImprovedBS/CgmyStrip.lean",
+      "kind": "def",
+      "pin": "noncomputable def cgmyTilt (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G) (hM : 0 < M) (hY : 0 < Y) (hY₂ : Y < 2) (τ : ℝ≥0) (θ : ℝ) : Measure ℝ := (cgmyLaw C G M Y τ hC hG hM hY hY₂).tilted (fun x : ℝ => θ * x)"
+    },
+    "BSM.cgmyTilt_isProbabilityMeasure": {
+      "file": "ImprovedBS/CgmyStrip.lean",
+      "kind": "theorem",
+      "pin": "theorem cgmyTilt_isProbabilityMeasure (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G) (hM : 0 < M) (hY : 0 < Y) (hY₂ : Y < 2) (hY₁ : Y ≠ 1) (τ : ℝ≥0) (θ : ℝ) (hθ : θ ∈ Ioo (-G) (M - 1)) : IsProbabilityMeasure (cgmyTilt C G M Y hC hG hM hY hY₂ τ θ)"
     },
     "BSM.cgmyTruncatedExponent": {
       "file": "ImprovedBS/CompoundPoisson.lean",
@@ -1786,6 +1851,11 @@
       "file": "ImprovedBS/CompoundPoisson.lean",
       "kind": "theorem",
       "pin": "theorem cgmyTruncatedExponent_zero (C G M Y : ℝ) (ε : ℝ≥0) : cgmyTruncatedExponent C G M Y ε 0 = 0"
+    },
+    "BSM.cgmy_carrMadan_eq_modelFreeCall": {
+      "file": "ImprovedBS/CgmyStrip.lean",
+      "kind": "theorem",
+      "pin": "theorem cgmy_carrMadan_eq_modelFreeCall (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G) (hM : 0 < M) (hY : 0 < Y) (hY₂ : Y < 2) (hY₁ : Y ≠ 1) (τ : ℝ≥0) (hτ : 0 < τ) (r S K α : ℝ) (hS : 0 < S) (hK : 0 < K) (hα : 0 < α) (hcontour : α + 1 < M) : ↑(Real.exp (-α * Real.log (K / S))) * cmPriceIntegral (contourCharFun (cgmyLaw C G M Y τ hC hG hM hY hY₂)) α r τ S (Real.log (K / S)) = ↑(modelFreeCall (cgmyLaw C G M Y τ hC hG hM hY hY₂) (fun x => S * Real.exp x) K r τ)"
     },
     "BSM.cgmy_cmPriceKernel_integrable": {
       "file": "ImprovedBS/CGMY.lean",
@@ -1817,6 +1887,11 @@
       "kind": "theorem",
       "pin": "theorem cgmy_cpow_re_le_of_one_le {a y Y : ℝ} (ha : 0 ≤ a) (hy : 0 < y) (hay : a ≤ y) (hY : 1 ≤ Y) (hY₂ : Y < 2) : (((a : ℂ) + (y : ℂ) * Complex.I) ^ (Y : ℂ)).re ≤ y ^ Y * Real.cos (Real.pi * Y / 2) + 2 ^ (Y - 1) * Y * a * y ^ (Y - 1)"
     },
+    "BSM.cgmy_drift_identity": {
+      "file": "ImprovedBS/CgmyStrip.lean",
+      "kind": "theorem",
+      "pin": "theorem cgmy_drift_identity (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G) (hM : 0 < M) (hY : 0 < Y) (hY₂ : Y < 2) (hY₁ : Y ≠ 1) (τ : ℝ≥0) (θ r q S : ℝ) (hθ : θ ∈ Ioo (-G) (M - 1)) (hdrift : esscherDriftMap C G M Y θ = r - q) : ∫ x : ℝ, S * Real.exp x ∂(cgmyTilt C G M Y hC hG hM hY hY₂ τ θ) = S * Real.exp ((r - q) * τ)"
+    },
     "BSM.cgmy_levy_far_moment": {
       "file": "ImprovedBS/CGMY.lean",
       "kind": "theorem",
@@ -1826,6 +1901,21 @@
       "file": "ImprovedBS/CGMY.lean",
       "kind": "theorem",
       "pin": "theorem cgmy_levy_sq_integrable (C M Y : ℝ) (hC : 0 < C) (hM : 0 < M) (hY : 0 < Y) (hY₂ : Y < 2) : IntegrableOn (fun x : ℝ => x ^ 2 * (C * (Real.exp (-M * x) * x ^ (-1 - Y)))) (Ioo 0 1)"
+    },
+    "BSM.cgmy_modelFree_call_bounds": {
+      "file": "ImprovedBS/CgmyStrip.lean",
+      "kind": "theorem",
+      "pin": "theorem cgmy_modelFree_call_bounds (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G) (hM : 0 < M) (hY : 0 < Y) (hY₂ : Y < 2) (hY₁ : Y ≠ 1) (τ : ℝ≥0) (θ r q S K : ℝ) (hθ : θ ∈ Ioo (-G) (M - 1)) (hK : 0 ≤ K) (hS : 0 ≤ S) : max (S * Real.exp (-q * τ) - K * Real.exp (-r * τ)) 0 ≤ modelFreeCall (cgmyTilt C G M Y hC hG hM hY hY₂ τ θ) (fun x => S * Real.exp x) K r τ ∧ modelFreeCall (cgmyTilt C G M Y hC hG hM hY hY₂ τ θ) (fun x => S * Real.exp x) K r τ ≤ S * Real.exp (-q * τ)"
+    },
+    "BSM.cgmy_modelFree_parity": {
+      "file": "ImprovedBS/CgmyStrip.lean",
+      "kind": "theorem",
+      "pin": "theorem cgmy_modelFree_parity (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G) (hM : 0 < M) (hY : 0 < Y) (hY₂ : Y < 2) (hY₁ : Y ≠ 1) (τ : ℝ≥0) (θ r q S K : ℝ) (hθ : θ ∈ Ioo (-G) (M - 1)) : modelFreeCall (cgmyTilt C G M Y hC hG hM hY hY₂ τ θ) (fun x => S * Real.exp x) K r τ - modelFreePut (cgmyTilt C G M Y hC hG hM hY hY₂ τ θ) (fun x => S * Real.exp x) K r τ = S * Real.exp (-q * τ) - K * Real.exp (-r * τ)"
+    },
+    "BSM.cgmy_modelFree_put_bounds": {
+      "file": "ImprovedBS/CgmyStrip.lean",
+      "kind": "theorem",
+      "pin": "theorem cgmy_modelFree_put_bounds (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G) (hM : 0 < M) (hY : 0 < Y) (hY₂ : Y < 2) (hY₁ : Y ≠ 1) (τ : ℝ≥0) (θ r q S K : ℝ) (hθ : θ ∈ Ioo (-G) (M - 1)) (hK : 0 ≤ K) (hS : 0 ≤ S) : max (K * Real.exp (-r * τ) - S * Real.exp (-q * τ)) 0 ≤ modelFreePut (cgmyTilt C G M Y hC hG hM hY hY₂ τ θ) (fun x => S * Real.exp x) K r τ ∧ modelFreePut (cgmyTilt C G M Y hC hG hM hY hY₂ τ θ) (fun x => S * Real.exp x) K r τ ≤ K * Real.exp (-r * τ)"
     },
     "BSM.cgmy_numeraire_strip": {
       "file": "ImprovedBS/CGMY.lean",
@@ -1841,6 +1931,16 @@
       "file": "ImprovedBS/CGMY.lean",
       "kind": "theorem",
       "pin": "theorem cgmy_tempered_rate_neg_eq {C Y : ℝ} (hY : 0 < Y) (hY₂ : Y < 2) (hY₁ : Y ≠ 1) : -(cgmyTemperedRate C Y) = 2 * C * Real.Gamma (-Y) * Real.cos (Real.pi * Y / 2)"
+    },
+    "BSM.cgmy_tilt_mgf": {
+      "file": "ImprovedBS/CgmyStrip.lean",
+      "kind": "theorem",
+      "pin": "theorem cgmy_tilt_mgf (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G) (hM : 0 < M) (hY : 0 < Y) (hY₂ : Y < 2) (hY₁ : Y ≠ 1) (τ : ℝ≥0) (θ : ℝ) (hθ : θ ∈ Ioo (-G) (M - 1)) (u : ℝ) (hu₁ : -(G + θ) < u) (hu₂ : u < M - θ) : mgf id (cgmyTilt C G M Y hC hG hM hY hY₂ τ θ) u = mgf id (cgmyLaw C G M Y τ hC hG hM hY hY₂) (u + θ) / mgf id (cgmyLaw C G M Y τ hC hG hM hY hY₂) θ"
+    },
+    "BSM.cgmy_tilt_numeraire": {
+      "file": "ImprovedBS/CgmyStrip.lean",
+      "kind": "theorem",
+      "pin": "theorem cgmy_tilt_numeraire (G M θ : ℝ) (hθ : θ ∈ Ioo (-G) (M - 1)) : 1 < M - θ"
     },
     "BSM.charFun_cgmyCpLaw": {
       "file": "ImprovedBS/CompoundPoisson.lean",
@@ -1922,6 +2022,11 @@
       "kind": "theorem",
       "pin": "theorem cmPriceKernel_integrable {φ : ℂ → ℂ} {α : ℝ} (hα : 0 < α) (hcont : Continuous fun u : ℝ => φ (↑u - ↑(α + 1) * Complex.I)) {c D Y : ℝ} (hc : 0 < c) (hD : 0 ≤ D) (hY : 0 < Y) {u₀ : ℝ} (hdecay : ∀ u : ℝ, u₀ ≤ |u| → ‖φ (↑u - ↑(α + 1) * Complex.I)‖ ≤ D * Real.exp (-c * |u| ^ Y)) : Integrable (cmPriceKernel φ α)"
     },
+    "BSM.complexMGF_cgmyLaw": {
+      "file": "ImprovedBS/CgmyStrip.lean",
+      "kind": "theorem",
+      "pin": "theorem complexMGF_cgmyLaw (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G) (hM : 0 < M) (hY : 0 < Y) (hY₂ : Y < 2) (hY₁ : Y ≠ 1) (τ : ℝ≥0) (z : ℂ) (hz₁ : -G < z.re) (hz₂ : z.re < M) : complexMGF id (cgmyLaw C G M Y τ hC hG hM hY hY₂) z = Complex.exp ((τ : ℝ) * cgmyExponent C G M Y (-(Complex.I * z)))"
+    },
     "BSM.continuous_dampedModelFreeCall": {
       "file": "ImprovedBS/Pricing.lean",
       "kind": "theorem",
@@ -1931,6 +2036,11 @@
       "file": "ImprovedBS/Pricing.lean",
       "kind": "def",
       "pin": "noncomputable def contourCharFun (μ : Measure ℝ) (v : ℂ) : ℂ := ∫ x, Complex.exp (Complex.I * v * ↑x) ∂μ"
+    },
+    "BSM.contourCharFun_cgmyLaw": {
+      "file": "ImprovedBS/CgmyStrip.lean",
+      "kind": "theorem",
+      "pin": "theorem contourCharFun_cgmyLaw (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G) (hM : 0 < M) (hY : 0 < Y) (hY₂ : Y < 2) (hY₁ : Y ≠ 1) (τ : ℝ≥0) (v : ℂ) (hv₁ : -M < v.im) (hv₂ : v.im < G) : contourCharFun (cgmyLaw C G M Y τ hC hG hM hY hY₂) v = cgmyCharFactor C G M Y τ v"
     },
     "BSM.convPow": {
       "file": "ImprovedBS/CompoundPoisson.lean",
@@ -2487,6 +2597,16 @@
       "kind": "theorem",
       "pin": "theorem max_sub_swap_eq (a b : ℝ) : max (b - a) 0 = max (a - b) 0 - a + b"
     },
+    "BSM.mgf_conv": {
+      "file": "ImprovedBS/CgmyStrip.lean",
+      "kind": "theorem",
+      "pin": "theorem mgf_conv (μ ν : Measure ℝ) [SFinite μ] [SFinite ν] (u : ℝ) (hμ : Integrable (fun x : ℝ => Real.exp (u * x)) μ) (hν : Integrable (fun x : ℝ => Real.exp (u * x)) ν) : mgf id (μ ∗ ν) u = mgf id μ u * mgf id ν u"
+    },
+    "BSM.mgf_convPow": {
+      "file": "ImprovedBS/CgmyStrip.lean",
+      "kind": "theorem",
+      "pin": "theorem mgf_convPow (ρ : Measure ℝ) (hρ : IsProbabilityMeasure ρ) (u : ℝ) (hint : Integrable (fun x : ℝ => Real.exp (u * x)) ρ) : ∀ n, mgf id (convPow ρ n) u = mgf id ρ u ^ n | 0 => by rw [convPow] unfold mgf rw [integral_dirac] simp | n + 1 => by have hpos : 0 < mgf id ρ u"
+    },
     "BSM.modelFreeCall": {
       "file": "ImprovedBS/Skeleton.lean",
       "kind": "def",
@@ -2541,6 +2661,11 @@
       "file": "ImprovedBS/Levy.lean",
       "kind": "theorem",
       "pin": "theorem ofReal_mul_tail_le_lintegral_exp_add (μ : Measure ℝ) (d α c x : ℝ) (htail : ENNReal.ofReal (c * x ^ (-α)) ≤ μ (Set.Ici x)) : ENNReal.ofReal (Real.exp (x + d) * (c * x ^ (-α))) ≤ ∫⁻ y, ENNReal.ofReal (Real.exp (y + d)) ∂μ"
+    },
+    "BSM.openStrip_subset_integrableExpSet": {
+      "file": "ImprovedBS/CgmyStrip.lean",
+      "kind": "theorem",
+      "pin": "theorem openStrip_subset_integrableExpSet (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G) (hM : 0 < M) (hY : 0 < Y) (hY₂ : Y < 2) (τ : ℝ≥0) : Ioo (-G) M ⊆ interior (integrableExpSet id (cgmyLaw C G M Y τ hC hG hM hY hY₂))"
     },
     "BSM.paretoMeasure_Ici": {
       "file": "ImprovedBS/ParetoWitness.lean",
