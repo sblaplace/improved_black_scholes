@@ -91,16 +91,27 @@ carry `hY₁ : Y ≠ 1` — exactly as `esscherDriftMap_strictMono`,
 already do. The `Y = 1` mgf *as a theorem of the composite* is measured
 above and recorded, not claimed.
 
-**F3. The strip's right edge belongs to the mgf domain only when `Y < 1` —
-and the statements never go there.** At `u = M` the ladder converges for
-`Y = ½` (`2.5442 → 2.5745` over `ε = 2⁻⁶ … 2⁻¹⁴`, the `0.129` gap to the
-closed form being the `x_max = 60` tail `≈ 60^{−Y}/(2Y)`) and **diverges**
-for `Y = 3⁄2` (`12.053 → 16.510 → 17.678`, rate `ε^{1−Y}`): at the edge the
-near-zero jump integral `∫ (e^{Mx}−1)e^{−Mx} x^{−1−Y}` is finite exactly
-when `Y < 1`. The closed form `ψ(−iM)` is finite for `Y ≠ 1` regardless —
-so the edge is honest precisely where the strict hypotheses `-G < u`, `u < M`
-exclude it. All statements keep `Ioo`; mutant M48 (§"Mutants") is the
-refusal row.
+**F3. The statements never touch the edge — the proof cannot reach it, and
+the measurement says exactly why.** At `u = M` the ladder is finite on both
+witness rows: `2.5442 → 2.5745` at `Y = ½` over `ε = 2⁻⁶ … 2⁻¹⁴` (the
+persistent `0.129` gap to the closed form is the `x_max = 60` tail
+`≈ 60^{−Y}/(2Y)`, present on both rungs) and `12.053 → 16.510 → 17.678` at
+`Y = 3⁄2`, whose gap to the closed form `ψ(−iM) = 18.0691` **closes at the
+ladder's own rate `ε^{2−Y}`** — `6.016 → 1.559 → 0.391`, ×4 per 16×ε — so
+at `2⁻¹⁴` it is still `0.39` away, three decades above the `Y = ½` end.
+What is one-sided is *each leg alone*: the near-zero jump integral
+`∫ (e^{Mx}−1)e^{−Mx} x^{−1−Y}` is finite exactly when `Y < 1`, and only
+the `x ↔ −x` pairing of C25 keeps the pair finite for every `0 < Y < 2`
+(the `Mx` leading terms cancel leg to leg; what survives is `O(x^{1−Y})`,
+hence the `ε^{2−Y}` rate). Two consequences: (a) §1's route cannot *prove*
+anything at the edge — its Markov tail needs a stricter moment `u′` deeper
+in the strip (the edge has none) and its dominated-convergence dominator
+`e^{|u|x}ν` loses integrability at `u = M` — so all statements keep `Ioo`;
+that is the scope of the proof, not a measured falsehood (the convergent
+ladder of marginal mgfs plus Portmanteau bounds the edge mgf by
+`e^{τψ(−iM)} < ∞` anyway); (b) the closed form `ψ(−iM)` is finite for
+`Y ≠ 1` regardless. Mutant M48 (§"Mutants") is the refusal row that keeps
+the primitive's contract inside `Ioo`.
 
 **F4. The limit passage is a truncation sandwich in the weak topology — no
 dominated convergence, no Portmanteau required.** The only convergence
@@ -373,7 +384,7 @@ tau, z) = exp(tau * cgmy_exponent(…, −I z))` (F5's target).
 | 1 | `cgmyLaw_mgf` composite | `\|cgmy_mgf_exponent − cgmy_cumulant\|`, `Y = ½, 3⁄2`, six `u` | `≤ 2.76e−12` / `≤ 2.66e−11`, imag `0` |
 | 2 | the ladder `Tendsto` | slope of `\|A_ε(4) − composite\|`, `ε = 2⁻⁴…2⁻¹¹` | `1.44 / 0.95 / 0.47` vs `2 − Y`; err@`2⁻¹⁴`: `6.36e−7 / 1.22e−4 / 3.13e−2` |
 | 3 | `Y ≠ 1` is load-bearing (F2) | composite at `Y = 1`: `u = −4.5, −2, 0.5, 4, 7, 9.5` | `3.6777706672, 1.0208380857, −0.1548269490, −0.2737312404, …`; `cgmy_cumulant` refuses |
-| 4 | open strip (F3/M48) | ladder at `u = M`: `Y = ½` vs `Y = 3⁄2` | `2.5442→2.5745` finite; `12.053→17.678` diverging |
+| 4 | open strip (F3/M48) | ladder at `u = M`: `Y = ½` vs `Y = 3⁄2` | `2.5442→2.5745` finite (tail gap `0.129`); `12.053→16.510→17.678` closing at `ε^{2−Y}` (gap `0.391` at `2⁻¹⁴`) |
 | 5 | `complexMGF_cgmyLaw` | `\|A_ε(z) − ψ(−Iz)\|` at four strip points, `ε = 2⁻¹⁴`; composite at five | `5.09e−7…1.61e−6` / `2.50e−2…7.93e−2`; composite `≤ 7.01e−13` / `≤ 9.28e−12` |
 | 6 | F4's uniform moment | `supₙ M_ε(u′)`, `u′ = −4.9, 9.7` | `1.7186 / 1.5690`; `70.8500 / 52.6954` (limits `1.7186 / 1.5690`; `77.8899 / 57.6020`) |
 | 7 | F4's tail bound | `u = 4, u′ = 9.7`: bound at `K = 10³, 10⁶`, and the `u′ = u` value | `3.06e−3, 1.62e−7` vs constant `57.602045` |
@@ -430,8 +441,9 @@ guards that keep F2/F3 honest.
     clause forbids the detour regardless).
   * **R2 the strip is open.** `cgmyLaw_mgf`, `complexMGF_cgmyLaw` and
     `cgmyMgfTruncatedExponent_tendsto` carry `h₁ : -G < u` and `h₂ : u < M`
-    (resp. `z.re` versions) — never `≤` (F3: the edge is a different
-    theorem, and only for `Y < 1`).
+    (resp. `z.re` versions) — never `≤` (F3: §1's sandwich proves the open
+    strip only; the edge is a different theorem, and M48's refusal keeps
+    the contract there).
   * **R3 the tilt is `Measure.tilted` over the mgf and the numéraire is
     cited.** `cgmyTilt`'s RHS cites `Measure.tilted` (no `withDensity`
     hand-roll), `cgmy_tilt_mgf`'s body cites `integral_exp_tilted`, and
@@ -501,8 +513,8 @@ guards that keep F2/F3 honest.
   after this one (BRIEF_022's candidate), not this one.
 * **The `Y = 1` closed-form mgf** and any `cgmyCumulant` evaluation at
   `Y = 1` (F2: the composite exists, `Γ(−1) = 0` does not carry it); the
-  same for edge-inclusive strip statements at `Y < 1` (F3: measured, not
-  claimed).
+  same for edge-inclusive strip statements (F3: measured, not claimed —
+  the sandwich never reaches the edge).
 * **The `_expm1_minus_z_complex` repair** (F8): recorded as C28, not taken;
   this brief's rows stay inside the measured-valid region.
 * **Pricing at the tilted law** (a complex-mgf theorem for the tilt) and
