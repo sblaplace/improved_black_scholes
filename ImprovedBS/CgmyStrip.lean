@@ -322,7 +322,142 @@ theorem cgmyLaw_exp_integrable (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G)
     (u : ℝ) (hu₁ : -G < u) (hu₂ : u < M) :
     Integrable (fun x : ℝ => Real.exp (u * x))
       (cgmyLaw C G M Y τ hC hG hM hY hY₂ : Measure ℝ) := by
-  sorry
+  set μp : ProbabilityMeasure ℝ := cgmyLaw C G M Y τ hC hG hM hY hY₂ with hμp
+  set μ : Measure ℝ := (μp : Measure ℝ) with hμ
+  have hε : ∀ n : ℕ, (0 : ℝ≥0) < (2 : ℝ≥0)⁻¹ ^ n :=
+    fun n => pow_pos (inv_pos.mpr (by norm_num : (0 : ℝ≥0) < 2)) n
+  set μₙ : ℕ → Measure ℝ := fun n =>
+    (cgmyCpProbability C G M Y τ ((2 : ℝ≥0)⁻¹ ^ n) hC hG hM hY (hε n) : Measure ℝ) with hμn
+  have htendA : Tendsto (fun n : ℕ => cgmyMgfTruncatedExponent C G M Y ((2 : ℝ≥0)⁻¹ ^ n) u)
+      atTop (𝓝 (cgmyCumulant C G M Y u)) :=
+    cgmyMgfTruncatedExponent_tendsto C G M Y hC hG hM hY hY₁ u hu₁ hu₂
+  have hmarg : ∀ n : ℕ, mgf id (μₙ n) u
+      = Real.exp ((τ : ℝ) * cgmyMgfTruncatedExponent C G M Y ((2 : ℝ≥0)⁻¹ ^ n) u) := by
+    intro n
+    show mgf id
+        ((cgmyCpProbability C G M Y τ ((2 : ℝ≥0)⁻¹ ^ n) hC hG hM hY (hε n) : Measure ℝ)) u = _
+    rw [cgmyCpProbability_mgf C G M Y hC hG hM hY τ ((2 : ℝ≥0)⁻¹ ^ n) (hε n) u hu₁ hu₂]
+    rfl
+  have hL : Tendsto (fun n : ℕ => mgf id (μₙ n) u) atTop
+      (𝓝 (Real.exp ((τ : ℝ) * cgmyCumulant C G M Y u))) := by
+    have h2 : Tendsto
+        (fun n : ℕ =>
+          Real.exp ((τ : ℝ) * cgmyMgfTruncatedExponent C G M Y ((2 : ℝ≥0)⁻¹ ^ n) u))
+        atTop (𝓝 (Real.exp ((τ : ℝ) * cgmyCumulant C G M Y u))) :=
+      (Real.continuous_exp.tendsto _).comp (tendsto_const_nhds.mul htendA)
+    refine Tendsto.congr (fun n => (hmarg n).symm) h2
+  set g : ℕ → ℝ → ℝ := fun j x => min (Real.exp (u * x)) (j : ℝ) with hg
+  have hgNN : ∀ (j : ℕ) (x : ℝ), 0 ≤ g j x :=
+    fun j x => le_min (Real.exp_nonneg _) (Nat.cast_nonneg _)
+  have hgmono : ∀ x : ℝ, Monotone fun j : ℕ => g j x := by
+    intro x j k hjk
+    show min (Real.exp (u * x)) (j : ℝ) ≤ min (Real.exp (u * x)) (k : ℝ)
+    exact min_le_min le_rfl (Nat.cast_le.mpr hjk)
+  have hgtend : ∀ x : ℝ, Tendsto (fun j : ℕ => g j x) atTop (𝓝 (Real.exp (u * x))) := by
+    intro x
+    obtain ⟨N, hN⟩ := exists_nat_ge (Real.exp (u * x))
+    refine Tendsto.congr' ?_ tendsto_const_nhds
+    filter_upwards [eventually_ge_atTop N] with j hj
+    show min (Real.exp (u * x)) (j : ℝ) = Real.exp (u * x)
+    exact min_eq_left (le_trans hN (Nat.cast_le.mpr hj))
+  have hgcont : ∀ j : ℕ, Continuous fun x : ℝ => g j x := by
+    intro j
+    show Continuous fun x : ℝ => min (Real.exp (u * x)) (j : ℝ)
+    exact (Real.continuous_exp.comp (continuous_const.mul continuous_id)).min continuous_const
+  have hgB : ∀ j : ℕ, Integrable (g j) μ := by
+    intro j
+    refine Integrable.mono (integrable_const ((j : ℝ))) (hgcont j).aestronglyMeasurable
+      (ae_of_all _ fun x => ?_)
+    have h1 : ‖g j x‖ = g j x := Real.norm_of_nonneg (hgNN j x)
+    have h2 : ‖(fun _ : ℝ => (j : ℝ)) x‖ = (j : ℝ) :=
+      Real.norm_of_nonneg (Nat.cast_nonneg _)
+    rw [h1, h2]
+    exact min_le_right _ _
+  have hgBn : ∀ (n j : ℕ), Integrable (g j) (μₙ n) := by
+    intro n j
+    refine Integrable.mono (integrable_const ((j : ℝ))) (hgcont j).aestronglyMeasurable
+      (ae_of_all _ fun x => ?_)
+    have h1 : ‖g j x‖ = g j x := Real.norm_of_nonneg (hgNN j x)
+    have h2 : ‖(fun _ : ℝ => (j : ℝ)) x‖ = (j : ℝ) :=
+      Real.norm_of_nonneg (Nat.cast_nonneg _)
+    rw [h1, h2]
+    exact min_le_right _ _
+  have htendp : Tendsto
+      (fun n : ℕ =>
+        (cgmyCpProbability C G M Y τ ((2 : ℝ≥0)⁻¹ ^ n) hC hG hM hY (hε n) :
+          ProbabilityMeasure ℝ))
+      atTop (𝓝 μp) := by
+    rw [hμp]
+    exact cgmyCpProbability_tendsto_cgmyLaw C G M Y hC hG hM hY hY₂ τ
+  have hKconv : ∀ j : ℕ, Tendsto (fun n : ℕ => ∫ x, g j x ∂μₙ n) atTop (𝓝 (∫ x, g j x ∂μ)) := by
+    intro j
+    have hdist : ∀ x y : ℝ, dist (g j x) (g j y) ≤ 2 * (j : ℝ) := by
+      intro x y
+      rw [Real.dist_eq]
+      have h1 : 0 ≤ g j x := hgNN j x
+      have h2 : 0 ≤ g j y := hgNN j y
+      calc |g j x - g j y| ≤ |g j x| + |g j y| := abs_sub_le _ _ 0
+        _ = g j x + g j y := by rw [abs_of_nonneg h1, abs_of_nonneg h2]
+        _ ≤ (j : ℝ) + (j : ℝ) := add_le_add (min_le_right _ _) (min_le_right _ _)
+        _ = 2 * (j : ℝ) := by ring
+    set fbcf : ℝ →ᵇ ℝ :=
+      BoundedContinuousFunction.mkOfBound ⟨g j, hgcont j⟩ (2 * (j : ℝ)) hdist with hfbcf
+    have hbc : Tendsto (fun n : ℕ => ∫ x, fbcf x ∂(μₙ n)) atTop (𝓝 (∫ x, fbcf x ∂μ)) := by
+      have h := tendsto_iff_forall_integral_tendsto.mp htendp fbcf
+      rw [hμp] at h
+      exact h
+    refine Tendsto.congr' ?_ (Tendsto.congr' ?_ hbc)
+    · filter_upwards with n; exact rfl
+    · exact Eventually.of_forall fun _ => rfl
+  have hgj_le : ∀ j : ℕ, ∫ x, g j x ∂μ ≤ Real.exp ((τ : ℝ) * cgmyCumulant C G M Y u) := by
+    intro j
+    have hmgf : ∀ n : ℕ, mgf id (μₙ n) u = ∫ x, Real.exp (u * x) ∂μₙ n := by
+      intro n
+      rw [mgf, id_eq, measure_univ, ENNReal.one_toReal, one_mul]
+    have hne : ∀ n : ℕ, ∫ x, Real.exp (u * x) ∂μₙ n ≠ 0 := by
+      intro n hz
+      have h0 : mgf id (μₙ n) u = 0 := by rw [hmgf n, hz]
+      rw [hmarg n] at h0
+      exact Real.exp_ne_zero _ h0
+    have hexpn : ∀ n : ℕ, Integrable (fun x : ℝ => Real.exp (u * x)) (μₙ n) := by
+      intro n
+      refine not_not.mp fun hn => hne n (integral_eq_zero_of_not_integrable hn)
+    have hnn : ∀ n : ℕ, 0 ≤ mgf id (μₙ n) u - ∫ x, g j x ∂μₙ n := by
+      intro n
+      refine sub_nonneg.mpr ?_
+      rw [hmgf n]
+      exact integral_mono (hexpn n) (hgBn n j) fun x => min_le_left _ _
+    have hsub : Tendsto (fun n : ℕ => mgf id (μₙ n) u - ∫ x, g j x ∂μₙ n) atTop
+        (𝓝 (Real.exp ((τ : ℝ) * cgmyCumulant C G M Y u) - ∫ x, g j x ∂μ)) :=
+      hL.sub (hKconv j)
+    exact sub_nonneg.mp (le_of_tendsto' hsub hnn)
+  have hmonE : ∀ x : ℝ, Monotone fun j : ℕ => ENNReal.ofReal (g j x) :=
+    fun x j k hjk => ENNReal.ofReal_le_ofReal (hgmono x hjk)
+  have htendE : ∀ x : ℝ, Tendsto (fun j : ℕ => ENNReal.ofReal (g j x)) atTop
+      (𝓝 (ENNReal.ofReal (Real.exp (u * x)))) :=
+    fun x => (ENNReal.continuous_ofReal.tendsto _).comp (hgtend x)
+  have hof : ∀ j : ℕ, ∫⁻ x, ENNReal.ofReal (g j x) ∂μ = ENNReal.ofReal (∫ x, g j x ∂μ) :=
+    fun j => (ofReal_integral_eq_lintegral_ofReal (hgB j) fun x => hgNN j x).symm
+  have hMCT : Tendsto (fun j : ℕ => ∫⁻ x, ENNReal.ofReal (g j x) ∂μ) atTop
+      (𝓝 (∫⁻ x, ENNReal.ofReal (Real.exp (u * x)) ∂μ)) :=
+    lintegral_tendsto_of_tendsto_of_monotone
+      (fun j => (ENNReal.continuous_ofReal.comp (hgcont j)).aemeasurable) hmonE htendE
+  have hsup : ∫⁻ x, ENNReal.ofReal (Real.exp (u * x)) ∂μ ≤
+      ENNReal.ofReal (Real.exp ((τ : ℝ) * cgmyCumulant C G M Y u)) := by
+    refine le_of_tendsto' hMCT ?_
+    intro j
+    rw [hof j]
+    exact ENNReal.ofReal_le_ofReal (hgj_le j)
+  have hfi : Integrable (fun x : ℝ => Real.exp (u * x)) μ := by
+    refine ⟨(Real.continuous_exp.comp (continuous_const.mul continuous_id)).aestronglyMeasurable,
+      (hasFiniteIntegral_iff_norm _).mpr ?_⟩
+    have hnorm : (fun x : ℝ => ‖Real.exp (u * x)‖) = fun x => Real.exp (u * x) := by
+      funext x
+      exact Real.norm_of_nonneg (Real.exp_nonneg _)
+    rw [hnorm]
+    exact lt_of_le_of_lt hsup ENNReal.ofReal_lt_top
+  rw [← hμ]
+  exact hfi
 
 /-- **The open strip sits inside the interior of the law's integrable
 exponential set** — the set lemma §2's `analyticAt_complexMGF` consumes. -/
