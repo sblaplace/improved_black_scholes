@@ -286,7 +286,38 @@ theorem cgmyStrip_target_analyticOnNhd (C G M Y τ : ℝ) (hG : 0 < G)
     AnalyticOnNhd ℂ (fun z : ℂ =>
       Complex.exp (τ * cgmyExponent C G M Y (-(Complex.I * z))))
       {z : ℂ | -G < z.re ∧ z.re < M} := by
-  sorry
+  have hIz : ∀ z : ℂ, Complex.I * (-(Complex.I * z)) = z := by
+    intro z
+    rw [mul_neg, ← mul_assoc, Complex.I_mul_I, neg_mul, one_mul, neg_neg]
+  have hform : ∀ z : ℂ, cgmyExponent C G M Y (-(Complex.I * z))
+      = (C * (Real.Gamma (-Y) : ℂ)) *
+          (((M : ℂ) - z) ^ (Y : ℂ) - (M : ℂ) ^ (Y : ℂ) +
+            ((G : ℂ) + z) ^ (Y : ℂ) - (G : ℂ) ^ (Y : ℂ)) := by
+    intro z
+    rw [cgmyExponent, hIz]
+  have hopen : IsOpen {z : ℂ | -G < z.re ∧ z.re < M} :=
+    (isOpen_lt continuous_const Complex.continuous_re).and
+      (isOpen_lt Complex.continuous_re continuous_const)
+  have hexp : AnalyticOnNhd ℂ (fun z : ℂ => Complex.exp (τ *
+        ((C * (Real.Gamma (-Y) : ℂ)) *
+          (((M : ℂ) - z) ^ (Y : ℂ) - (M : ℂ) ^ (Y : ℂ) +
+            ((G : ℂ) + z) ^ (Y : ℂ) - (G : ℂ) ^ (Y : ℂ)))))
+      {z : ℂ | -G < z.re ∧ z.re < M} := by
+    intro z hz
+    have hMz : ((M : ℂ) - z) ∈ Complex.slitPlane := by
+      rw [Complex.mem_slitPlane_iff]
+      exact Or.inl (by rw [Complex.sub_re, Complex.ofReal_re]; linarith [hz.2])
+    have hGz : ((G : ℂ) + z) ∈ Complex.slitPlane := by
+      rw [Complex.mem_slitPlane_iff]
+      exact Or.inl (by rw [Complex.add_re, Complex.ofReal_re]; linarith [hz.1])
+    have hMpow : AnalyticAt ℂ (fun z : ℂ => ((M : ℂ) - z) ^ (Y : ℂ)) z :=
+      (analyticAt_const.sub analyticAt_id).cpow analyticAt_const hMz
+    have hGpow : AnalyticAt ℂ (fun z : ℂ => ((G : ℂ) + z) ^ (Y : ℂ)) z :=
+      (analyticAt_const.add analyticAt_id).cpow analyticAt_const hGz
+    exact (analyticAt_const.mul ((analyticAt_const.mul
+      (((hMpow.sub analyticAt_const).add hGpow).sub analyticAt_const)))).cexp'
+  exact (analyticOnNhd_congr hopen
+    (fun z _ => congrArg (fun w : ℂ => Complex.exp (τ * w)) (hform z).symm)).mp hexp
 
 /-- **THE COMPLEX STRIP.** `complexMGF` on the open strip — the identity
 theorem: both sides `AnalyticOnNhd` (LHS `analyticAt_complexMGF` +
@@ -300,12 +331,59 @@ theorem complexMGF_cgmyLaw (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G)
     (z : ℂ) (hz₁ : -G < z.re) (hz₂ : z.re < M) :
     complexMGF id (cgmyLaw C G M Y τ hC hG hM hY hY₂) z =
       Complex.exp ((τ : ℝ) * cgmyExponent C G M Y (-(Complex.I * z))) := by
-  -- `AnalyticOnNhd.eqOn_of_preconnected_of_frequently_eq` on the convex
-  -- open strip, sequence `1/n` at `z₀ = 0`; LHS `analyticAt_complexMGF` +
-  -- `openStrip_subset_integrableExpSet`, RHS `cgmyStrip_target_analyticOnNhd`;
-  -- agreement on the real axis: `complexMGF_ofReal` + `cgmyLaw_mgf` +
-  -- `cgmyCumulant_eq_strip`
-  sorry
+  have hU : IsPreconnected {z : ℂ | -G < z.re ∧ z.re < M} :=
+    ((convex_Ioo (-G) M).linear_preimage Complex.reLm).isPreconnected
+  have hL : AnalyticOnNhd ℂ (complexMGF id (cgmyLaw C G M Y τ hC hG hM hY hY₂))
+      {z : ℂ | -G < z.re ∧ z.re < M} := by
+    intro w hw
+    refine analyticAt_complexMGF ?_
+    exact openStrip_subset_integrableExpSet C G M Y hC hG hM hY hY₂ τ ⟨hw.1, hw.2⟩
+  have hR : AnalyticOnNhd ℂ
+      (fun z : ℂ => Complex.exp ((τ : ℝ) * cgmyExponent C G M Y (-(Complex.I * z))))
+      {z : ℂ | -G < z.re ∧ z.re < M} :=
+    cgmyStrip_target_analyticOnNhd C G M Y τ hG hM hY
+  have hreal : ∀ x : ℝ, -G < x → x < M →
+      complexMGF id (cgmyLaw C G M Y τ hC hG hM hY hY₂) x
+        = Complex.exp ((τ : ℝ) * cgmyExponent C G M Y (-(Complex.I * (x : ℂ)))) := by
+    intro x hx₁ hx₂
+    rw [complexMGF_ofReal,
+      cgmyLaw_mgf C G M Y hC hG hM hY hY₂ hY₁ τ x hx₁ hx₂,
+      cgmyCumulant_eq_strip C G M Y x hG hM hx₁ hx₂]
+    push_cast
+    rw [Complex.exp_ofReal]
+  have hfreq : ∃ᶠ w in 𝓝[≠] (0 : ℂ),
+      complexMGF id (cgmyLaw C G M Y τ hC hG hM hY hY₂) w
+        = Complex.exp ((τ : ℝ) * cgmyExponent C G M Y (-(Complex.I * w))) := by
+    rw [frequently_iff_seq_forall]
+    have hδ : 0 < min G M / 2 := div_pos (lt_min hG hM) two_pos
+    refine ⟨fun n : ℕ => (((min G M / 2) / ((n : ℝ) + 1) : ℝ) : ℂ), ?_, ?_⟩
+    · rw [tendsto_nhdsWithin_iff]
+      constructor
+      · rw [tendsto_ofReal_iff]
+        have h1 : Tendsto
+            (fun n : ℕ => (min G M / 2) / ((n : ℝ) + 1)) atTop (𝓝 0) := by
+          have h2 : Tendsto (fun n : ℕ => (1 : ℝ) / ((n : ℝ) + 1)) atTop (𝓝 0) :=
+            tendsto_one_div_add_atTop_nhds_zero_nat
+          have h3 := tendsto_const_nhds.mul h2
+          simpa using h3
+        exact h1
+      · filter_upwards with n
+        have hn : 0 < ((n : ℝ) + 1) := by positivity
+        have : (min G M / 2 : ℝ) / ((n : ℝ) + 1) ≠ 0 :=
+          (div_pos hδ hn).ne'
+        simp [this]
+    · intro n
+      have hn : 0 < ((n : ℝ) + 1) := by positivity
+      have hpos : (0 : ℝ) < (min G M / 2) / ((n : ℝ) + 1) := div_pos hδ hn
+      have hlt : (min G M / 2 : ℝ) / ((n : ℝ) + 1) < min G M :=
+        lt_of_le_of_lt (div_le_self hδ.le hn.le) (by linarith [hδ])
+      exact hreal _ (by linarith [hlt, lt_min hG hM]) (by linarith [hlt, lt_min hG hM])
+  have hEq : Set.EqOn (complexMGF id (cgmyLaw C G M Y τ hC hG hM hY hY₂))
+      (fun z : ℂ => Complex.exp ((τ : ℝ) * cgmyExponent C G M Y (-(Complex.I * z))))
+      {z : ℂ | -G < z.re ∧ z.re < M} :=
+    hL.eqOn_of_preconnected_of_frequently_eq hR hU
+      ⟨by rw [Complex.zero_re]; linarith, by rw [Complex.zero_re]; linarith⟩ hfreq
+  exact hEq ⟨hz₁, hz₂⟩
 
 /-- **THE PRICING LINE.** The corollary converts `z = I·v`
 (`contourCharFun μ v = complexMGF id μ (I * v)` — the `rfl` pattern
@@ -553,7 +631,7 @@ theorem cgmy_carrMadan_eq_modelFreeCall (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G
     (c := (τ : ℝ) * cgmyTemperedRate C Y / 2) (D := 1) (Y := Y)
     (u₀ := cgmyDecayThreshold C G M Y) (δ := (M - (α + 1)) / 2)
     ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_
-  · exact div_pos (mul_pos hτ' (cgmyTemperedRate_pos C Y hC hY hY₂ hY₁)) two_pos
+  · exact div_pos (mul_pos hτ' (cgmyTemperedRate_pos hC hY hY₂ hY₁)) two_pos
   · norm_num
   · exact hY
   · exact hδ0
@@ -571,8 +649,11 @@ theorem cgmy_carrMadan_eq_modelFreeCall (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G
     rw [contourCharFun_cgmyLaw C G M Y hC hG hM hY hY₂ hY₁ τ
       ((u : ℂ) - ((α + 1 : ℝ) : ℂ) * Complex.I)
       (by rw [hvim u]; linarith) (by rw [hvim u]; linarith)]
-    simpa only [one_mul] using
-      cgmy_contour_decay C G M Y (τ : ℝ) α hC hG hM hY hY₂ hY₁ hα hcontour hτ'.le u hu
+    have hdecay := cgmy_contour_decay C G M Y (τ : ℝ) α hC hG hM hY hY₂ hY₁
+      hα hcontour hτ'.le u hu
+    show ‖cgmyCharFactor C G M Y (τ : ℝ) (cgmyContour α u)‖ ≤
+      1 * Real.exp (-((τ : ℝ) * cgmyTemperedRate C Y / 2) * |u| ^ Y)
+    simpa only [one_mul] using hdecay
   · -- the tail moment, at `α + 1 + δ < M`
     exact cgmyLaw_exp_integrable C G M Y hC hG hM hY hY₂ hY₁ τ
       ((α + 1) + (M - (α + 1)) / 2) (by linarith) (by linarith)
