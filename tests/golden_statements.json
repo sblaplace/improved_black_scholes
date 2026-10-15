@@ -1820,7 +1820,7 @@
     "BSM.cgmyTilt": {
       "file": "ImprovedBS/CgmyStrip.lean",
       "kind": "def",
-      "pin": "noncomputable def cgmyTilt (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G) (hM : 0 < M) (hY : 0 < Y) (hY₂ : Y < 2) (τ : ℝ≥0) (θ : ℝ) : Measure ℝ := (cgmyLaw C G M Y τ hC hG hM hY hY₂).tilted (fun x : ℝ => θ * x)"
+      "pin": "noncomputable def cgmyTilt (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G) (hM : 0 < M) (hY : 0 < Y) (hY₂ : Y < 2) (τ : ℝ≥0) (θ : ℝ) : Measure ℝ := Measure.tilted (cgmyLaw C G M Y τ hC hG hM hY hY₂) (fun x : ℝ => θ * x)"
     },
     "BSM.cgmyTilt_isProbabilityMeasure": {
       "file": "ImprovedBS/CgmyStrip.lean",

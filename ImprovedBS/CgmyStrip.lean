@@ -59,7 +59,10 @@ theorem mgf_conv (μ ν : Measure ℝ) [SFinite μ] [SFinite ν] (u : ℝ)
       = Real.exp (u * x) * ∫ y : ℝ, Real.exp (u * y) ∂ν := by
       intro x
       rw [integral_congr_ae (ae_of_all _ fun y => hpoint x y), integral_const_mul]
-    rw [hinner]
+    have hstep : ∫ x : ℝ, ∫ y : ℝ, Real.exp (u * (x + y)) ∂ν ∂μ
+        = ∫ x : ℝ, Real.exp (u * x) * ∫ y : ℝ, Real.exp (u * y) ∂ν ∂μ :=
+      integral_congr_ae (ae_of_all _ fun x => hinner x)
+    rw [hstep]
     exact integral_mul_const _ _
   · refine (integrable_conv_iff ?_).mpr ⟨?_, ?_⟩
     · exact (Real.continuous_exp.comp
@@ -211,7 +214,9 @@ theorem cgmyMgf_uniformBound (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G)
       cgmyMgfTruncatedExponent C G M Y ((2 : ℝ≥0)⁻¹ ^ n) u ≤ B := by
   -- `A_{εₙ}(u) → κ(u)` (row 2/6), so the sequence is bounded; the sup is
   -- the closed-limit value `κ(u)` up to a finite head (F4)
-  sorry
+  have ht := cgmyMgfTruncatedExponent_tendsto C G M Y hC hG hM hY u h₁ h₂
+  obtain ⟨B, hB⟩ := ht.bddAbove_range
+  exact ⟨B, fun n => hB (Set.mem_range_self n)⟩
 
 /-- **F4's Markov tail**: at a STRICTLY interior moment `u′` (F3 — this is
 where the open strip is load bearing) the first-moment tail of `e^{u·}`
@@ -312,7 +317,18 @@ theorem contourCharFun_cgmyLaw (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G)
     (v : ℂ) (hv₁ : -M < v.im) (hv₂ : v.im < G) :
     contourCharFun (cgmyLaw C G M Y τ hC hG hM hY hY₂) v =
       cgmyCharFactor C G M Y τ v := by
-  sorry
+  have hre : (Complex.I * v).re = -v.im := by
+    rw [Complex.mul_re, Complex.I_re, Complex.I_im, zero_mul, one_mul, zero_sub]
+  have hz₁ : -G < (Complex.I * v).re := by rw [hre]; linarith
+  have hz₂ : (Complex.I * v).re < M := by rw [hre]; linarith
+  have harg : -(Complex.I * (Complex.I * v)) = v := by
+    rw [← mul_assoc, Complex.I_mul_I, neg_mul, one_mul, neg_neg]
+  have hcmf : contourCharFun (cgmyLaw C G M Y τ hC hG hM hY hY₂) v
+      = complexMGF id (cgmyLaw C G M Y τ hC hG hM hY hY₂) (Complex.I * v) := by
+    simp only [contourCharFun, complexMGF, id_eq]
+  rw [hcmf, complexMGF_cgmyLaw C G M Y hC hG hM hY hY₂ hY₁ τ (Complex.I * v) hz₁ hz₂,
+    harg]
+  rfl
 
 /-! ## §3 the Esscher tilt at the law -/
 
@@ -321,7 +337,7 @@ the tilted exponential — R3 reads `Measure.tilted` off this RHS (no
 `withDensity` hand-roll). -/
 noncomputable def cgmyTilt (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G)
     (hM : 0 < M) (hY : 0 < Y) (hY₂ : Y < 2) (τ : ℝ≥0) (θ : ℝ) : Measure ℝ :=
-  (cgmyLaw C G M Y τ hC hG hM hY hY₂).tilted (fun x : ℝ => θ * x)
+  Measure.tilted (cgmyLaw C G M Y τ hC hG hM hY hY₂) (fun x : ℝ => θ * x)
 
 /-- **The tilted law is a probability measure on the strip** —
 `isProbabilityMeasure_tilted` fed §1's `Integrable (e^{θ·})` at `θ` (the
@@ -336,7 +352,7 @@ theorem cgmyTilt_isProbabilityMeasure (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G)
       (cgmyLaw C G M Y τ hC hG hM hY hY₂) :=
     cgmyLaw_exp_integrable C G M Y hC hG hM hY hY₂ hY₁ τ θ hstrip.1 hstrip.2
   show IsProbabilityMeasure
-    ((cgmyLaw C G M Y τ hC hG hM hY hY₂).tilted (fun x : ℝ => θ * x))
+    (Measure.tilted (cgmyLaw C G M Y τ hC hG hM hY hY₂) (fun x : ℝ => θ * x))
   exact isProbabilityMeasure_tilted hint
 
 /-- **The numéraire is cited, never re-proved** (R3): `1 < M − θ` is the
@@ -355,7 +371,7 @@ theorem cgmy_tilt_mgf (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G)
     mgf id (cgmyTilt C G M Y hC hG hM hY hY₂ τ θ) u =
       mgf id (cgmyLaw C G M Y τ hC hG hM hY hY₂) (u + θ) /
         mgf id (cgmyLaw C G M Y τ hC hG hM hY hY₂) θ := by
-  show mgf id ((cgmyLaw C G M Y τ hC hG hM hY hY₂).tilted (fun x : ℝ => θ * x)) u = _
+  show mgf id (Measure.tilted (cgmyLaw C G M Y τ hC hG hM hY hY₂) (fun x : ℝ => θ * x)) u = _
   simp only [mgf, id_eq]
   rw [integral_exp_tilted (fun x => θ * x) (fun x => u * x)]
   refine congrArg (fun t => t / ∫ x, Real.exp (θ * x) ∂(cgmyLaw C G M Y τ hC hG hM hY hY₂)) ?_
@@ -424,7 +440,7 @@ theorem cgmy_modelFree_parity (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G)
   have hx : Integrable (fun x : ℝ => S * Real.exp x)
       (cgmyTilt C G M Y hC hG hM hY hY₂ τ θ) := by
     have heq : cgmyTilt C G M Y hC hG hM hY hY₂ τ θ =
-        (cgmyLaw C G M Y τ hC hG hM hY hY₂).tilted (fun x : ℝ => θ * x) := rfl
+        Measure.tilted (cgmyLaw C G M Y τ hC hG hM hY hY₂) (fun x : ℝ => θ * x) := rfl
     have hint : Integrable (fun x : ℝ => Real.exp (θ * x))
         (cgmyLaw C G M Y τ hC hG hM hY hY₂) :=
       cgmyLaw_exp_integrable C G M Y hC hG hM hY hY₂ hY₁ τ θ
@@ -456,7 +472,7 @@ theorem cgmy_modelFree_call_bounds (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G)
   have hx : Integrable (fun x : ℝ => S * Real.exp x)
       (cgmyTilt C G M Y hC hG hM hY hY₂ τ θ) := by
     have heq : cgmyTilt C G M Y hC hG hM hY hY₂ τ θ =
-        (cgmyLaw C G M Y τ hC hG hM hY hY₂).tilted (fun x : ℝ => θ * x) := rfl
+        Measure.tilted (cgmyLaw C G M Y τ hC hG hM hY hY₂) (fun x : ℝ => θ * x) := rfl
     have hint : Integrable (fun x : ℝ => Real.exp (θ * x))
         (cgmyLaw C G M Y τ hC hG hM hY hY₂) :=
       cgmyLaw_exp_integrable C G M Y hC hG hM hY hY₂ hY₁ τ θ
@@ -491,7 +507,7 @@ theorem cgmy_modelFree_put_bounds (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G)
   have hx : Integrable (fun x : ℝ => S * Real.exp x)
       (cgmyTilt C G M Y hC hG hM hY hY₂ τ θ) := by
     have heq : cgmyTilt C G M Y hC hG hM hY hY₂ τ θ =
-        (cgmyLaw C G M Y τ hC hG hM hY hY₂).tilted (fun x : ℝ => θ * x) := rfl
+        Measure.tilted (cgmyLaw C G M Y τ hC hG hM hY hY₂) (fun x : ℝ => θ * x) := rfl
     have hint : Integrable (fun x : ℝ => Real.exp (θ * x))
         (cgmyLaw C G M Y τ hC hG hM hY hY₂) :=
       cgmyLaw_exp_integrable C G M Y hC hG hM hY hY₂ hY₁ τ θ
@@ -525,7 +541,8 @@ theorem cgmy_carrMadan_eq_modelFreeCall (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G
           α r τ S (Real.log (K / S))
       = ↑(modelFreeCall (cgmyLaw C G M Y τ hC hG hM hY hY₂)
           (fun x => S * Real.exp x) K r τ) := by
-  have hprob : IsProbabilityMeasure (cgmyLaw C G M Y τ hC hG hM hY hY₂) := by
+  have hprob : IsProbabilityMeasure
+      (cgmyLaw C G M Y τ hC hG hM hY hY₂ : Measure ℝ) := by
     infer_instance
   have hτ' : (0 : ℝ) < (τ : ℝ) := NNReal.coe_pos.mpr hτ
   have hδ0 : (0 : ℝ) < (M - (α + 1)) / 2 := by linarith
