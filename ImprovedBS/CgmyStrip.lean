@@ -234,7 +234,85 @@ theorem cgmyMgf_markovTail (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G)
         ≤ c * K ^ (1 - u' / u) := by
   -- Markov at `u′`: `Eₙ[e^{uX} 1_{e^{uX} ≥ K}] ≤ K^{1−u′/u}·Eₙ[e^{u′X}]`
   -- with `Eₙ[e^{u′X}]` the row-6 sup (F4)
-  sorry
+  have hne : u ≠ 0 := fun h => by simp [h] at hside
+  have hpos : 0 < u' / u := by
+    rw [div_pos_iff]
+    exact (mul_pos_iff.mp hside).imp And.symm And.symm
+  have h1 : 1 < u' / u := by
+    have ha : |u' / u| = |u'| / |u| := abs_div u' u
+    rw [abs_of_pos hpos] at ha
+    have huu : 0 < |u| := abs_pos.mpr hne
+    have hlt : (1 : ℝ) < |u'| / |u| := by
+      rw [lt_div_iff huu, one_mul]
+      exact habs
+    rw [← ha] at hlt
+    exact hlt
+  have hpw : ∀ x : ℝ, K ≤ Real.exp (u * x) →
+      Real.exp (u * x) ≤ K ^ (1 - u' / u) * Real.exp (u' * x) := by
+    intro x hxK
+    have hlog : Real.log K ≤ u * x := (Real.log_le_iff_le_exp hK).2 hxK
+    have hux : u' * x = (u' / u) * (u * x) := by
+      field_simp [hne]
+      ring
+    have hKp : K ^ (1 - u' / u) = Real.exp ((1 - u' / u) * Real.log K) :=
+      Real.rpow_def_of_pos hK _
+    rw [hKp, hux, ← Real.exp_add]
+    refine Real.exp_le_exp.mpr ?_
+    have h3 : 0 ≤ (1 - u' / u) * (Real.log K - u * x) :=
+      mul_nonneg_of_nonpos_of_nonpos (by linarith [h1]) (by linarith [hlog])
+    have h4 : (1 - u' / u) * Real.log K + (u' / u) * (u * x)
+        = u * x + (1 - u' / u) * (Real.log K - u * x) := by ring
+    rw [h4]
+    linarith
+  obtain ⟨B, hB⟩ := cgmyMgf_uniformBound C G M Y hC hG hM hY τ u' h₁' h₂'
+  refine ⟨Real.exp ((τ : ℝ) * B) * K ^ (1 - u' / u), fun n => ?_⟩
+  set μn : Measure ℝ :=
+    (cgmyCpProbability C G M Y τ ((2 : ℝ≥0)⁻¹ ^ n) hC hG hM hY
+      (pow_pos (inv_pos.mpr (by norm_num : (0 : ℝ≥0) < 2)) n)) with hμn
+  set A : Set ℝ := {x : ℝ | K ≤ Real.exp (u * x)} with hA
+  have hBexp : Integrable (fun x : ℝ => Real.exp (u' * x)) μn := by
+    refine mgf_pos_iff.mp ?_
+    rw [cgmyCpProbability_mgf C G M Y hC hG hM hY τ ((2 : ℝ≥0)⁻¹ ^ n)
+      (pow_pos (inv_pos.mpr (by norm_num : (0 : ℝ≥0) < 2)) n) u' h₁' h₂']
+    exact Real.exp_pos _
+  have hbig : Integrable (fun x : ℝ => K ^ (1 - u' / u) * Real.exp (u' * x)) μn :=
+    hBexp.const_mul _
+  have hAexp : IntegrableOn (fun x : ℝ => Real.exp (u * x)) A μn := by
+    refine hbig.integrableOn.mono ?_ ?_
+    · exact (Real.continuous_exp.comp
+        (continuous_mul continuous_const continuous_id)).aestronglyMeasurable
+    · refine (ae_restrict_iff A).2 (ae_of_all _ fun x hxin => ?_)
+      rw [Real.norm_of_nonneg (Real.exp_nonneg _),
+        Real.norm_of_nonneg (mul_nonneg (Real.rpow_nonneg hK.le _) (Real.exp_nonneg _))]
+      exact hpw x hxin
+  have hmono : ∫ x in A, Real.exp (u * x) ∂μn
+      ≤ ∫ x in A, K ^ (1 - u' / u) * Real.exp (u' * x) ∂μn := by
+    refine setIntegral_mono_on hAexp hbig.integrableOn ?_ ?_
+    · exact measurableSet_le measurable_const
+        ((Real.continuous_exp.comp
+          (continuous_mul continuous_const continuous_id)).measurable)
+    · intro x hx
+      exact hpw x hx
+  have hconst : ∫ x in A, K ^ (1 - u' / u) * Real.exp (u' * x) ∂μn
+      = K ^ (1 - u' / u) * ∫ x in A, Real.exp (u' * x) ∂μn :=
+    integral_const_mul _ _
+  have hset : ∫ x in A, Real.exp (u' * x) ∂μn ≤ ∫ x, Real.exp (u' * x) ∂μn :=
+    setIntegral_le_integral hBexp (ae_of_all _ fun x => Real.exp_nonneg _)
+  have hmgf : ∫ x, Real.exp (u' * x) ∂μn ≤ Real.exp ((τ : ℝ) * B) := by
+    have hm := cgmyCpProbability_mgf C G M Y hC hG hM hY τ ((2 : ℝ≥0)⁻¹ ^ n)
+      (pow_pos (inv_pos.mpr (by norm_num : (0 : ℝ≥0) < 2)) n) u' h₁' h₂'
+    rw [mgf, id_eq] at hm
+    rw [hm]
+    exact Real.exp_le_exp.mpr
+      (mul_le_mul_of_nonneg_left (hB n) (NNReal.coe_nonneg τ))
+  calc ∫ x in A, Real.exp (u * x) ∂μn
+      ≤ ∫ x in A, K ^ (1 - u' / u) * Real.exp (u' * x) ∂μn := hmono
+    _ = K ^ (1 - u' / u) * ∫ x in A, Real.exp (u' * x) ∂μn := hconst
+    _ ≤ K ^ (1 - u' / u) * ∫ x, Real.exp (u' * x) ∂μn :=
+      mul_le_mul_of_nonneg_left hset (Real.rpow_nonneg hK.le _)
+    _ ≤ K ^ (1 - u' / u) * Real.exp ((τ : ℝ) * B) :=
+      mul_le_mul_of_nonneg_left hmgf (Real.rpow_nonneg hK.le _)
+    _ = Real.exp ((τ : ℝ) * B) * K ^ (1 - u' / u) := by ring
 
 /-- **The law's exponential moment is finite on the strip** (§1's headline):
 the sandwich's conclusion — bounded truncations converge, so the limit law
@@ -249,10 +327,13 @@ theorem cgmyLaw_exp_integrable (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G)
 /-- **The open strip sits inside the interior of the law's integrable
 exponential set** — the set lemma §2's `analyticAt_complexMGF` consumes. -/
 theorem openStrip_subset_integrableExpSet (C G M Y : ℝ) (hC : 0 < C)
-    (hG : 0 < G) (hM : 0 < M) (hY : 0 < Y) (hY₂ : Y < 2) (τ : ℝ≥0) :
+    (hG : 0 < G) (hM : 0 < M) (hY : 0 < Y) (hY₂ : Y < 2) (hY₁ : Y ≠ 1) (τ : ℝ≥0) :
     Ioo (-G) M ⊆ interior (integrableExpSet id (cgmyLaw C G M Y τ hC hG hM hY hY₂)) := by
   -- §1's two one-sided integrability bounds + `integrableExpSet_mem`
-  sorry
+  have hopen : IsOpen (Ioo (-G) M) := isOpen_Ioo
+  refine interior_maximal hopen ?_
+  intro u hu
+  exact cgmyLaw_exp_integrable C G M Y hC hG hM hY hY₂ hY₁ τ u hu.1 hu.2
 
 /-- **THE HEADLINE.** The law's mgf is `e^{τ κ(u)}` on the open strip —
 the weak limit of the ladder: `cgmyCpProbability_mgf` at each marginal,
@@ -337,7 +418,7 @@ theorem complexMGF_cgmyLaw (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G)
       {z : ℂ | -G < z.re ∧ z.re < M} := by
     intro w hw
     refine analyticAt_complexMGF ?_
-    exact openStrip_subset_integrableExpSet C G M Y hC hG hM hY hY₂ τ ⟨hw.1, hw.2⟩
+    exact openStrip_subset_integrableExpSet C G M Y hC hG hM hY hY₂ hY₁ τ ⟨hw.1, hw.2⟩
   have hR : AnalyticOnNhd ℂ
       (fun z : ℂ => Complex.exp ((τ : ℝ) * cgmyExponent C G M Y (-(Complex.I * z))))
       {z : ℂ | -G < z.re ∧ z.re < M} :=
@@ -348,9 +429,8 @@ theorem complexMGF_cgmyLaw (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G)
     intro x hx₁ hx₂
     rw [complexMGF_ofReal,
       cgmyLaw_mgf C G M Y hC hG hM hY hY₂ hY₁ τ x hx₁ hx₂,
-      cgmyCumulant_eq_strip C G M Y x hG hM hx₁ hx₂]
-    push_cast
-    rw [Complex.exp_ofReal]
+      cgmyCumulant_eq_strip C G M Y x hG hM hx₁ hx₂,
+      Complex.ofReal_exp, Complex.ofReal_mul]
   have hfreq : ∃ᶠ w in 𝓝[≠] (0 : ℂ),
       complexMGF id (cgmyLaw C G M Y τ hC hG hM hY hY₂) w
         = Complex.exp ((τ : ℝ) * cgmyExponent C G M Y (-(Complex.I * w))) := by
@@ -359,25 +439,26 @@ theorem complexMGF_cgmyLaw (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G)
     refine ⟨fun n : ℕ => (((min G M / 2) / ((n : ℝ) + 1) : ℝ) : ℂ), ?_, ?_⟩
     · rw [tendsto_nhdsWithin_iff]
       constructor
-      · rw [tendsto_ofReal_iff]
-        have h1 : Tendsto
+      · have h1 : Tendsto
             (fun n : ℕ => (min G M / 2) / ((n : ℝ) + 1)) atTop (𝓝 0) := by
           have h2 : Tendsto (fun n : ℕ => (1 : ℝ) / ((n : ℝ) + 1)) atTop (𝓝 0) :=
             tendsto_one_div_add_atTop_nhds_zero_nat
           have h3 := tendsto_const_nhds.mul h2
           simpa using h3
-        exact h1
+        exact tendsto_ofReal_iff.mpr h1
       · filter_upwards with n
         have hn : 0 < ((n : ℝ) + 1) := by positivity
-        have : (min G M / 2 : ℝ) / ((n : ℝ) + 1) ≠ 0 :=
+        have hnz : (min G M / 2 : ℝ) / ((n : ℝ) + 1) ≠ 0 :=
           (div_pos hδ hn).ne'
-        simp [this]
+        exact_mod_cast hnz
     · intro n
       have hn : 0 < ((n : ℝ) + 1) := by positivity
       have hpos : (0 : ℝ) < (min G M / 2) / ((n : ℝ) + 1) := div_pos hδ hn
       have hlt : (min G M / 2 : ℝ) / ((n : ℝ) + 1) < min G M :=
-        lt_of_le_of_lt (div_le_self hδ.le hn.le) (by linarith [hδ])
-      exact hreal _ (by linarith [hlt, lt_min hG hM]) (by linarith [hlt, lt_min hG hM])
+        lt_of_le_of_lt (div_le_self hδ.le (by linarith [Nat.cast_nonneg n]))
+          (half_lt_self (lt_min hG hM))
+      exact hreal _
+        (by linarith [hpos, hG]) (by linarith [hlt, min_le_right G M])
   have hEq : Set.EqOn (complexMGF id (cgmyLaw C G M Y τ hC hG hM hY hY₂))
       (fun z : ℂ => Complex.exp ((τ : ℝ) * cgmyExponent C G M Y (-(Complex.I * z))))
       {z : ℂ | -G < z.re ∧ z.re < M} :=

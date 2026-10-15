@@ -2665,7 +2665,7 @@
     "BSM.openStrip_subset_integrableExpSet": {
       "file": "ImprovedBS/CgmyStrip.lean",
       "kind": "theorem",
-      "pin": "theorem openStrip_subset_integrableExpSet (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G) (hM : 0 < M) (hY : 0 < Y) (hY₂ : Y < 2) (τ : ℝ≥0) : Ioo (-G) M ⊆ interior (integrableExpSet id (cgmyLaw C G M Y τ hC hG hM hY hY₂))"
+      "pin": "theorem openStrip_subset_integrableExpSet (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G) (hM : 0 < M) (hY : 0 < Y) (hY₂ : Y < 2) (hY₁ : Y ≠ 1) (τ : ℝ≥0) : Ioo (-G) M ⊆ interior (integrableExpSet id (cgmyLaw C G M Y τ hC hG hM hY hY₂))"
     },
     "BSM.paretoMeasure_Ici": {
       "file": "ImprovedBS/ParetoWitness.lean",
