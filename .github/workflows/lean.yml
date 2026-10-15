@@ -87,6 +87,12 @@ jobs:
     name: lake build (mathlib)
     runs-on: ubuntu-latest
     needs: lint
+    # TEMPORARY (BRIEF_021 implementation, draft): while `ImprovedBS/CgmyStrip.lean`
+    # still carries deferred proofs the lint job is red by design, and without this
+    # line the build job — the only elaboration channel a sandbox without a Lean
+    # toolchain has — would be skipped, leaving the author with no error list.
+    # Reverted before the final commit, when the ratchet is back at zero.
+    if: always()
     steps:
       - uses: actions/checkout@v4
 
