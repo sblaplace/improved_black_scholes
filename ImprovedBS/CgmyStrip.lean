@@ -283,7 +283,7 @@ theorem cgmyMgf_markovTail (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G)
     refine Integrable.mono hbig.integrableOn ?_ ?_
     · exact (Real.continuous_exp.comp
         (continuous_const.mul continuous_id)).aestronglyMeasurable
-    · refine (ae_restrict_iff hAmeas).2 (ae_of_all _ fun x hxin => ?_)
+    · refine (ae_restrict_iff' hAmeas).2 (ae_of_all _ fun x hxin => ?_)
       rw [Real.norm_of_nonneg (Real.exp_nonneg _),
         Real.norm_of_nonneg (mul_nonneg (Real.rpow_nonneg hK.le _) (Real.exp_nonneg _))]
       exact hpw x hxin
@@ -453,16 +453,15 @@ theorem complexMGF_cgmyLaw (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G)
               = fun n : ℕ => (min G M / 2) * (1 / ((n : ℝ) + 1)) := by
             funext n
             rw [div_eq_mul_one_div]
-          rw [h5, mul_zero]
-          exact h3
+          rw [h5]
+          simpa only [mul_zero] using h3
         exact tendsto_ofReal_iff.mpr h4
       · filter_upwards with n
         have hn : 0 < ((n : ℝ) + 1) := by positivity
         have hnz : (min G M / 2 : ℝ) / ((n : ℝ) + 1) ≠ 0 :=
           (div_pos hδ hn).ne'
-        have hnin : ((min G M / 2 : ℝ) / ((n : ℝ) + 1) : ℂ) ∉ ({0} : Set ℂ) := by
-          exact_mod_cast hnz
-        exact hnin
+        simp only [Set.mem_compl_iff, Set.mem_singleton_iff]
+        exact_mod_cast hnz
     · intro n
       have hn : 0 < ((n : ℝ) + 1) := by positivity
       have hpos : (0 : ℝ) < (min G M / 2) / ((n : ℝ) + 1) := div_pos hδ hn
