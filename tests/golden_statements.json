@@ -1755,7 +1755,7 @@
     "BSM.cgmyMgfOneSided_eq": {
       "file": "ImprovedBS/CgmyStrip.lean",
       "kind": "theorem",
-      "pin": "theorem cgmyMgfOneSided_eq (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G) (hM : 0 < M) (hY : 0 < Y) (hY₁ : Y ≠ 1) (u : ℝ) (h₁ : -G < u) (h₂ : u < M) : (∫ x in {x : ℝ | (0 : ℝ) ≤ x}, (Real.exp (u * x) - 1 - Set.indicator (Icc 0 1) (fun y => u * y) x) * (cgmyLevyDensity C G M Y x : ℝ)) + (∫ x in {x : ℝ | x < 0}, (Real.exp (u * x) - 1 - Set.indicator (Icc (-1) 0) (fun y => u * y) x) * (cgmyLevyDensity C G M Y x : ℝ)) = cgmyCumulant C G M Y u - u * (cgmyDriftIdentity C G M Y)"
+      "pin": "theorem cgmyMgfOneSided_eq (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G) (hM : 0 < M) (hY : 0 < Y) (hY₁ : Y ≠ 1) (u : ℝ) (h₁ : -G < u) (h₂ : u < M) : (∫ x in {x : ℝ | (0 : ℝ) ≤ x}, (Real.exp (u * x) - 1 - Set.indicator (Icc 0 1) (fun y => u * y) x) * (cgmyLevyDensity C G M Y x : ℝ)) + (∫ x in {x : ℝ | x < 0}, (Real.exp (u * x) - 1 - Set.indicator (Icc (-1) 0) (fun y => u * y) x) * (cgmyLevyDensity C G M Y x : ℝ)) = cgmyCumulant C G M Y u - u * (∫ x in Ioc (0 : ℝ) 1, cgmyDriftIntegrand C G M Y x)"
     },
     "BSM.cgmyMgfTruncatedExponent": {
       "file": "ImprovedBS/CgmyStrip.lean",
@@ -1775,12 +1775,12 @@
     "BSM.cgmyMgf_markovTail": {
       "file": "ImprovedBS/CgmyStrip.lean",
       "kind": "theorem",
-      "pin": "theorem cgmyMgf_markovTail (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G) (hM : 0 < M) (hY : 0 < Y) (τ : ℝ≥0) (u u' K : ℝ) (h₁ : -G < u) (h₂ : u < M) (h₁' : -G < u') (h₂' : u' < M) (huu' : u < u') (hK : 0 < K) : ∃ c : ℝ, ∀ n : ℕ, volume {x : ℝ | K ≤ Real.exp (u * x)} ≤ c / K ^ (u' - u)"
+      "pin": "theorem cgmyMgf_markovTail (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G) (hM : 0 < M) (hY : 0 < Y) (τ : ℝ≥0) (u u' K : ℝ) (h₁ : -G < u) (h₂ : u < M) (h₁' : -G < u') (h₂' : u' < M) (hside : 0 < u * u') (habs : |u| < |u'|) (hK : 0 < K) : ∃ c : ℝ, ∀ n : ℕ, ∫ x in {x : ℝ | K ≤ Real.exp (u * x)}, Real.exp (u * x) ∂((cgmyCpProbability C G M Y τ ((2 : ℝ≥0)⁻¹ ^ n) hC hG hM hY (pow_pos (inv_pos.mpr (by norm_num : (0 : ℝ≥0) < 2)) n)) : Measure ℝ) ≤ c * K ^ (1 - u' / u)"
     },
     "BSM.cgmyMgf_uniformBound": {
       "file": "ImprovedBS/CgmyStrip.lean",
       "kind": "theorem",
-      "pin": "theorem cgmyMgf_uniformBound (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G) (hM : 0 < M) (hY : 0 < Y) (τ : ℝ≥0) (u u' : ℝ) (h₁ : -G < u') (h₂ : u' < M) (huu' : u ≤ u') (hY₁ : Y ≠ 1) : ∃ B : ℝ, ∀ n : ℕ, cgmyMgfTruncatedExponent C G M Y ((2 : ℝ≥0)⁻¹ ^ n) u ≤ B"
+      "pin": "theorem cgmyMgf_uniformBound (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G) (hM : 0 < M) (hY : 0 < Y) (τ : ℝ≥0) (u : ℝ) (h₁ : -G < u) (h₂ : u < M) : ∃ B : ℝ, ∀ n : ℕ, cgmyMgfTruncatedExponent C G M Y ((2 : ℝ≥0)⁻¹ ^ n) u ≤ B"
     },
     "BSM.cgmyOldContour_base_right_re": {
       "file": "ImprovedBS/CGMY.lean",
@@ -1800,7 +1800,7 @@
     "BSM.cgmyStrip_target_analyticOnNhd": {
       "file": "ImprovedBS/CgmyStrip.lean",
       "kind": "theorem",
-      "pin": "theorem cgmyStrip_target_analyticOnNhd (C G M Y τ : ℝ) (hG : 0 < G) (hM : 0 < M) (hY : 0 < Y) (hcontour : ∀ z : ℂ, -G < z.re → z.re < M → HasStrictDerivAt id 0 z) : AnalyticOnNhd ℂ (fun z : ℂ => Complex.exp (τ * cgmyExponent C G M Y (-(Complex.I * z)))) {z : ℂ | -G < z.re ∧ z.re < M}"
+      "pin": "theorem cgmyStrip_target_analyticOnNhd (C G M Y τ : ℝ) (hG : 0 < G) (hM : 0 < M) (hY : 0 < Y) : AnalyticOnNhd ℂ (fun z : ℂ => Complex.exp (τ * cgmyExponent C G M Y (-(Complex.I * z)))) {z : ℂ | -G < z.re ∧ z.re < M}"
     },
     "BSM.cgmyTemperedConstant": {
       "file": "ImprovedBS/CGMY.lean",
@@ -2605,7 +2605,7 @@
     "BSM.mgf_convPow": {
       "file": "ImprovedBS/CgmyStrip.lean",
       "kind": "theorem",
-      "pin": "theorem mgf_convPow (ρ : Measure ℝ) (hρ : IsProbabilityMeasure ρ) (u : ℝ) (hint : Integrable (fun x : ℝ => Real.exp (u * x)) ρ) : ∀ n, mgf id (convPow ρ n) u = mgf id ρ u ^ n | 0 => by rw [convPow] unfold mgf rw [integral_dirac] simp | n + 1 => by have hpos : 0 < mgf id ρ u"
+      "pin": "theorem mgf_convPow (ρ : Measure ℝ) (hρ : IsProbabilityMeasure ρ) (u : ℝ) (hint : Integrable (fun x : ℝ => Real.exp (u * x)) ρ) : ∀ n, mgf id (convPow ρ n) u = mgf id ρ u ^ n | 0 => by rw [convPow] unfold mgf rw [integral_dirac] simp | n + 1 => by have hn : IsProbabilityMeasure (convPow ρ n)"
     },
     "BSM.modelFreeCall": {
       "file": "ImprovedBS/Skeleton.lean",
