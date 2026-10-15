@@ -242,15 +242,16 @@ theorem cgmyMgf_markovTail (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G)
     have ha : |u' / u| = |u'| / |u| := abs_div u' u
     rw [abs_of_pos hpos] at ha
     have huu : 0 < |u| := abs_pos.mpr hne
-    rw [← ha]
-    exact (one_lt_div huu).mpr habs
+    have hlt : (1 : ℝ) < |u'| / |u| := (one_lt_div huu).mpr habs
+    rw [← ha] at hlt
+    exact hlt
   have hpw : ∀ x : ℝ, K ≤ Real.exp (u * x) →
       Real.exp (u * x) ≤ K ^ (1 - u' / u) * Real.exp (u' * x) := by
     intro x hxK
     have hlog : Real.log K ≤ u * x := (Real.log_le_iff_le_exp hK).2 hxK
     have hux : u' * x = (u' / u) * (u * x) := by
       field_simp [hne]
-      ring
+      try ring
     have hKp : K ^ (1 - u' / u) = Real.exp ((1 - u' / u) * Real.log K) := by
       rw [Real.rpow_def_of_pos hK, mul_comm]
     rw [hKp, hux, ← Real.exp_add]
@@ -262,22 +263,23 @@ theorem cgmyMgf_markovTail (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G)
     rw [h4]
     linarith
   obtain ⟨B, hB⟩ := cgmyMgf_uniformBound C G M Y hC hG hM hY τ u' h₁' h₂'
-  refine ⟨Real.exp ((τ : ℝ) * B) * K ^ (1 - u' / u), fun n => ?_⟩
+  refine ⟨Real.exp ((τ : ℝ) * B), fun n => ?_⟩
   set μn : Measure ℝ :=
     ((cgmyCpProbability C G M Y τ ((2 : ℝ≥0)⁻¹ ^ n) hC hG hM hY
       (pow_pos (inv_pos.mpr (by norm_num : (0 : ℝ≥0) < 2)) n)) : Measure ℝ) with hμn
   set A : Set ℝ := {x : ℝ | K ≤ Real.exp (u * x)} with hA
   have hBexp : Integrable (fun x : ℝ => Real.exp (u' * x)) μn := by
     refine mgf_pos_iff.mp ?_
-    rw [cgmyCpProbability_mgf C G M Y hC hG hM hY τ ((2 : ℝ≥0)⁻¹ ^ n)
+    show 0 < mgf id μn u'
+    rw [hμn, cgmyCpProbability_mgf C G M Y hC hG hM hY τ ((2 : ℝ≥0)⁻¹ ^ n)
       (pow_pos (inv_pos.mpr (by norm_num : (0 : ℝ≥0) < 2)) n) u' h₁' h₂']
     exact Real.exp_pos _
   have hbig : Integrable (fun x : ℝ => K ^ (1 - u' / u) * Real.exp (u' * x)) μn :=
     hBexp.const_mul _
   have hAexp : IntegrableOn (fun x : ℝ => Real.exp (u * x)) A μn := by
-    refine hbig.integrableOn.mono ?_ ?_
+    refine Integrable.mono hbig.integrableOn ?_ ?_
     · exact (Real.continuous_exp.comp
-        (continuous_mul continuous_const continuous_id)).aestronglyMeasurable
+        (continuous_const.mul continuous_id)).aestronglyMeasurable
     · refine (ae_restrict_iff A).2 (ae_of_all _ fun x hxin => ?_)
       rw [Real.norm_of_nonneg (Real.exp_nonneg _),
         Real.norm_of_nonneg (mul_nonneg (Real.rpow_nonneg hK.le _) (Real.exp_nonneg _))]
@@ -287,7 +289,7 @@ theorem cgmyMgf_markovTail (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G)
     refine setIntegral_mono_on hAexp hbig.integrableOn ?_ ?_
     · exact measurableSet_le measurable_const
         ((Real.continuous_exp.comp
-          (continuous_mul continuous_const continuous_id)).measurable)
+          (continuous_const.mul continuous_id)).measurable)
     · intro x hx
       exact hpw x hx
   have hconst : ∫ x in A, K ^ (1 - u' / u) * Real.exp (u' * x) ∂μn
@@ -296,9 +298,10 @@ theorem cgmyMgf_markovTail (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G)
   have hset : ∫ x in A, Real.exp (u' * x) ∂μn ≤ ∫ x, Real.exp (u' * x) ∂μn :=
     setIntegral_le_integral hBexp (ae_of_all _ fun x => Real.exp_nonneg _)
   have hmgf : ∫ x, Real.exp (u' * x) ∂μn ≤ Real.exp ((τ : ℝ) * B) := by
+    rw [hμn]
     have hm := cgmyCpProbability_mgf C G M Y hC hG hM hY τ ((2 : ℝ≥0)⁻¹ ^ n)
       (pow_pos (inv_pos.mpr (by norm_num : (0 : ℝ≥0) < 2)) n) u' h₁' h₂'
-    rw [mgf, id_eq] at hm
+    simp only [mgf, id_eq] at hm
     rw [hm]
     exact Real.exp_le_exp.mpr
       (mul_le_mul_of_nonneg_left (hB n) (NNReal.coe_nonneg τ))
@@ -436,22 +439,24 @@ theorem complexMGF_cgmyLaw (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G)
     refine ⟨fun n : ℕ => (((min G M / 2) / ((n : ℝ) + 1) : ℝ) : ℂ), ?_, ?_⟩
     · rw [tendsto_nhdsWithin_iff]
       constructor
-      · have h1 : Tendsto
+      · have h2 : Tendsto (fun n : ℕ => (1 : ℝ) / ((n : ℝ) + 1)) atTop (𝓝 0) :=
+          tendsto_one_div_add_atTop_nhds_zero_nat
+        have hc : Tendsto (fun _ : ℕ => (min G M / 2 : ℝ)) atTop (𝓝 (min G M / 2)) :=
+          tendsto_const_nhds
+        have h3 : Tendsto
+            (fun n : ℕ => (min G M / 2) * (1 / ((n : ℝ) + 1)))
+            atTop (𝓝 ((min G M / 2) * 0)) :=
+          hc.mul h2
+        have h4 : Tendsto
             (fun n : ℕ => (min G M / 2) / ((n : ℝ) + 1)) atTop (𝓝 0) := by
-          have h2 : Tendsto (fun n : ℕ => (1 : ℝ) / ((n : ℝ) + 1)) atTop (𝓝 0) :=
-            tendsto_one_div_add_atTop_nhds_zero_nat
-          have h3 : Tendsto
-              (fun n : ℕ => (min G M / 2) * (1 / ((n : ℝ) + 1)))
-              atTop (𝓝 ((min G M / 2) * 0)) :=
-            (tendsto_const_nhds (b := min G M / 2)).mul h2
-          simpa using h3
-        exact tendsto_ofReal_iff.mpr h1
+          simpa only [mul_zero, div_eq_mul_one_div] using h3
+        exact tendsto_ofReal_iff.mpr h4
       · filter_upwards with n
         have hn : 0 < ((n : ℝ) + 1) := by positivity
         have hnz : (min G M / 2 : ℝ) / ((n : ℝ) + 1) ≠ 0 :=
           (div_pos hδ hn).ne'
-        simp only [Set.mem_compl_singleton, Complex.ofReal_ne_zero]
-        exact hnz
+        show ((min G M / 2 : ℝ) / ((n : ℝ) + 1) : ℂ) ≠ 0
+        exact_mod_cast hnz
     · intro n
       have hn : 0 < ((n : ℝ) + 1) := by positivity
       have hpos : (0 : ℝ) < (min G M / 2) / ((n : ℝ) + 1) := div_pos hδ hn
