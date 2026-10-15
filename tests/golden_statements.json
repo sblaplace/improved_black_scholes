@@ -1905,17 +1905,17 @@
     "BSM.cgmy_modelFree_call_bounds": {
       "file": "ImprovedBS/CgmyStrip.lean",
       "kind": "theorem",
-      "pin": "theorem cgmy_modelFree_call_bounds (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G) (hM : 0 < M) (hY : 0 < Y) (hY₂ : Y < 2) (hY₁ : Y ≠ 1) (τ : ℝ≥0) (θ r q S K : ℝ) (hθ : θ ∈ Ioo (-G) (M - 1)) (hK : 0 ≤ K) (hS : 0 ≤ S) : max (S * Real.exp (-q * τ) - K * Real.exp (-r * τ)) 0 ≤ modelFreeCall (cgmyTilt C G M Y hC hG hM hY hY₂ τ θ) (fun x => S * Real.exp x) K r τ ∧ modelFreeCall (cgmyTilt C G M Y hC hG hM hY hY₂ τ θ) (fun x => S * Real.exp x) K r τ ≤ S * Real.exp (-q * τ)"
+      "pin": "theorem cgmy_modelFree_call_bounds (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G) (hM : 0 < M) (hY : 0 < Y) (hY₂ : Y < 2) (hY₁ : Y ≠ 1) (τ : ℝ≥0) (θ r q S K : ℝ) (hθ : θ ∈ Ioo (-G) (M - 1)) (hdrift : esscherDriftMap C G M Y θ = r - q) (hK : 0 ≤ K) (hS : 0 ≤ S) : max (S * Real.exp (-q * τ) - K * Real.exp (-r * τ)) 0 ≤ modelFreeCall (cgmyTilt C G M Y hC hG hM hY hY₂ τ θ) (fun x => S * Real.exp x) K r τ ∧ modelFreeCall (cgmyTilt C G M Y hC hG hM hY hY₂ τ θ) (fun x => S * Real.exp x) K r τ ≤ S * Real.exp (-q * τ)"
     },
     "BSM.cgmy_modelFree_parity": {
       "file": "ImprovedBS/CgmyStrip.lean",
       "kind": "theorem",
-      "pin": "theorem cgmy_modelFree_parity (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G) (hM : 0 < M) (hY : 0 < Y) (hY₂ : Y < 2) (hY₁ : Y ≠ 1) (τ : ℝ≥0) (θ r q S K : ℝ) (hθ : θ ∈ Ioo (-G) (M - 1)) : modelFreeCall (cgmyTilt C G M Y hC hG hM hY hY₂ τ θ) (fun x => S * Real.exp x) K r τ - modelFreePut (cgmyTilt C G M Y hC hG hM hY hY₂ τ θ) (fun x => S * Real.exp x) K r τ = S * Real.exp (-q * τ) - K * Real.exp (-r * τ)"
+      "pin": "theorem cgmy_modelFree_parity (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G) (hM : 0 < M) (hY : 0 < Y) (hY₂ : Y < 2) (hY₁ : Y ≠ 1) (τ : ℝ≥0) (θ r q S K : ℝ) (hθ : θ ∈ Ioo (-G) (M - 1)) (hdrift : esscherDriftMap C G M Y θ = r - q) : modelFreeCall (cgmyTilt C G M Y hC hG hM hY hY₂ τ θ) (fun x => S * Real.exp x) K r τ - modelFreePut (cgmyTilt C G M Y hC hG hM hY hY₂ τ θ) (fun x => S * Real.exp x) K r τ = S * Real.exp (-q * τ) - K * Real.exp (-r * τ)"
     },
     "BSM.cgmy_modelFree_put_bounds": {
       "file": "ImprovedBS/CgmyStrip.lean",
       "kind": "theorem",
-      "pin": "theorem cgmy_modelFree_put_bounds (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G) (hM : 0 < M) (hY : 0 < Y) (hY₂ : Y < 2) (hY₁ : Y ≠ 1) (τ : ℝ≥0) (θ r q S K : ℝ) (hθ : θ ∈ Ioo (-G) (M - 1)) (hK : 0 ≤ K) (hS : 0 ≤ S) : max (K * Real.exp (-r * τ) - S * Real.exp (-q * τ)) 0 ≤ modelFreePut (cgmyTilt C G M Y hC hG hM hY hY₂ τ θ) (fun x => S * Real.exp x) K r τ ∧ modelFreePut (cgmyTilt C G M Y hC hG hM hY hY₂ τ θ) (fun x => S * Real.exp x) K r τ ≤ K * Real.exp (-r * τ)"
+      "pin": "theorem cgmy_modelFree_put_bounds (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G) (hM : 0 < M) (hY : 0 < Y) (hY₂ : Y < 2) (hY₁ : Y ≠ 1) (τ : ℝ≥0) (θ r q S K : ℝ) (hθ : θ ∈ Ioo (-G) (M - 1)) (hdrift : esscherDriftMap C G M Y θ = r - q) (hK : 0 ≤ K) (hS : 0 ≤ S) : max (K * Real.exp (-r * τ) - S * Real.exp (-q * τ)) 0 ≤ modelFreePut (cgmyTilt C G M Y hC hG hM hY hY₂ τ θ) (fun x => S * Real.exp x) K r τ ∧ modelFreePut (cgmyTilt C G M Y hC hG hM hY hY₂ τ θ) (fun x => S * Real.exp x) K r τ ≤ K * Real.exp (-r * τ)"
     },
     "BSM.cgmy_numeraire_strip": {
       "file": "ImprovedBS/CGMY.lean",

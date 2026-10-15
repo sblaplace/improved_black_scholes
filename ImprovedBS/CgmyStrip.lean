@@ -369,37 +369,71 @@ theorem cgmy_drift_identity (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G)
     (by linarith [hθ.1]) (by linarith [hθ.2, hnum])
   have hm0 := cgmyLaw_mgf C G M Y hC hG hM hY hY₂ hY₁ τ θ
     (by linarith [hθ.1]) (by linarith [hθ.2])
-  -- `mgf id (tilt) 1 = ∫ S·e^x` via the def; the κ-difference IS
-  -- `esscherDriftMap`; `hdrift` closes
-  sorry
+  have hθM : θ < M := by linarith [hθ.2]
+  have h1θ : 1 + θ < M := by linarith [hθ.2, hnum]
+  calc ∫ x : ℝ, S * Real.exp x ∂(cgmyTilt C G M Y hC hG hM hY hY₂ τ θ)
+      = S * ∫ x : ℝ, Real.exp x ∂(cgmyTilt C G M Y hC hG hM hY hY₂ τ θ) := by
+        rw [integral_const_mul]
+    _ = S * mgf id (cgmyTilt C G M Y hC hG hM hY hY₂ τ θ) 1 := by
+        rw [mgf]
+        simp only [id_eq]
+    _ = S * (mgf id (cgmyLaw C G M Y τ hC hG hM hY hY₂) (1 + θ) /
+          mgf id (cgmyLaw C G M Y τ hC hG hM hY hY₂) θ) := by rw [htilt]
+    _ = S * (Real.exp ((τ : ℝ) * cgmyCumulant C G M Y (1 + θ)) /
+          Real.exp ((τ : ℝ) * cgmyCumulant C G M Y θ)) := by rw [hm1, hm0]
+    _ = S * Real.exp ((τ : ℝ) * (cgmyCumulant C G M Y (θ + 1) -
+          cgmyCumulant C G M Y θ)) := by
+        rw [← Real.exp_sub]
+        congr 2
+        ring
+    _ = S * Real.exp ((τ : ℝ) * esscherDriftMap C G M Y θ) := by
+        rw [esscherDriftMap]
+    _ = S * Real.exp ((r - q) * τ) := by
+        rw [hdrift]
+        ring_nf
 
 /-! ## §4 items 5 and the pricing statement -/
 
 /-- **Item 5's parity at the tilted law** — the skeleton's
 `model_free_parity_gap` discharged: probability (§3), `Integrable (S·e^x)`
-by §1 at `θ` (θ + 1 < M is the numéraire citation), `0 ≤ S·eˣ` pointwise. -/
+by §1 at `θ` (θ + 1 < M is the numéraire citation), `0 ≤ S·eˣ` pointwise.
+The drift hypothesis is `cgmy_drift_identity`'s: without
+`esscherDriftMap θ = r − q` the tilted mean is not the forward (`VGLaw`'s
+`vg_modelFree_parity` carries the same `hdrift`). -/
 theorem cgmy_modelFree_parity (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G)
     (hM : 0 < M) (hY : 0 < Y) (hY₂ : Y < 2) (hY₁ : Y ≠ 1) (τ : ℝ≥0)
-    (θ r q S K : ℝ) (hθ : θ ∈ Ioo (-G) (M - 1)) :
+    (θ r q S K : ℝ) (hθ : θ ∈ Ioo (-G) (M - 1))
+    (hdrift : esscherDriftMap C G M Y θ = r - q) :
     modelFreeCall (cgmyTilt C G M Y hC hG hM hY hY₂ τ θ)
         (fun x => S * Real.exp x) K r τ -
       modelFreePut (cgmyTilt C G M Y hC hG hM hY hY₂ τ θ)
         (fun x => S * Real.exp x) K r τ
       = S * Real.exp (-q * τ) - K * Real.exp (-r * τ) := by
   haveI hprob := cgmyTilt_isProbabilityMeasure C G M Y hC hG hM hY hY₂ hY₁ τ θ hθ
-  have hstrip : -G < θ ∧ θ < M := ⟨by linarith [hθ.1, hθ.2], by linarith [hθ.1, hθ.2]⟩
   have hx : Integrable (fun x : ℝ => S * Real.exp x)
       (cgmyTilt C G M Y hC hG hM hY hY₂ τ θ) := by
-    -- `integrable_tilted_iff` + §1 at θ
-    sorry
-  exact model_free_parity_gap (fun x : ℝ => S * Real.exp x) hx
-    (by filter_upwards [ae_of_all _ fun x => mul_nonneg (le_of_eq rfl)
-      (Real.exp_nonneg _)] with x using by ring_nf; exact Real.exp_nonneg _) r q S K τ
+    have heq : cgmyTilt C G M Y hC hG hM hY hY₂ τ θ =
+        (cgmyLaw C G M Y τ hC hG hM hY hY₂).tilted (fun x : ℝ => θ * x) := rfl
+    have hint : Integrable (fun x : ℝ => Real.exp (θ * x))
+        (cgmyLaw C G M Y τ hC hG hM hY hY₂) :=
+      cgmyLaw_exp_integrable C G M Y hC hG hM hY hY₂ hY₁ τ θ
+        (by linarith [hθ.1, hθ.2]) (by linarith [hθ.1, hθ.2])
+    have h1 : Integrable (fun x : ℝ => Real.exp x)
+        (cgmyTilt C G M Y hC hG hM hY hY₂ τ θ) := by
+      rw [heq, integrable_tilted_iff hint]
+      simp_rw [smul_eq_mul, ← Real.exp_add]
+      exact (cgmyLaw_exp_integrable C G M Y hC hG hM hY hY₂ hY₁ τ (θ + 1)
+        (by linarith [hθ.1, hθ.2]) (by linarith [hθ.1, hθ.2])).congr
+        (by filter_upwards with x; ring_nf)
+    exact h1.const_mul S
+  have hE := cgmy_drift_identity C G M Y hC hG hM hY hY₂ hY₁ τ θ r q S hθ hdrift
+  exact model_free_put_call_parity S K τ r q (fun x => S * Real.exp x) hx hE
 
 /-- **Item 5's bounds at the tilted law** — same consumption. -/
 theorem cgmy_modelFree_call_bounds (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G)
     (hM : 0 < M) (hY : 0 < Y) (hY₂ : Y < 2) (hY₁ : Y ≠ 1) (τ : ℝ≥0)
     (θ r q S K : ℝ) (hθ : θ ∈ Ioo (-G) (M - 1))
+    (hdrift : esscherDriftMap C G M Y θ = r - q)
     (hK : 0 ≤ K) (hS : 0 ≤ S) :
     max (S * Real.exp (-q * τ) - K * Real.exp (-r * τ)) 0 ≤
         modelFreeCall (cgmyTilt C G M Y hC hG hM hY hY₂ τ θ)
@@ -407,13 +441,34 @@ theorem cgmy_modelFree_call_bounds (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G)
       modelFreeCall (cgmyTilt C G M Y hC hG hM hY hY₂ τ θ)
           (fun x => S * Real.exp x) K r τ ≤
         S * Real.exp (-q * τ) := by
-  sorry
+  haveI hprob := cgmyTilt_isProbabilityMeasure C G M Y hC hG hM hY hY₂ hY₁ τ θ hθ
+  have hx : Integrable (fun x : ℝ => S * Real.exp x)
+      (cgmyTilt C G M Y hC hG hM hY hY₂ τ θ) := by
+    have heq : cgmyTilt C G M Y hC hG hM hY hY₂ τ θ =
+        (cgmyLaw C G M Y τ hC hG hM hY hY₂).tilted (fun x : ℝ => θ * x) := rfl
+    have hint : Integrable (fun x : ℝ => Real.exp (θ * x))
+        (cgmyLaw C G M Y τ hC hG hM hY hY₂) :=
+      cgmyLaw_exp_integrable C G M Y hC hG hM hY hY₂ hY₁ τ θ
+        (by linarith [hθ.1, hθ.2]) (by linarith [hθ.1, hθ.2])
+    have h1 : Integrable (fun x : ℝ => Real.exp x)
+        (cgmyTilt C G M Y hC hG hM hY hY₂ τ θ) := by
+      rw [heq, integrable_tilted_iff hint]
+      simp_rw [smul_eq_mul, ← Real.exp_add]
+      exact (cgmyLaw_exp_integrable C G M Y hC hG hM hY hY₂ hY₁ τ (θ + 1)
+        (by linarith [hθ.1, hθ.2]) (by linarith [hθ.1, hθ.2])).congr
+        (by filter_upwards with x; ring_nf)
+    exact h1.const_mul S
+  have hE := cgmy_drift_identity C G M Y hC hG hM hY hY₂ hY₁ τ θ r q S hθ hdrift
+  have hX0 : ∀ᵐ x ∂(cgmyTilt C G M Y hC hG hM hY hY₂ τ θ), 0 ≤ S * Real.exp x :=
+    Filter.Eventually.of_forall fun x => mul_nonneg hS (Real.exp_pos x).le
+  exact model_free_call_bounds S K τ r q (fun x => S * Real.exp x) hx hE hK hX0
 
 /-- **Item 5's put bounds at the tilted law** — the parity corollary, the
 VGLaw route. -/
 theorem cgmy_modelFree_put_bounds (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G)
     (hM : 0 < M) (hY : 0 < Y) (hY₂ : Y < 2) (hY₁ : Y ≠ 1) (τ : ℝ≥0)
     (θ r q S K : ℝ) (hθ : θ ∈ Ioo (-G) (M - 1))
+    (hdrift : esscherDriftMap C G M Y θ = r - q)
     (hK : 0 ≤ K) (hS : 0 ≤ S) :
     max (K * Real.exp (-r * τ) - S * Real.exp (-q * τ)) 0 ≤
         modelFreePut (cgmyTilt C G M Y hC hG hM hY hY₂ τ θ)
@@ -421,7 +476,27 @@ theorem cgmy_modelFree_put_bounds (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G)
       modelFreePut (cgmyTilt C G M Y hC hG hM hY hY₂ τ θ)
           (fun x => S * Real.exp x) K r τ ≤
         K * Real.exp (-r * τ) := by
-  sorry
+  haveI hprob := cgmyTilt_isProbabilityMeasure C G M Y hC hG hM hY hY₂ hY₁ τ θ hθ
+  have hx : Integrable (fun x : ℝ => S * Real.exp x)
+      (cgmyTilt C G M Y hC hG hM hY hY₂ τ θ) := by
+    have heq : cgmyTilt C G M Y hC hG hM hY hY₂ τ θ =
+        (cgmyLaw C G M Y τ hC hG hM hY hY₂).tilted (fun x : ℝ => θ * x) := rfl
+    have hint : Integrable (fun x : ℝ => Real.exp (θ * x))
+        (cgmyLaw C G M Y τ hC hG hM hY hY₂) :=
+      cgmyLaw_exp_integrable C G M Y hC hG hM hY hY₂ hY₁ τ θ
+        (by linarith [hθ.1, hθ.2]) (by linarith [hθ.1, hθ.2])
+    have h1 : Integrable (fun x : ℝ => Real.exp x)
+        (cgmyTilt C G M Y hC hG hM hY hY₂ τ θ) := by
+      rw [heq, integrable_tilted_iff hint]
+      simp_rw [smul_eq_mul, ← Real.exp_add]
+      exact (cgmyLaw_exp_integrable C G M Y hC hG hM hY hY₂ hY₁ τ (θ + 1)
+        (by linarith [hθ.1, hθ.2]) (by linarith [hθ.1, hθ.2])).congr
+        (by filter_upwards with x; ring_nf)
+    exact h1.const_mul S
+  have hE := cgmy_drift_identity C G M Y hC hG hM hY hY₂ hY₁ τ θ r q S hθ hdrift
+  have hX0 : ∀ᵐ x ∂(cgmyTilt C G M Y hC hG hM hY hY₂ τ θ), 0 ≤ S * Real.exp x :=
+    Filter.Eventually.of_forall fun x => mul_nonneg hS (Real.exp_pos x).le
+  exact model_free_put_bounds S K τ r q (fun x => S * Real.exp x) hx hE hK hX0
 
 /-- **Item 4's twin: Carr–Madan at `cgmyLaw`** — the INSTANTIATION of the
 landed `carrMadan_eq_modelFreeCall`, four hypotheses discharged: continuity
@@ -441,11 +516,44 @@ theorem cgmy_carrMadan_eq_modelFreeCall (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G
           (fun x => S * Real.exp x) K r τ) := by
   haveI hprob : IsProbabilityMeasure (cgmyLaw C G M Y τ hC hG hM hY hY₂) := by
     infer_instance
-  -- four hypotheses: `hcont` via `contourCharFun_cgmyLaw` +
-  -- `cgmy_charFactor_contour_continuous`; `hdecay` via `cgmy_contour_decay`;
-  -- `hTail`/`hX` via `cgmyLaw_exp_integrable` (two rates) and
-  -- `openStrip_subset_integrableExpSet`
-  have hcf := contourCharFun_cgmyLaw C G M Y hC hG hM hY hY₂ hY₁ τ
-  exact carrMadan_eq_modelFreeCall (hS := hS) (hK := hK) (hα := hα) sorry sorry sorry sorry
+  have hτ' : (0 : ℝ) < (τ : ℝ) := NNReal.coe_pos.mpr hτ
+  have hδ0 : (0 : ℝ) < (M - (α + 1)) / 2 := by linarith
+  -- the contour's imaginary part is `−(α+1)`, inside `(−M, G)` exactly at C14
+  have hvim : ∀ u : ℝ, ((u : ℂ) - ((α + 1 : ℝ) : ℂ) * Complex.I).im = -(α + 1) :=
+    fun u => by simp [Complex.sub_im, Complex.mul_im]
+  refine carrMadan_eq_modelFreeCall (hS := hS) (hK := hK) (hα := hα)
+    (c := (τ : ℝ) * cgmyTemperedRate C Y / 2) (D := 1) (Y := Y)
+    (u₀ := cgmyDecayThreshold C G M Y) (δ := (M - (α + 1)) / 2)
+    ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_
+  · exact div_pos (mul_pos hτ' (cgmyTemperedRate_pos C Y hC hY hY₂ hY₁)) two_pos
+  · norm_num
+  · exact hY
+  · exact hδ0
+  · -- continuity: §2's `contourCharFun_cgmyLaw` + the landed contour continuity
+    have hcont : Continuous fun u : ℝ =>
+        cgmyCharFactor C G M Y (τ : ℝ) (cgmyContour α u) :=
+      cgmy_charFactor_contour_continuous C G M Y (τ : ℝ) α hG hα hY hcontour
+    refine hcont.congr fun u => ?_
+    exact (contourCharFun_cgmyLaw C G M Y hC hG hM hY hY₂ hY₁ τ
+      ((u : ℂ) - ((α + 1 : ℝ) : ℂ) * Complex.I)
+      (by rw [hvim u]; linarith)
+      (by rw [hvim u]; linarith)).symm
+  · -- decay: §2's rewrite + the landed (H-decay)
+    intro u hu
+    rw [contourCharFun_cgmyLaw C G M Y hC hG hM hY hY₂ hY₁ τ
+      ((u : ℂ) - ((α + 1 : ℝ) : ℂ) * Complex.I)
+      (by rw [hvim u]; linarith) (by rw [hvim u]; linarith)]
+    simpa only [one_mul] using
+      cgmy_contour_decay C G M Y (τ : ℝ) α hC hG hM hY hY₂ hY₁ hα hcontour hτ'.le u hu
+  · -- the tail moment, at `α + 1 + δ < M`
+    exact cgmyLaw_exp_integrable C G M Y hC hG hM hY hY₂ hY₁ τ
+      ((α + 1) + (M - (α + 1)) / 2) (by linarith) (by linarith)
+  · -- the spot moment at `u = 1 < M` (from `α > 0`, `α + 1 < M`)
+    have hExp : Integrable (fun x : ℝ => Real.exp x)
+        (cgmyLaw C G M Y τ hC hG hM hY hY₂) := by
+      have h := cgmyLaw_exp_integrable C G M Y hC hG hM hY hY₂ hY₁ τ 1
+        (by linarith) (by linarith [hα, hcontour])
+      simpa only [one_mul] using h
+    simpa only [smul_eq_mul] using hExp.const_mul S
 
 end BSM
