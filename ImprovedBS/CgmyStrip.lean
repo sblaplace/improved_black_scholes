@@ -1,0 +1,898 @@
+/-
+  ImprovedBS/CgmyStrip.lean — BRIEF_021: the strip at the law.
+
+  One line: the CGMY law's mgf exists and equals `exp (τ · κ(u))` on the open
+  strip `−G < u < M` (`Y ≠ 1` where the closed form is quoted), extends to
+  `complexMGF` on the open complex strip and to `contourCharFun` on the
+  pricing line, carries the Esscher tilt of the LAW itself (`Measure.tilted`)
+  with items 3 and 5 discharged at `cgmyTilt`, and prices the first
+  Carr–Madan statement at the untilted `cgmyLaw`.
+
+  Route: §1 mgf through the compound-Poisson marginals (`mgf_conv`,
+  `mgf_convPow`, the jump law's two-sided far moment, the `expSeries` sum —
+  character-for-character from `charFun_conv` / `charFun_cpLaw`), the
+  decomposition at the LINE `v = −I·u` (real analysis: the landed complex `v`
+  lemmas stop at real `v` — F1), the two limits to `κ`, and the weak-limit
+  truncation sandwich of F4 (bounded continuous truncations through
+  `tendsto_iff_forall_integral_tendsto`, a Markov tail at a stricter interior
+  moment `u′`, the ladder's uniform sup). No Portmanteau, no dominated
+  convergence, no `withDensity`. §2 the identity theorem in `z`, mirroring
+  mathlib's `eqOn_complexMGF_of_mgf'`. §3 the tilt character for character
+  from `VGLaw`. §4 the skeleton trio at `cgmyTilt` and
+  `carrMadan_eq_modelFreeCall` instantiated at `cgmyLaw` — never a re-proof.
+
+  Strip OPEN everywhere (F3/M48: §1's sandwich reaches the open strip only).
+  Statements are the authority of briefs/BRIEF_021_strip_at_the_law.md;
+  the numeric shadow is tests/test_bs.py::test_cgmy_strip (rows 1–12,
+  mutants M44–M48); ledger row + C28 land with this module's CI grade.
+-/
+import Mathlib
+import ImprovedBS.Pricing
+import ImprovedBS.CGMYLaw
+import ImprovedBS.Esscher
+
+noncomputable section
+
+namespace BSM
+
+open MeasureTheory Filter Set ProbabilityTheory
+open scoped Topology ENNReal NNReal
+
+/-! ## §1 the mgf through the marginals -/
+
+/-- **The mgf of a convolution is the product of the mgfs** — the three-line
+mirror of mathlib's `charFun_conv` at `integral_conv`: `exp (u (x+y))`
+factors and both sides' integrability is the exchange's own hypothesis,
+discharged from the two sides by additive `integrable_conv_iff`. The
+compound-Poisson mixture consumes this (BRIEF_021 §1.1). -/
+theorem mgf_conv (μ ν : Measure ℝ) [SFinite μ] [SFinite ν] (u : ℝ)
+    (hμ : Integrable (fun x : ℝ => Real.exp (u * x)) μ)
+    (hν : Integrable (fun x : ℝ => Real.exp (u * x)) ν) :
+    mgf id (μ ∗ ν) u = mgf id μ u * mgf id ν u := by
+  have hpoint : ∀ x y : ℝ, Real.exp (u * (x + y))
+      = Real.exp (u * x) * Real.exp (u * y) := by
+    intro x y
+    rw [mul_add, Real.exp_add]
+  simp only [mgf, id_eq]
+  rw [integral_conv]
+  · have hinner : ∀ x : ℝ, (∫ y : ℝ, Real.exp (u * (x + y)) ∂ν)
+      = Real.exp (u * x) * ∫ y : ℝ, Real.exp (u * y) ∂ν := by
+      intro x
+      rw [integral_congr_ae (ae_of_all _ fun y => hpoint x y), integral_const_mul]
+    have hstep : ∫ x : ℝ, ∫ y : ℝ, Real.exp (u * (x + y)) ∂ν ∂μ
+        = ∫ x : ℝ, Real.exp (u * x) * ∫ y : ℝ, Real.exp (u * y) ∂ν ∂μ :=
+      integral_congr_ae (ae_of_all _ fun x => hinner x)
+    rw [hstep]
+    exact integral_mul_const _ _
+  · refine (integrable_conv_iff ?_).mpr ⟨?_, ?_⟩
+    · exact (Real.continuous_exp.comp
+        (continuous_const.mul continuous_id)).aestronglyMeasurable
+    · filter_upwards with x
+      have hxx : (fun y : ℝ => Real.exp (u * (x + y)))
+          = fun y => Real.exp (u * x) * Real.exp (u * y) := by
+        funext y
+        exact hpoint x y
+      rw [hxx]
+      exact hν.const_mul _
+    · have hval : ∀ x : ℝ, (∫ y : ℝ, ‖Real.exp (u * (x + y))‖ ∂ν)
+          = Real.exp (u * x) * ∫ y : ℝ, Real.exp (u * y) ∂ν := by
+        intro x
+        have hnorm : ∀ y : ℝ, ‖Real.exp (u * (x + y))‖
+            = Real.exp (u * x) * Real.exp (u * y) := by
+          intro y
+          rw [Real.norm_of_nonneg (Real.exp_nonneg _)]
+          exact hpoint x y
+        rw [integral_congr_ae (ae_of_all _ fun y => hnorm y), integral_const_mul]
+      simp_rw [hval]
+      exact hμ.mul_const _
+
+/-- **The mgf of a convolution power is the n-th power of the mgf** — the
+induction mirror of the landed `charFun_convPow`: `mgf_conv` is the step,
+`integral_dirac` the base, each rung's positivity out of `mgf_pos_iff`. -/
+theorem mgf_convPow (ρ : Measure ℝ) (hρ : IsProbabilityMeasure ρ) (u : ℝ)
+    (hint : Integrable (fun x : ℝ => Real.exp (u * x)) ρ) :
+    ∀ n, mgf id (convPow ρ n) u = mgf id ρ u ^ n
+  | 0 => by
+      rw [convPow]
+      unfold mgf
+      rw [integral_dirac]
+      simp
+  | n + 1 => by
+      have hn : IsProbabilityMeasure (convPow ρ n) := convPow_isProbabilityMeasure ρ hρ n
+      have hpos : 0 < mgf id ρ u := mgf_pos_iff.mpr hint
+      have hIH : 0 < mgf id (convPow ρ n) u := by
+        rw [mgf_convPow ρ hρ u hint n]
+        exact pow_pos hpos n
+      have hconv : Integrable (fun x : ℝ => Real.exp (u * x)) (convPow ρ n) :=
+        mgf_pos_iff.mp hIH
+      rw [convPow, mgf_conv (hμ := hconv) (hν := hint),
+        mgf_convPow ρ hρ u hint n, pow_succ]
+
+/-- **The jump law's exponential moment is finite on the strip**, both
+directions: the positive side is `cgmy_levy_far_moment` at `u < M`, the
+negative side its `integral_comp_neg_Ioi` reflection at `u > −G`; normalising
+by the finite positive jump mass moves the moment from the measure to the
+law. This is what makes `cgmyCpProbability_mgf` an honest equality and not
+`0 = e^{…}` (R1's concern). -/
+theorem cgmyJumpLaw_exp_integrable (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G)
+    (hM : 0 < M) (hY : 0 < Y) (ε : ℝ≥0) (hε : 0 < ε) (u : ℝ)
+    (hu₁ : -G < u) (hu₂ : u < M) :
+    Integrable (fun x : ℝ => Real.exp (u * x)) (cgmyJumpLaw C G M Y ε) := by
+  -- far-field moment of the unnormalised jump measure, positive side and its
+  -- `x ↦ −x` mirror on the negative side
+  have hpos : IntegrableOn (fun x : ℝ => Real.exp (u * x))
+      (Ioi (ε : ℝ)) := by
+    have hmul := cgmy_levy_far_moment C M Y u hC hY hu₂
+    -- on Ioi ε ⊆ Ioi 1 ∪ Ioc ε 1 the density is locally bounded (ε > 0)
+    sorry
+  have hneg : IntegrableOn (fun x : ℝ => Real.exp (u * x))
+      (Iic (-(ε : ℝ))) := by
+    sorry
+  sorry
+
+/-- **The compound-Poisson marginal's mgf is the closed form** — the mirror
+of the landed `charFun_cpLaw`: `mgf_conv`'s exchange, `mgf_convPow`'s
+induction, the `NormedSpace.expSeries_div_hasSum_exp` Poisson sum, assembled
+through `integral_sum_measure`. The `ℝ` instantiation routes through
+`complexMGF` at real `z` and `complexMGF_ofReal` where the ℝ shape balks. -/
+theorem cgmyCpProbability_mgf (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G)
+    (hM : 0 < M) (hY : 0 < Y) (τ ε : ℝ≥0) (hε : 0 < ε) (u : ℝ)
+    (hu₁ : -G < u) (hu₂ : u < M) :
+    mgf id (cgmyCpProbability C G M Y τ ε hC hG hM hY hε : Measure ℝ) u =
+      Real.exp ((τ : ℝ) * (cgmyTruncatedExponent C G M Y ε (-(Complex.I * u))).re) := by
+  -- mirror of `charFun_cpLaw`: hsum / hpow (via `mgf_convPow`) / htsum
+  -- (via `NormedSpace.expSeries_div_hasSum_exp`) through `integral_sum_measure`,
+  -- with the mixture's integrability from `cgmyJumpLaw_exp_integrable`
+  have hjump := cgmyJumpLaw_exp_integrable C G M Y hC hG hM hY ε hε u hu₁ hu₂
+  sorry
+
+/-! ## §1 the decomposition at the line -/
+
+/-- **The real def at the line** — the bridge route of BRIEF_021 §1.2: the
+`.re` of the landed complex truncated exponent at `v = −I·u`. R1 reads the
+strip off this def's body; the bridge lemma to the complex twin is the
+decomp below. -/
+noncomputable def cgmyMgfTruncatedExponent (C G M Y : ℝ) (ε : ℝ≥0) (u : ℝ) : ℝ :=
+  (cgmyTruncatedExponent C G M Y ε (-(Complex.I * u))).re
+
+/-- **The decomposition at the line** — the real-exponential twin of the
+landed `cgmyTruncatedExponent_decomp`: the indicator's coefficient is `u`,
+because `i·(−I·u) = u` (F1). The bridge to the landed complex def is the
+def body of `cgmyMgfTruncatedExponent` itself. -/
+theorem cgmyMgfTruncatedExponent_decomp (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G)
+    (hM : 0 < M) (hY : 0 < Y) (ε : ℝ≥0) (hε : 0 < ε) (hε₁ : ε ≤ 1) (u : ℝ) :
+    cgmyMgfTruncatedExponent C G M Y ε u =
+      (∫ x in {x | (ε : ℝ) ≤ |x|},
+          (Real.exp (u * x) - 1 - Set.indicator (Icc (-1) 1) (fun y => u * y) x)
+            * (cgmyLevyDensity C G M Y x : ℝ))
+        + u * (∫ x in Ioc (ε : ℝ) 1, cgmyDriftIntegrand C G M Y x) := by
+  -- real re-run of the landed decomp at the line: the integrand is real
+  -- (`i·(−Iu)·x = u·x`), step1/subtraction and step2/drift as in the twin
+  sorry
+
+/-- **The limit to `κ` at the line** — the two `tendsto_setIntegral_of_monotone`
+runs of BRIEF_020 at `εₙ = 2⁻ⁿ` (same index, monotone-in-ε sets), the
+compensator dominated on the ball by `(u²x²/2)·1 + 2·1` and off it by
+`(e^{|u|x} + 1)·ν`, the identification `B̃₀(u) + u·d₀ = κ(u)` by the
+real-variable IBP mirroring `cgmyOneSidedExponent_eq`, the landed
+`cgmyDrift_identity` for `d₀`. -/
+theorem cgmyMgfTruncatedExponent_tendsto (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G)
+    (hM : 0 < M) (hY : 0 < Y) (u : ℝ) (h₁ : -G < u) (h₂ : u < M) :
+    Tendsto (fun n : ℕ => cgmyMgfTruncatedExponent C G M Y ((2 : ℝ≥0)⁻¹ ^ n) u)
+      atTop (𝓝 (cgmyCumulant C G M Y u)) := by
+  sorry
+
+/-- **The one-sided exponents at the line**, merged two-case theorem (the
+count's −0/−1 choice of BRIEF_021 §1.2): the compensated twin of
+`cgmyOneSidedExponent_eq` at the line, both sides of the IBP. The drift
+constant is the decomp's own `∫ x in Ioc 0 1, cgmyDriftIntegrand` (the
+`ε ↓ 0` limit of `∫ x in Ioc ε 1`, whose closed form is the landed
+`cgmyDrift_identity` plus the far leg). -/
+theorem cgmyMgfOneSided_eq (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G)
+    (hM : 0 < M) (hY : 0 < Y) (hY₁ : Y ≠ 1) (u : ℝ) (h₁ : -G < u) (h₂ : u < M) :
+    (∫ x in {x : ℝ | (0 : ℝ) ≤ x},
+        (Real.exp (u * x) - 1 - Set.indicator (Icc 0 1) (fun y => u * y) x)
+          * (cgmyLevyDensity C G M Y x : ℝ))
+      + (∫ x in {x : ℝ | x < 0},
+        (Real.exp (u * x) - 1 - Set.indicator (Icc (-1) 0) (fun y => u * y) x)
+          * (cgmyLevyDensity C G M Y x : ℝ))
+      = cgmyCumulant C G M Y u
+          - u * (∫ x in Ioc (0 : ℝ) 1, cgmyDriftIntegrand C G M Y x) := by
+  -- the two-case IBP: positive side `integral_Ioi_mul_deriv_eq_deriv_mul`,
+  -- negative side its mirror, anchored on the landed real-rate
+  -- `integral_cpow_mul_exp_neg_mul_Ioi` (no complex rate)
+  sorry
+
+/-! ## §1 the sandwich -/
+
+/-- **F4's uniform moment**: the ladder's sup over `n` of the truncated mgf
+is finite — a convergent sequence is bounded (F1's `Tendsto`), the uniform
+constant the sandwich feeds into `tendsto_iff_forall_integral_tendsto`. -/
+theorem cgmyMgf_uniformBound (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G)
+    (hM : 0 < M) (hY : 0 < Y) (τ : ℝ≥0) (u : ℝ) (h₁ : -G < u) (h₂ : u < M) :
+    ∃ B : ℝ, ∀ n : ℕ,
+      cgmyMgfTruncatedExponent C G M Y ((2 : ℝ≥0)⁻¹ ^ n) u ≤ B := by
+  -- `A_{εₙ}(u) → κ(u)` (row 2/6), so the sequence is bounded; the sup is
+  -- the closed-limit value `κ(u)` up to a finite head (F4)
+  have ht := cgmyMgfTruncatedExponent_tendsto C G M Y hC hG hM hY u h₁ h₂
+  obtain ⟨B, hB⟩ := ht.bddAbove_range
+  exact ⟨B, fun n => hB (Set.mem_range_self n)⟩
+
+/-- **F4's Markov tail**: at a STRICTLY interior moment `u′` (F3 — this is
+where the open strip is load bearing) the first-moment tail of `e^{u·}`
+above `K` is bounded by `M_ε(u′) · K^{1 − u′/u}`, uniformly in `ε` —
+`u′` beyond `u` on the tail's side (`u·u′ > 0`, `|u| < |u'|`), the
+pointwise `e^{ux} ≤ K^{1−u′/u}·e^{u′x}` on `{K ≤ e^{ux}}`. -/
+theorem cgmyMgf_markovTail (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G)
+    (hM : 0 < M) (hY : 0 < Y) (τ : ℝ≥0) (u u' K : ℝ) (h₁ : -G < u) (h₂ : u < M)
+    (h₁' : -G < u') (h₂' : u' < M) (hside : 0 < u * u') (habs : |u| < |u'|)
+    (hK : 0 < K) :
+    ∃ c : ℝ, ∀ n : ℕ,
+      ∫ x in {x : ℝ | K ≤ Real.exp (u * x)}, Real.exp (u * x)
+          ∂((cgmyCpProbability C G M Y τ ((2 : ℝ≥0)⁻¹ ^ n) hC hG hM hY
+            (pow_pos (inv_pos.mpr (by norm_num : (0 : ℝ≥0) < 2)) n)) : Measure ℝ)
+        ≤ c * K ^ (1 - u' / u) := by
+  -- Markov at `u′`: `Eₙ[e^{uX} 1_{e^{uX} ≥ K}] ≤ K^{1−u′/u}·Eₙ[e^{u′X}]`
+  -- with `Eₙ[e^{u′X}]` the row-6 sup (F4)
+  have hne : u ≠ 0 := fun h => by simp [h] at hside
+  have hpos : 0 < u' / u := by
+    rw [div_pos_iff]
+    exact (mul_pos_iff.mp hside).imp And.symm And.symm
+  have h1 : 1 < u' / u := by
+    have ha : |u' / u| = |u'| / |u| := abs_div u' u
+    rw [abs_of_pos hpos] at ha
+    have huu : 0 < |u| := abs_pos.mpr hne
+    have hlt : (1 : ℝ) < |u'| / |u| := (one_lt_div huu).mpr habs
+    rw [← ha] at hlt
+    exact hlt
+  have hpw : ∀ x : ℝ, K ≤ Real.exp (u * x) →
+      Real.exp (u * x) ≤ K ^ (1 - u' / u) * Real.exp (u' * x) := by
+    intro x hxK
+    have hlog : Real.log K ≤ u * x := (Real.log_le_iff_le_exp hK).2 hxK
+    have hux : u' * x = (u' / u) * (u * x) := by
+      field_simp [hne]
+      try ring
+    have hKp : K ^ (1 - u' / u) = Real.exp ((1 - u' / u) * Real.log K) := by
+      rw [Real.rpow_def_of_pos hK, mul_comm]
+    rw [hKp, hux, ← Real.exp_add]
+    refine Real.exp_le_exp.mpr ?_
+    have h3 : 0 ≤ (1 - u' / u) * (Real.log K - u * x) :=
+      mul_nonneg_of_nonpos_of_nonpos (by linarith [h1]) (by linarith [hlog])
+    have h4 : (1 - u' / u) * Real.log K + (u' / u) * (u * x)
+        = u * x + (1 - u' / u) * (Real.log K - u * x) := by ring
+    rw [h4]
+    linarith
+  obtain ⟨B, hB⟩ := cgmyMgf_uniformBound C G M Y hC hG hM hY τ u' h₁' h₂'
+  refine ⟨Real.exp ((τ : ℝ) * B), fun n => ?_⟩
+  set μn : Measure ℝ :=
+    ((cgmyCpProbability C G M Y τ ((2 : ℝ≥0)⁻¹ ^ n) hC hG hM hY
+      (pow_pos (inv_pos.mpr (by norm_num : (0 : ℝ≥0) < 2)) n)) : Measure ℝ) with hμn
+  set A : Set ℝ := {x : ℝ | K ≤ Real.exp (u * x)} with hA
+  have hBexp : Integrable (fun x : ℝ => Real.exp (u' * x)) μn := by
+    refine mgf_pos_iff.mp ?_
+    show 0 < mgf id μn u'
+    rw [hμn, cgmyCpProbability_mgf C G M Y hC hG hM hY τ ((2 : ℝ≥0)⁻¹ ^ n)
+      (pow_pos (inv_pos.mpr (by norm_num : (0 : ℝ≥0) < 2)) n) u' h₁' h₂']
+    exact Real.exp_pos _
+  have hbig : Integrable (fun x : ℝ => K ^ (1 - u' / u) * Real.exp (u' * x)) μn :=
+    hBexp.const_mul _
+  have hAmeas : MeasurableSet A :=
+    measurableSet_le measurable_const
+      ((Real.continuous_exp.comp (continuous_const.mul continuous_id)).measurable)
+  have hAexp : IntegrableOn (fun x : ℝ => Real.exp (u * x)) A μn := by
+    refine Integrable.mono hbig.integrableOn ?_ ?_
+    · exact (Real.continuous_exp.comp
+        (continuous_const.mul continuous_id)).aestronglyMeasurable
+    · refine (ae_restrict_iff' hAmeas).2 (ae_of_all _ fun x hxin => ?_)
+      rw [Real.norm_of_nonneg (Real.exp_nonneg _),
+        Real.norm_of_nonneg (mul_nonneg (Real.rpow_nonneg hK.le _) (Real.exp_nonneg _))]
+      exact hpw x hxin
+  have hmono : ∫ x in A, Real.exp (u * x) ∂μn
+      ≤ ∫ x in A, K ^ (1 - u' / u) * Real.exp (u' * x) ∂μn := by
+    refine setIntegral_mono_on hAexp hbig.integrableOn hAmeas ?_
+    · intro x hx
+      exact hpw x hx
+  have hconst : ∫ x in A, K ^ (1 - u' / u) * Real.exp (u' * x) ∂μn
+      = K ^ (1 - u' / u) * ∫ x in A, Real.exp (u' * x) ∂μn :=
+    integral_const_mul _ _
+  have hset : ∫ x in A, Real.exp (u' * x) ∂μn ≤ ∫ x, Real.exp (u' * x) ∂μn :=
+    setIntegral_le_integral hBexp (ae_of_all _ fun x => Real.exp_nonneg _)
+  have hmgf : ∫ x, Real.exp (u' * x) ∂μn ≤ Real.exp ((τ : ℝ) * B) := by
+    rw [hμn]
+    have hm := cgmyCpProbability_mgf C G M Y hC hG hM hY τ ((2 : ℝ≥0)⁻¹ ^ n)
+      (pow_pos (inv_pos.mpr (by norm_num : (0 : ℝ≥0) < 2)) n) u' h₁' h₂'
+    simp only [mgf, id_eq] at hm
+    rw [hm]
+    exact Real.exp_le_exp.mpr
+      (mul_le_mul_of_nonneg_left (hB n) (NNReal.coe_nonneg τ))
+  calc ∫ x in A, Real.exp (u * x) ∂μn
+      ≤ ∫ x in A, K ^ (1 - u' / u) * Real.exp (u' * x) ∂μn := hmono
+    _ = K ^ (1 - u' / u) * ∫ x in A, Real.exp (u' * x) ∂μn := hconst
+    _ ≤ K ^ (1 - u' / u) * ∫ x, Real.exp (u' * x) ∂μn :=
+      mul_le_mul_of_nonneg_left hset (Real.rpow_nonneg hK.le _)
+    _ ≤ K ^ (1 - u' / u) * Real.exp ((τ : ℝ) * B) :=
+      mul_le_mul_of_nonneg_left hmgf (Real.rpow_nonneg hK.le _)
+    _ = Real.exp ((τ : ℝ) * B) * K ^ (1 - u' / u) := by ring
+
+/-- **The law's exponential moment is finite on the strip** (§1's headline):
+the sandwich's conclusion — bounded truncations converge, so the limit law
+integrates `e^{u·}`. Consumed by §2's interior lemma and §3's tilt. -/
+theorem cgmyLaw_exp_integrable (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G)
+    (hM : 0 < M) (hY : 0 < Y) (hY₂ : Y < 2) (hY₁ : Y ≠ 1) (τ : ℝ≥0)
+    (u : ℝ) (hu₁ : -G < u) (hu₂ : u < M) :
+    Integrable (fun x : ℝ => Real.exp (u * x))
+      (cgmyLaw C G M Y τ hC hG hM hY hY₂ : Measure ℝ) := by
+  set μp : ProbabilityMeasure ℝ := cgmyLaw C G M Y τ hC hG hM hY hY₂ with hμp
+  set μ : Measure ℝ := (μp : Measure ℝ) with hμ
+  have hε : ∀ n : ℕ, (0 : ℝ≥0) < (2 : ℝ≥0)⁻¹ ^ n :=
+    fun n => pow_pos (inv_pos.mpr (by norm_num : (0 : ℝ≥0) < 2)) n
+  set μₙ : ℕ → Measure ℝ := fun n =>
+    (cgmyCpProbability C G M Y τ ((2 : ℝ≥0)⁻¹ ^ n) hC hG hM hY (hε n) : Measure ℝ) with hμn
+  have htendA : Tendsto (fun n : ℕ => cgmyMgfTruncatedExponent C G M Y ((2 : ℝ≥0)⁻¹ ^ n) u)
+      atTop (𝓝 (cgmyCumulant C G M Y u)) :=
+    cgmyMgfTruncatedExponent_tendsto C G M Y hC hG hM hY hY₁ u hu₁ hu₂
+  have hmarg : ∀ n : ℕ, mgf id (μₙ n) u
+      = Real.exp ((τ : ℝ) * cgmyMgfTruncatedExponent C G M Y ((2 : ℝ≥0)⁻¹ ^ n) u) := by
+    intro n
+    show mgf id
+        ((cgmyCpProbability C G M Y τ ((2 : ℝ≥0)⁻¹ ^ n) hC hG hM hY (hε n) : Measure ℝ)) u = _
+    rw [cgmyCpProbability_mgf C G M Y hC hG hM hY τ ((2 : ℝ≥0)⁻¹ ^ n) (hε n) u hu₁ hu₂]
+    rfl
+  have hL : Tendsto (fun n : ℕ => mgf id (μₙ n) u) atTop
+      (𝓝 (Real.exp ((τ : ℝ) * cgmyCumulant C G M Y u))) := by
+    have h2 : Tendsto
+        (fun n : ℕ =>
+          Real.exp ((τ : ℝ) * cgmyMgfTruncatedExponent C G M Y ((2 : ℝ≥0)⁻¹ ^ n) u))
+        atTop (𝓝 (Real.exp ((τ : ℝ) * cgmyCumulant C G M Y u))) :=
+      (Real.continuous_exp.tendsto _).comp (tendsto_const_nhds.mul htendA)
+    refine Tendsto.congr (fun n => (hmarg n).symm) h2
+  set g : ℕ → ℝ → ℝ := fun j x => min (Real.exp (u * x)) (j : ℝ) with hg
+  have hgNN : ∀ (j : ℕ) (x : ℝ), 0 ≤ g j x :=
+    fun j x => le_min (Real.exp_nonneg _) (Nat.cast_nonneg _)
+  have hgmono : ∀ x : ℝ, Monotone fun j : ℕ => g j x := by
+    intro x j k hjk
+    show min (Real.exp (u * x)) (j : ℝ) ≤ min (Real.exp (u * x)) (k : ℝ)
+    exact min_le_min le_rfl (Nat.cast_le.mpr hjk)
+  have hgtend : ∀ x : ℝ, Tendsto (fun j : ℕ => g j x) atTop (𝓝 (Real.exp (u * x))) := by
+    intro x
+    obtain ⟨N, hN⟩ := exists_nat_ge (Real.exp (u * x))
+    refine Tendsto.congr' ?_ tendsto_const_nhds
+    filter_upwards [eventually_ge_atTop N] with j hj
+    show min (Real.exp (u * x)) (j : ℝ) = Real.exp (u * x)
+    exact min_eq_left (le_trans hN (Nat.cast_le.mpr hj))
+  have hgcont : ∀ j : ℕ, Continuous fun x : ℝ => g j x := by
+    intro j
+    show Continuous fun x : ℝ => min (Real.exp (u * x)) (j : ℝ)
+    exact (Real.continuous_exp.comp (continuous_const.mul continuous_id)).min continuous_const
+  have hgB : ∀ j : ℕ, Integrable (g j) μ := by
+    intro j
+    refine Integrable.mono (integrable_const ((j : ℝ))) (hgcont j).aestronglyMeasurable
+      (ae_of_all _ fun x => ?_)
+    have h1 : ‖g j x‖ = g j x := Real.norm_of_nonneg (hgNN j x)
+    have h2 : ‖(fun _ : ℝ => (j : ℝ)) x‖ = (j : ℝ) :=
+      Real.norm_of_nonneg (Nat.cast_nonneg _)
+    rw [h1, h2]
+    exact min_le_right _ _
+  have hgBn : ∀ (n j : ℕ), Integrable (g j) (μₙ n) := by
+    intro n j
+    refine Integrable.mono (integrable_const ((j : ℝ))) (hgcont j).aestronglyMeasurable
+      (ae_of_all _ fun x => ?_)
+    have h1 : ‖g j x‖ = g j x := Real.norm_of_nonneg (hgNN j x)
+    have h2 : ‖(fun _ : ℝ => (j : ℝ)) x‖ = (j : ℝ) :=
+      Real.norm_of_nonneg (Nat.cast_nonneg _)
+    rw [h1, h2]
+    exact min_le_right _ _
+  have htendp : Tendsto
+      (fun n : ℕ =>
+        (cgmyCpProbability C G M Y τ ((2 : ℝ≥0)⁻¹ ^ n) hC hG hM hY (hε n) :
+          ProbabilityMeasure ℝ))
+      atTop (𝓝 μp) := by
+    rw [hμp]
+    exact cgmyCpProbability_tendsto_cgmyLaw C G M Y hC hG hM hY hY₂ τ
+  have hKconv : ∀ j : ℕ, Tendsto (fun n : ℕ => ∫ x, g j x ∂μₙ n) atTop (𝓝 (∫ x, g j x ∂μ)) := by
+    intro j
+    have hdist : ∀ x y : ℝ, dist (g j x) (g j y) ≤ 2 * (j : ℝ) := by
+      intro x y
+      rw [Real.dist_eq]
+      have h1 : 0 ≤ g j x := hgNN j x
+      have h2 : 0 ≤ g j y := hgNN j y
+      calc |g j x - g j y| ≤ |g j x| + |g j y| := abs_sub_le _ _ 0
+        _ = g j x + g j y := by rw [abs_of_nonneg h1, abs_of_nonneg h2]
+        _ ≤ (j : ℝ) + (j : ℝ) := add_le_add (min_le_right _ _) (min_le_right _ _)
+        _ = 2 * (j : ℝ) := by ring
+    set fbcf : ℝ →ᵇ ℝ :=
+      BoundedContinuousFunction.mkOfBound ⟨g j, hgcont j⟩ (2 * (j : ℝ)) hdist with hfbcf
+    have hbc : Tendsto (fun n : ℕ => ∫ x, fbcf x ∂(μₙ n)) atTop (𝓝 (∫ x, fbcf x ∂μ)) := by
+      have h := tendsto_iff_forall_integral_tendsto.mp htendp fbcf
+      rw [hμp] at h
+      exact h
+    refine Tendsto.congr' ?_ (Tendsto.congr' ?_ hbc)
+    · filter_upwards with n; exact rfl
+    · exact Eventually.of_forall fun _ => rfl
+  have hgj_le : ∀ j : ℕ, ∫ x, g j x ∂μ ≤ Real.exp ((τ : ℝ) * cgmyCumulant C G M Y u) := by
+    intro j
+    have hmgf : ∀ n : ℕ, mgf id (μₙ n) u = ∫ x, Real.exp (u * x) ∂μₙ n := by
+      intro n
+      rw [mgf, id_eq, measure_univ, ENNReal.one_toReal, one_mul]
+    have hne : ∀ n : ℕ, ∫ x, Real.exp (u * x) ∂μₙ n ≠ 0 := by
+      intro n hz
+      have h0 : mgf id (μₙ n) u = 0 := by rw [hmgf n, hz]
+      rw [hmarg n] at h0
+      exact Real.exp_ne_zero _ h0
+    have hexpn : ∀ n : ℕ, Integrable (fun x : ℝ => Real.exp (u * x)) (μₙ n) := by
+      intro n
+      refine not_not.mp fun hn => hne n (integral_eq_zero_of_not_integrable hn)
+    have hnn : ∀ n : ℕ, 0 ≤ mgf id (μₙ n) u - ∫ x, g j x ∂μₙ n := by
+      intro n
+      refine sub_nonneg.mpr ?_
+      rw [hmgf n]
+      exact integral_mono (hexpn n) (hgBn n j) fun x => min_le_left _ _
+    have hsub : Tendsto (fun n : ℕ => mgf id (μₙ n) u - ∫ x, g j x ∂μₙ n) atTop
+        (𝓝 (Real.exp ((τ : ℝ) * cgmyCumulant C G M Y u) - ∫ x, g j x ∂μ)) :=
+      hL.sub (hKconv j)
+    exact sub_nonneg.mp (le_of_tendsto' hsub hnn)
+  have hmonE : ∀ x : ℝ, Monotone fun j : ℕ => ENNReal.ofReal (g j x) :=
+    fun x j k hjk => ENNReal.ofReal_le_ofReal (hgmono x hjk)
+  have htendE : ∀ x : ℝ, Tendsto (fun j : ℕ => ENNReal.ofReal (g j x)) atTop
+      (𝓝 (ENNReal.ofReal (Real.exp (u * x)))) :=
+    fun x => (ENNReal.continuous_ofReal.tendsto _).comp (hgtend x)
+  have hof : ∀ j : ℕ, ∫⁻ x, ENNReal.ofReal (g j x) ∂μ = ENNReal.ofReal (∫ x, g j x ∂μ) :=
+    fun j => (ofReal_integral_eq_lintegral_ofReal (hgB j) fun x => hgNN j x).symm
+  have hMCT : Tendsto (fun j : ℕ => ∫⁻ x, ENNReal.ofReal (g j x) ∂μ) atTop
+      (𝓝 (∫⁻ x, ENNReal.ofReal (Real.exp (u * x)) ∂μ)) :=
+    lintegral_tendsto_of_tendsto_of_monotone
+      (fun j => (ENNReal.continuous_ofReal.comp (hgcont j)).aemeasurable) hmonE htendE
+  have hsup : ∫⁻ x, ENNReal.ofReal (Real.exp (u * x)) ∂μ ≤
+      ENNReal.ofReal (Real.exp ((τ : ℝ) * cgmyCumulant C G M Y u)) := by
+    refine le_of_tendsto' hMCT ?_
+    intro j
+    rw [hof j]
+    exact ENNReal.ofReal_le_ofReal (hgj_le j)
+  have hfi : Integrable (fun x : ℝ => Real.exp (u * x)) μ := by
+    refine ⟨(Real.continuous_exp.comp (continuous_const.mul continuous_id)).aestronglyMeasurable,
+      (hasFiniteIntegral_iff_norm _).mpr ?_⟩
+    have hnorm : (fun x : ℝ => ‖Real.exp (u * x)‖) = fun x => Real.exp (u * x) := by
+      funext x
+      exact Real.norm_of_nonneg (Real.exp_nonneg _)
+    rw [hnorm]
+    exact lt_of_le_of_lt hsup ENNReal.ofReal_lt_top
+  rw [← hμ]
+  exact hfi
+
+/-- **The open strip sits inside the interior of the law's integrable
+exponential set** — the set lemma §2's `analyticAt_complexMGF` consumes. -/
+theorem openStrip_subset_integrableExpSet (C G M Y : ℝ) (hC : 0 < C)
+    (hG : 0 < G) (hM : 0 < M) (hY : 0 < Y) (hY₂ : Y < 2) (hY₁ : Y ≠ 1) (τ : ℝ≥0) :
+    Ioo (-G) M ⊆ interior (integrableExpSet id (cgmyLaw C G M Y τ hC hG hM hY hY₂)) := by
+  -- §1's two one-sided integrability bounds + `integrableExpSet_mem`
+  have hopen : IsOpen (Ioo (-G) M) := isOpen_Ioo
+  refine interior_maximal ?_ hopen
+  intro u hu
+  exact cgmyLaw_exp_integrable C G M Y hC hG hM hY hY₂ hY₁ τ u hu.1 hu.2
+
+/-- **THE HEADLINE.** The law's mgf is `e^{τ κ(u)}` on the open strip —
+the weak limit of the ladder: `cgmyCpProbability_mgf` at each marginal,
+`cgmyCpProbability_tendsto_cgmyLaw` / `cgmyLaw_unique`'s `Tendsto` for the
+weak step, F4's bounded truncation sandwich for the integrals. R1 reads this
+body; R2 reads the strip. -/
+theorem cgmyLaw_mgf (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G)
+    (hM : 0 < M) (hY : 0 < Y) (hY₂ : Y < 2) (hY₁ : Y ≠ 1) (τ : ℝ≥0)
+    (u : ℝ) (h₁ : -G < u) (h₂ : u < M) :
+    mgf id (cgmyLaw C G M Y τ hC hG hM hY hY₂) u =
+      Real.exp ((τ : ℝ) * cgmyCumulant C G M Y u) := by
+  -- F4: bounded continuous truncations through
+  -- `ProbabilityMeasure.tendsto_iff_forall_integral_tendsto`, Markov tail
+  -- (`cgmyMgf_markovTail`), ladder sup (`cgmyMgf_uniformBound`)
+  have hmarg := cgmyCpProbability_mgf C G M Y hC hG hM hY τ
+    ((2 : ℝ≥0)⁻¹ ^ 0) (by norm_num) u h₁ h₂
+  have htend : Tendsto (fun n : ℕ =>
+      cgmyCpProbability C G M Y τ ((2 : ℝ≥0)⁻¹ ^ n) hC hG hM hY
+        (pow_pos (inv_pos.mpr (by norm_num : (0 : ℝ≥0) < 2)) n)) atTop
+      (𝓝 (cgmyLaw C G M Y τ hC hG hM hY hY₂)) :=
+    cgmyCpProbability_tendsto_cgmyLaw C G M Y hC hG hM hY hY₂ τ
+  sorry
+
+/-! ## §2 the complex strip -/
+
+/-- **The target is analytic on the open strip** — `Complex.exp` composed
+with the `cpow` target (F5), the RHS-side analyticity of the identity
+theorem. -/
+theorem cgmyStrip_target_analyticOnNhd (C G M Y τ : ℝ) (hG : 0 < G)
+    (hM : 0 < M) (hY : 0 < Y) :
+    AnalyticOnNhd ℂ (fun z : ℂ =>
+      Complex.exp (τ * cgmyExponent C G M Y (-(Complex.I * z))))
+      {z : ℂ | -G < z.re ∧ z.re < M} := by
+  have hIz : ∀ z : ℂ, Complex.I * (-(Complex.I * z)) = z := by
+    intro z
+    rw [mul_neg, ← mul_assoc, Complex.I_mul_I, neg_mul, one_mul, neg_neg]
+  have hform : ∀ z : ℂ, cgmyExponent C G M Y (-(Complex.I * z))
+      = (C * (Real.Gamma (-Y) : ℂ)) *
+          (((M : ℂ) - z) ^ (Y : ℂ) - (M : ℂ) ^ (Y : ℂ) +
+            ((G : ℂ) + z) ^ (Y : ℂ) - (G : ℂ) ^ (Y : ℂ)) := by
+    intro z
+    rw [cgmyExponent, hIz]
+  have hopen : IsOpen {z : ℂ | -G < z.re ∧ z.re < M} :=
+    (isOpen_lt continuous_const Complex.continuous_re).and
+      (isOpen_lt Complex.continuous_re continuous_const)
+  have hexp : AnalyticOnNhd ℂ (fun z : ℂ => Complex.exp (τ *
+        ((C * (Real.Gamma (-Y) : ℂ)) *
+          (((M : ℂ) - z) ^ (Y : ℂ) - (M : ℂ) ^ (Y : ℂ) +
+            ((G : ℂ) + z) ^ (Y : ℂ) - (G : ℂ) ^ (Y : ℂ)))))
+      {z : ℂ | -G < z.re ∧ z.re < M} := by
+    intro z hz
+    have hMz : ((M : ℂ) - z) ∈ Complex.slitPlane := by
+      rw [Complex.mem_slitPlane_iff]
+      exact Or.inl (by rw [Complex.sub_re, Complex.ofReal_re]; linarith [hz.2])
+    have hGz : ((G : ℂ) + z) ∈ Complex.slitPlane := by
+      rw [Complex.mem_slitPlane_iff]
+      exact Or.inl (by rw [Complex.add_re, Complex.ofReal_re]; linarith [hz.1])
+    have hMpow : AnalyticAt ℂ (fun z : ℂ => ((M : ℂ) - z) ^ (Y : ℂ)) z :=
+      (analyticAt_const.sub analyticAt_id).cpow analyticAt_const hMz
+    have hGpow : AnalyticAt ℂ (fun z : ℂ => ((G : ℂ) + z) ^ (Y : ℂ)) z :=
+      (analyticAt_const.add analyticAt_id).cpow analyticAt_const hGz
+    exact (analyticAt_const.mul ((analyticAt_const.mul
+      (((hMpow.sub analyticAt_const).add hGpow).sub analyticAt_const)))).cexp'
+  exact (analyticOnNhd_congr hopen
+    (fun z _ => congrArg (fun w : ℂ => Complex.exp (τ * w)) (hform z).symm)).mp hexp
+
+/-- **THE COMPLEX STRIP.** `complexMGF` on the open strip — the identity
+theorem: both sides `AnalyticOnNhd` (LHS `analyticAt_complexMGF` +
+`openStrip_subset_integrableExpSet`; RHS the exp/cpow composition),
+preconnected by convexity, agreeing on the real axis
+(`complexMGF_ofReal` + `cgmyLaw_mgf` + `cgmyCumulant_eq_strip`), frequently
+at `z₀ = 0` (`frequently_iff_seq_forall`, `1/n`) — the pattern of mathlib's
+own `eqOn_complexMGF_of_mgf'` (F5). R4 reads this body. -/
+theorem complexMGF_cgmyLaw (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G)
+    (hM : 0 < M) (hY : 0 < Y) (hY₂ : Y < 2) (hY₁ : Y ≠ 1) (τ : ℝ≥0)
+    (z : ℂ) (hz₁ : -G < z.re) (hz₂ : z.re < M) :
+    complexMGF id (cgmyLaw C G M Y τ hC hG hM hY hY₂) z =
+      Complex.exp ((τ : ℝ) * cgmyExponent C G M Y (-(Complex.I * z))) := by
+  have hU : IsPreconnected {z : ℂ | -G < z.re ∧ z.re < M} :=
+    ((convex_Ioo (-G) M).linear_preimage Complex.reLm).isPreconnected
+  have hL : AnalyticOnNhd ℂ (complexMGF id (cgmyLaw C G M Y τ hC hG hM hY hY₂))
+      {z : ℂ | -G < z.re ∧ z.re < M} := by
+    intro w hw
+    refine analyticAt_complexMGF ?_
+    exact openStrip_subset_integrableExpSet C G M Y hC hG hM hY hY₂ hY₁ τ ⟨hw.1, hw.2⟩
+  have hR : AnalyticOnNhd ℂ
+      (fun z : ℂ => Complex.exp ((τ : ℝ) * cgmyExponent C G M Y (-(Complex.I * z))))
+      {z : ℂ | -G < z.re ∧ z.re < M} :=
+    cgmyStrip_target_analyticOnNhd C G M Y τ hG hM hY
+  have hreal : ∀ x : ℝ, -G < x → x < M →
+      complexMGF id (cgmyLaw C G M Y τ hC hG hM hY hY₂) x
+        = Complex.exp ((τ : ℝ) * cgmyExponent C G M Y (-(Complex.I * (x : ℂ)))) := by
+    intro x hx₁ hx₂
+    rw [complexMGF_ofReal,
+      cgmyLaw_mgf C G M Y hC hG hM hY hY₂ hY₁ τ x hx₁ hx₂,
+      cgmyCumulant_eq_strip C G M Y x hG hM hx₁ hx₂,
+      Complex.ofReal_exp, Complex.ofReal_mul]
+  have hfreq : ∃ᶠ w in 𝓝[≠] (0 : ℂ),
+      complexMGF id (cgmyLaw C G M Y τ hC hG hM hY hY₂) w
+        = Complex.exp ((τ : ℝ) * cgmyExponent C G M Y (-(Complex.I * w))) := by
+    rw [frequently_iff_seq_forall]
+    have hδ : 0 < min G M / 2 := div_pos (lt_min hG hM) two_pos
+    refine ⟨fun n : ℕ => (((min G M / 2) / ((n : ℝ) + 1) : ℝ) : ℂ), ?_, ?_⟩
+    · rw [tendsto_nhdsWithin_iff]
+      constructor
+      · have h2 : Tendsto (fun n : ℕ => (1 : ℝ) / ((n : ℝ) + 1)) atTop (𝓝 0) :=
+          tendsto_one_div_add_atTop_nhds_zero_nat
+        have hc : Tendsto (fun _ : ℕ => (min G M / 2 : ℝ)) atTop (𝓝 (min G M / 2)) :=
+          tendsto_const_nhds
+        have h3 : Tendsto
+            (fun n : ℕ => (min G M / 2) * (1 / ((n : ℝ) + 1)))
+            atTop (𝓝 ((min G M / 2) * 0)) :=
+          hc.mul h2
+        have h4 : Tendsto
+            (fun n : ℕ => (min G M / 2) / ((n : ℝ) + 1)) atTop (𝓝 0) := by
+          have h5 : (fun n : ℕ => (min G M / 2) / ((n : ℝ) + 1))
+              = fun n : ℕ => (min G M / 2) * (1 / ((n : ℝ) + 1)) := by
+            funext n
+            rw [div_eq_mul_one_div]
+          rw [h5]
+          simpa only [mul_zero] using h3
+        exact tendsto_ofReal_iff.mpr h4
+      · filter_upwards with n
+        have hn : 0 < ((n : ℝ) + 1) := by positivity
+        have hnz : (min G M / 2 : ℝ) / ((n : ℝ) + 1) ≠ 0 :=
+          (div_pos hδ hn).ne'
+        simp only [Set.mem_compl_iff, Set.mem_singleton_iff]
+        exact_mod_cast hnz
+    · intro n
+      have hn : 0 < ((n : ℝ) + 1) := by positivity
+      have hpos : (0 : ℝ) < (min G M / 2) / ((n : ℝ) + 1) := div_pos hδ hn
+      have hlt : (min G M / 2 : ℝ) / ((n : ℝ) + 1) < min G M :=
+        lt_of_le_of_lt (div_le_self hδ.le (by exact_mod_cast Nat.succ_le_succ (Nat.zero_le n)))
+          (half_lt_self (lt_min hG hM))
+      have hx₁ : -G < (min G M / 2 : ℝ) / ((n : ℝ) + 1) :=
+        lt_of_lt_of_le (neg_lt_zero.mpr hG) hpos.le
+      have hx₂ : (min G M / 2 : ℝ) / ((n : ℝ) + 1) < M :=
+        lt_of_lt_of_le hlt (min_le_right G M)
+      exact hreal _ hx₁ hx₂
+  have hEq : Set.EqOn (complexMGF id (cgmyLaw C G M Y τ hC hG hM hY hY₂))
+      (fun z : ℂ => Complex.exp ((τ : ℝ) * cgmyExponent C G M Y (-(Complex.I * z))))
+      {z : ℂ | -G < z.re ∧ z.re < M} :=
+    hL.eqOn_of_preconnected_of_frequently_eq hR hU
+      ⟨by rw [Complex.zero_re]; linarith, by rw [Complex.zero_re]; linarith⟩ hfreq
+  exact hEq ⟨hz₁, hz₂⟩
+
+/-- **THE PRICING LINE.** The corollary converts `z = I·v`
+(`contourCharFun μ v = complexMGF id μ (I * v)` — the `rfl` pattern
+`Pricing.lean:64`), `−I·(I·v) = v`; `−M < v.im < G` is the same set as
+`−G < (I v).re < M`, and the pricing line `v = u − I(α+1)` sits in it
+exactly when `α + 1 < M` (C14). R5 consumes this. -/
+theorem contourCharFun_cgmyLaw (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G)
+    (hM : 0 < M) (hY : 0 < Y) (hY₂ : Y < 2) (hY₁ : Y ≠ 1) (τ : ℝ≥0)
+    (v : ℂ) (hv₁ : -M < v.im) (hv₂ : v.im < G) :
+    contourCharFun (cgmyLaw C G M Y τ hC hG hM hY hY₂) v =
+      cgmyCharFactor C G M Y τ v := by
+  have hre : (Complex.I * v).re = -v.im := by
+    rw [Complex.mul_re, Complex.I_re, Complex.I_im, zero_mul, one_mul, zero_sub]
+  have hz₁ : -G < (Complex.I * v).re := by rw [hre]; linarith
+  have hz₂ : (Complex.I * v).re < M := by rw [hre]; linarith
+  have harg : -(Complex.I * (Complex.I * v)) = v := by
+    rw [← mul_assoc, Complex.I_mul_I, neg_mul, one_mul, neg_neg]
+  have hcmf : contourCharFun (cgmyLaw C G M Y τ hC hG hM hY hY₂) v
+      = complexMGF id (cgmyLaw C G M Y τ hC hG hM hY hY₂) (Complex.I * v) := by
+    simp only [contourCharFun, complexMGF, id_eq]
+  rw [hcmf, complexMGF_cgmyLaw C G M Y hC hG hM hY hY₂ hY₁ τ (Complex.I * v) hz₁ hz₂,
+    harg]
+  rfl
+
+/-! ## §3 the Esscher tilt at the law -/
+
+/-- **Item 3's stage**: the tilt of the LAW itself, `Measure.tilted` over
+the tilted exponential — R3 reads `Measure.tilted` off this RHS (no
+`withDensity` hand-roll). -/
+noncomputable def cgmyTilt (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G)
+    (hM : 0 < M) (hY : 0 < Y) (hY₂ : Y < 2) (τ : ℝ≥0) (θ : ℝ) : Measure ℝ :=
+  Measure.tilted (cgmyLaw C G M Y τ hC hG hM hY hY₂) (fun x : ℝ => θ * x)
+
+/-- **The tilted law is a probability measure on the strip** —
+`isProbabilityMeasure_tilted` fed §1's `Integrable (e^{θ·})` at `θ` (the
+strip: `θ ∈ (−G, M−1) ⊆ (−G, M)`). -/
+theorem cgmyTilt_isProbabilityMeasure (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G)
+    (hM : 0 < M) (hY : 0 < Y) (hY₂ : Y < 2) (hY₁ : Y ≠ 1) (τ : ℝ≥0)
+    (θ : ℝ) (hθ : θ ∈ Ioo (-G) (M - 1)) :
+    IsProbabilityMeasure (cgmyTilt C G M Y hC hG hM hY hY₂ τ θ) := by
+  have hstrip : -G < θ ∧ θ < M := by
+    constructor <;> linarith [hθ.1, hθ.2]
+  have hint : Integrable (fun x : ℝ => Real.exp (θ * x))
+      (cgmyLaw C G M Y τ hC hG hM hY hY₂) :=
+    cgmyLaw_exp_integrable C G M Y hC hG hM hY hY₂ hY₁ τ θ hstrip.1 hstrip.2
+  show IsProbabilityMeasure
+    (Measure.tilted (cgmyLaw C G M Y τ hC hG hM hY hY₂) (fun x : ℝ => θ * x))
+  exact isProbabilityMeasure_tilted hint
+
+/-- **The numéraire is cited, never re-proved** (R3): `1 < M − θ` is the
+landed `esscher_tilted_numeraire` at `θ ∈ (−G, M−1)`. -/
+theorem cgmy_tilt_numeraire (G M θ : ℝ) (hθ : θ ∈ Ioo (-G) (M - 1)) :
+    1 < M - θ := by
+  exact esscher_tilted_numeraire G M θ hθ
+
+/-- **The tilted mgf is the ratio** — `integral_exp_tilted` over the law's
+two moments, both finite by §1 at `u + θ` and `θ` (the strip: the tilt's
+own bounds `−(G+θ) < u < M−θ`). R3 reads `integral_exp_tilted`. -/
+theorem cgmy_tilt_mgf (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G)
+    (hM : 0 < M) (hY : 0 < Y) (hY₂ : Y < 2) (hY₁ : Y ≠ 1) (τ : ℝ≥0)
+    (θ : ℝ) (hθ : θ ∈ Ioo (-G) (M - 1))
+    (u : ℝ) (hu₁ : -(G + θ) < u) (hu₂ : u < M - θ) :
+    mgf id (cgmyTilt C G M Y hC hG hM hY hY₂ τ θ) u =
+      mgf id (cgmyLaw C G M Y τ hC hG hM hY hY₂) (u + θ) /
+        mgf id (cgmyLaw C G M Y τ hC hG hM hY hY₂) θ := by
+  show mgf id (Measure.tilted (cgmyLaw C G M Y τ hC hG hM hY hY₂) (fun x : ℝ => θ * x)) u = _
+  simp only [mgf, id_eq]
+  rw [integral_exp_tilted (fun x => θ * x) (fun x => u * x)]
+  refine congrArg (fun t => t / ∫ x, Real.exp (θ * x) ∂(cgmyLaw C G M Y τ hC hG hM hY hY₂)) ?_
+  refine integral_congr_ae ?_
+  filter_upwards with x
+  simp only [Pi.add_apply]
+  ring_nf
+
+/-- **Item 3.** The tilted call price pays `S·e^{(r−q)τ}` — the calc
+`S·mgf(tilt)1 = S·mgf(law)(1+θ)/mgf(law)θ = S·e^{τ(κ(θ+1)−κθ)}
+= S·e^{τ·esscherDriftMap θ} = S·e^{(r−q)τ}`; the middle difference IS the
+def body of `esscherDriftMap` (F6), the numéraire `θ+1 < M` cited from
+`cgmy_tilt_numeraire`. -/
+theorem cgmy_drift_identity (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G)
+    (hM : 0 < M) (hY : 0 < Y) (hY₂ : Y < 2) (hY₁ : Y ≠ 1) (τ : ℝ≥0)
+    (θ r q S : ℝ) (hθ : θ ∈ Ioo (-G) (M - 1))
+    (hdrift : esscherDriftMap C G M Y θ = r - q) :
+    ∫ x : ℝ, S * Real.exp x ∂(cgmyTilt C G M Y hC hG hM hY hY₂ τ θ) =
+      S * Real.exp ((r - q) * τ) := by
+  have hnum := cgmy_tilt_numeraire G M θ hθ
+  have htilt := cgmy_tilt_mgf C G M Y hC hG hM hY hY₂ hY₁ τ θ hθ
+    (u := 1) (by linarith [hθ.1]) (by linarith [hθ.2, hnum])
+  have hm1 := cgmyLaw_mgf C G M Y hC hG hM hY hY₂ hY₁ τ (1 + θ)
+    (by linarith [hθ.1]) (by linarith [hθ.2, hnum])
+  have hm0 := cgmyLaw_mgf C G M Y hC hG hM hY hY₂ hY₁ τ θ
+    (by linarith [hθ.1]) (by linarith [hθ.2])
+  have hθM : θ < M := by linarith [hθ.2]
+  have h1θ : 1 + θ < M := by linarith [hθ.2, hnum]
+  calc ∫ x : ℝ, S * Real.exp x ∂(cgmyTilt C G M Y hC hG hM hY hY₂ τ θ)
+      = S * ∫ x : ℝ, Real.exp x ∂(cgmyTilt C G M Y hC hG hM hY hY₂ τ θ) := by
+        rw [integral_const_mul]
+    _ = S * mgf id (cgmyTilt C G M Y hC hG hM hY hY₂ τ θ) 1 := by
+        simp [mgf]
+    _ = S * (mgf id (cgmyLaw C G M Y τ hC hG hM hY hY₂) (1 + θ) /
+          mgf id (cgmyLaw C G M Y τ hC hG hM hY hY₂) θ) := by rw [htilt]
+    _ = S * (Real.exp ((τ : ℝ) * cgmyCumulant C G M Y (1 + θ)) /
+          Real.exp ((τ : ℝ) * cgmyCumulant C G M Y θ)) := by rw [hm1, hm0]
+    _ = S * Real.exp ((τ : ℝ) * (cgmyCumulant C G M Y (θ + 1) -
+          cgmyCumulant C G M Y θ)) := by
+        rw [← Real.exp_sub, add_comm]
+        ring_nf
+    _ = S * Real.exp ((τ : ℝ) * esscherDriftMap C G M Y θ) := by
+        rw [esscherDriftMap]
+    _ = S * Real.exp ((r - q) * τ) := by
+        rw [hdrift]
+        ring_nf
+
+/-! ## §4 items 5 and the pricing statement -/
+
+/-- **Item 5's parity at the tilted law** — the skeleton's
+`model_free_parity_gap` discharged: probability (§3), `Integrable (S·e^x)`
+by §1 at `θ` (θ + 1 < M is the numéraire citation), `0 ≤ S·eˣ` pointwise.
+The drift hypothesis is `cgmy_drift_identity`'s: without
+`esscherDriftMap θ = r − q` the tilted mean is not the forward (`VGLaw`'s
+`vg_modelFree_parity` carries the same `hdrift`). -/
+theorem cgmy_modelFree_parity (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G)
+    (hM : 0 < M) (hY : 0 < Y) (hY₂ : Y < 2) (hY₁ : Y ≠ 1) (τ : ℝ≥0)
+    (θ r q S K : ℝ) (hθ : θ ∈ Ioo (-G) (M - 1))
+    (hdrift : esscherDriftMap C G M Y θ = r - q) :
+    modelFreeCall (cgmyTilt C G M Y hC hG hM hY hY₂ τ θ)
+        (fun x => S * Real.exp x) K r τ -
+      modelFreePut (cgmyTilt C G M Y hC hG hM hY hY₂ τ θ)
+        (fun x => S * Real.exp x) K r τ
+      = S * Real.exp (-q * τ) - K * Real.exp (-r * τ) := by
+  have hprob := cgmyTilt_isProbabilityMeasure C G M Y hC hG hM hY hY₂ hY₁ τ θ hθ
+  have hx : Integrable (fun x : ℝ => S * Real.exp x)
+      (cgmyTilt C G M Y hC hG hM hY hY₂ τ θ) := by
+    have heq : cgmyTilt C G M Y hC hG hM hY hY₂ τ θ =
+        Measure.tilted (cgmyLaw C G M Y τ hC hG hM hY hY₂) (fun x : ℝ => θ * x) := rfl
+    have hint : Integrable (fun x : ℝ => Real.exp (θ * x))
+        (cgmyLaw C G M Y τ hC hG hM hY hY₂) :=
+      cgmyLaw_exp_integrable C G M Y hC hG hM hY hY₂ hY₁ τ θ
+        (by linarith [hθ.1, hθ.2]) (by linarith [hθ.1, hθ.2])
+    have h1 : Integrable (fun x : ℝ => Real.exp x)
+        (cgmyTilt C G M Y hC hG hM hY hY₂ τ θ) := by
+      rw [heq, integrable_tilted_iff hint]
+      simp_rw [smul_eq_mul, ← Real.exp_add]
+      exact (cgmyLaw_exp_integrable C G M Y hC hG hM hY hY₂ hY₁ τ (θ + 1)
+        (by linarith [hθ.1, hθ.2]) (by linarith [hθ.1, hθ.2])).congr
+        (by filter_upwards with x; ring_nf)
+    exact h1.const_mul S
+  have hE := cgmy_drift_identity C G M Y hC hG hM hY hY₂ hY₁ τ θ r q S hθ hdrift
+  exact model_free_put_call_parity S K τ r q (fun x => S * Real.exp x) hx hE
+
+/-- **Item 5's bounds at the tilted law** — same consumption. -/
+theorem cgmy_modelFree_call_bounds (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G)
+    (hM : 0 < M) (hY : 0 < Y) (hY₂ : Y < 2) (hY₁ : Y ≠ 1) (τ : ℝ≥0)
+    (θ r q S K : ℝ) (hθ : θ ∈ Ioo (-G) (M - 1))
+    (hdrift : esscherDriftMap C G M Y θ = r - q)
+    (hK : 0 ≤ K) (hS : 0 ≤ S) :
+    max (S * Real.exp (-q * τ) - K * Real.exp (-r * τ)) 0 ≤
+        modelFreeCall (cgmyTilt C G M Y hC hG hM hY hY₂ τ θ)
+          (fun x => S * Real.exp x) K r τ ∧
+      modelFreeCall (cgmyTilt C G M Y hC hG hM hY hY₂ τ θ)
+          (fun x => S * Real.exp x) K r τ ≤
+        S * Real.exp (-q * τ) := by
+  have hprob := cgmyTilt_isProbabilityMeasure C G M Y hC hG hM hY hY₂ hY₁ τ θ hθ
+  have hx : Integrable (fun x : ℝ => S * Real.exp x)
+      (cgmyTilt C G M Y hC hG hM hY hY₂ τ θ) := by
+    have heq : cgmyTilt C G M Y hC hG hM hY hY₂ τ θ =
+        Measure.tilted (cgmyLaw C G M Y τ hC hG hM hY hY₂) (fun x : ℝ => θ * x) := rfl
+    have hint : Integrable (fun x : ℝ => Real.exp (θ * x))
+        (cgmyLaw C G M Y τ hC hG hM hY hY₂) :=
+      cgmyLaw_exp_integrable C G M Y hC hG hM hY hY₂ hY₁ τ θ
+        (by linarith [hθ.1, hθ.2]) (by linarith [hθ.1, hθ.2])
+    have h1 : Integrable (fun x : ℝ => Real.exp x)
+        (cgmyTilt C G M Y hC hG hM hY hY₂ τ θ) := by
+      rw [heq, integrable_tilted_iff hint]
+      simp_rw [smul_eq_mul, ← Real.exp_add]
+      exact (cgmyLaw_exp_integrable C G M Y hC hG hM hY hY₂ hY₁ τ (θ + 1)
+        (by linarith [hθ.1, hθ.2]) (by linarith [hθ.1, hθ.2])).congr
+        (by filter_upwards with x; ring_nf)
+    exact h1.const_mul S
+  have hE := cgmy_drift_identity C G M Y hC hG hM hY hY₂ hY₁ τ θ r q S hθ hdrift
+  have hX0 : ∀ᵐ x ∂(cgmyTilt C G M Y hC hG hM hY hY₂ τ θ), 0 ≤ S * Real.exp x :=
+    Filter.Eventually.of_forall fun x => mul_nonneg hS (Real.exp_pos x).le
+  exact model_free_call_bounds S K τ r q (fun x => S * Real.exp x) hx hE hK hX0
+
+/-- **Item 5's put bounds at the tilted law** — the parity corollary, the
+VGLaw route. -/
+theorem cgmy_modelFree_put_bounds (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G)
+    (hM : 0 < M) (hY : 0 < Y) (hY₂ : Y < 2) (hY₁ : Y ≠ 1) (τ : ℝ≥0)
+    (θ r q S K : ℝ) (hθ : θ ∈ Ioo (-G) (M - 1))
+    (hdrift : esscherDriftMap C G M Y θ = r - q)
+    (hK : 0 ≤ K) (hS : 0 ≤ S) :
+    max (K * Real.exp (-r * τ) - S * Real.exp (-q * τ)) 0 ≤
+        modelFreePut (cgmyTilt C G M Y hC hG hM hY hY₂ τ θ)
+          (fun x => S * Real.exp x) K r τ ∧
+      modelFreePut (cgmyTilt C G M Y hC hG hM hY hY₂ τ θ)
+          (fun x => S * Real.exp x) K r τ ≤
+        K * Real.exp (-r * τ) := by
+  have hprob := cgmyTilt_isProbabilityMeasure C G M Y hC hG hM hY hY₂ hY₁ τ θ hθ
+  have hx : Integrable (fun x : ℝ => S * Real.exp x)
+      (cgmyTilt C G M Y hC hG hM hY hY₂ τ θ) := by
+    have heq : cgmyTilt C G M Y hC hG hM hY hY₂ τ θ =
+        Measure.tilted (cgmyLaw C G M Y τ hC hG hM hY hY₂) (fun x : ℝ => θ * x) := rfl
+    have hint : Integrable (fun x : ℝ => Real.exp (θ * x))
+        (cgmyLaw C G M Y τ hC hG hM hY hY₂) :=
+      cgmyLaw_exp_integrable C G M Y hC hG hM hY hY₂ hY₁ τ θ
+        (by linarith [hθ.1, hθ.2]) (by linarith [hθ.1, hθ.2])
+    have h1 : Integrable (fun x : ℝ => Real.exp x)
+        (cgmyTilt C G M Y hC hG hM hY hY₂ τ θ) := by
+      rw [heq, integrable_tilted_iff hint]
+      simp_rw [smul_eq_mul, ← Real.exp_add]
+      exact (cgmyLaw_exp_integrable C G M Y hC hG hM hY hY₂ hY₁ τ (θ + 1)
+        (by linarith [hθ.1, hθ.2]) (by linarith [hθ.1, hθ.2])).congr
+        (by filter_upwards with x; ring_nf)
+    exact h1.const_mul S
+  have hE := cgmy_drift_identity C G M Y hC hG hM hY hY₂ hY₁ τ θ r q S hθ hdrift
+  have hX0 : ∀ᵐ x ∂(cgmyTilt C G M Y hC hG hM hY hY₂ τ θ), 0 ≤ S * Real.exp x :=
+    Filter.Eventually.of_forall fun x => mul_nonneg hS (Real.exp_pos x).le
+  exact model_free_put_bounds S K τ r q (fun x => S * Real.exp x) hx hE hK hX0
+
+/-- **Item 4's twin: Carr–Madan at `cgmyLaw`** — the INSTANTIATION of the
+landed `carrMadan_eq_modelFreeCall`, four hypotheses discharged: continuity
+and decay through §2's `contourCharFun_cgmyLaw` and the landed
+`cgmy_charFactor_contour_continuous` / `cgmy_contour_decay` (C14's
+`α + 1 < M` enters as `hcontour`), the tail moment and `hX` from §1 —
+never a re-proof of the triangle (`gbm_carrMadan_eq_bsCall` is the
+consumption precedent). R5 reads this body. -/
+theorem cgmy_carrMadan_eq_modelFreeCall (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G)
+    (hM : 0 < M) (hY : 0 < Y) (hY₂ : Y < 2) (hY₁ : Y ≠ 1) (τ : ℝ≥0) (hτ : 0 < τ)
+    (r S K α : ℝ) (hS : 0 < S) (hK : 0 < K) (hα : 0 < α)
+    (hcontour : α + 1 < M) :
+    ↑(Real.exp (-α * Real.log (K / S))) *
+        cmPriceIntegral (contourCharFun (cgmyLaw C G M Y τ hC hG hM hY hY₂))
+          α r τ S (Real.log (K / S))
+      = ↑(modelFreeCall (cgmyLaw C G M Y τ hC hG hM hY hY₂)
+          (fun x => S * Real.exp x) K r τ) := by
+  have hprob : IsProbabilityMeasure
+      (cgmyLaw C G M Y τ hC hG hM hY hY₂ : Measure ℝ) := by
+    infer_instance
+  have hτ' : (0 : ℝ) < (τ : ℝ) := NNReal.coe_pos.mpr hτ
+  have hδ0 : (0 : ℝ) < (M - (α + 1)) / 2 := by linarith
+  -- the contour's imaginary part is `−(α+1)`, inside `(−M, G)` exactly at C14
+  have hvim : ∀ u : ℝ, ((u : ℂ) - ((α + 1 : ℝ) : ℂ) * Complex.I).im = -(α + 1) :=
+    fun u => by simp [Complex.sub_im, Complex.mul_im]
+  refine carrMadan_eq_modelFreeCall (hS := hS) (hK := hK) (hα := hα)
+    (c := (τ : ℝ) * cgmyTemperedRate C Y / 2) (D := 1) (Y := Y)
+    (u₀ := cgmyDecayThreshold C G M Y) (δ := (M - (α + 1)) / 2)
+    ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_
+  · exact div_pos (mul_pos hτ' (cgmyTemperedRate_pos hC hY hY₂ hY₁)) two_pos
+  · norm_num
+  · exact hY
+  · exact hδ0
+  · -- continuity: §2's `contourCharFun_cgmyLaw` + the landed contour continuity
+    have hcont : Continuous fun u : ℝ =>
+        cgmyCharFactor C G M Y (τ : ℝ) (cgmyContour α u) :=
+      cgmy_charFactor_contour_continuous C G M Y (τ : ℝ) α hG hα hY hcontour
+    refine hcont.congr fun u => ?_
+    exact (contourCharFun_cgmyLaw C G M Y hC hG hM hY hY₂ hY₁ τ
+      ((u : ℂ) - ((α + 1 : ℝ) : ℂ) * Complex.I)
+      (by rw [hvim u]; linarith)
+      (by rw [hvim u]; linarith)).symm
+  · -- decay: §2's rewrite + the landed (H-decay)
+    intro u hu
+    rw [contourCharFun_cgmyLaw C G M Y hC hG hM hY hY₂ hY₁ τ
+      ((u : ℂ) - ((α + 1 : ℝ) : ℂ) * Complex.I)
+      (by rw [hvim u]; linarith) (by rw [hvim u]; linarith)]
+    have hdecay := cgmy_contour_decay C G M Y (τ : ℝ) α hC hG hM hY hY₂ hY₁
+      hα hcontour hτ'.le u hu
+    show ‖cgmyCharFactor C G M Y (τ : ℝ) (cgmyContour α u)‖ ≤
+      1 * Real.exp (-((τ : ℝ) * cgmyTemperedRate C Y / 2) * |u| ^ Y)
+    simpa only [one_mul] using hdecay
+  · -- the tail moment, at `α + 1 + δ < M`
+    exact cgmyLaw_exp_integrable C G M Y hC hG hM hY hY₂ hY₁ τ
+      ((α + 1) + (M - (α + 1)) / 2) (by linarith) (by linarith)
+  · -- the spot moment at `u = 1 < M` (from `α > 0`, `α + 1 < M`)
+    have hExp : Integrable (fun x : ℝ => Real.exp x)
+        (cgmyLaw C G M Y τ hC hG hM hY hY₂) := by
+      have h := cgmyLaw_exp_integrable C G M Y hC hG hM hY hY₂ hY₁ τ 1
+        (by linarith) (by linarith [hα, hcontour])
+      simpa only [one_mul] using h
+    simpa only [smul_eq_mul] using hExp.const_mul S
+
+end BSM

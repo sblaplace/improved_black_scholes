@@ -581,6 +581,32 @@ REQUIRED = {
     "cgmyOneSidedCompensated_eq": "ImprovedBS/CGMYLaw.lean",
     "cgmyLKExponent_eq_cgmyExponent": "ImprovedBS/CGMYLaw.lean",
     "charFun_cgmyLaw_eq_cgmyCharFactor": "ImprovedBS/CGMYLaw.lean",
+    # BRIEF_021: all 25 declarations of CgmyStrip.lean.
+    "mgf_conv": "ImprovedBS/CgmyStrip.lean",
+    "mgf_convPow": "ImprovedBS/CgmyStrip.lean",
+    "cgmyJumpLaw_exp_integrable": "ImprovedBS/CgmyStrip.lean",
+    "cgmyCpProbability_mgf": "ImprovedBS/CgmyStrip.lean",
+    "cgmyMgfTruncatedExponent": "ImprovedBS/CgmyStrip.lean",
+    "cgmyMgfTruncatedExponent_decomp": "ImprovedBS/CgmyStrip.lean",
+    "cgmyMgfTruncatedExponent_tendsto": "ImprovedBS/CgmyStrip.lean",
+    "cgmyMgfOneSided_eq": "ImprovedBS/CgmyStrip.lean",
+    "cgmyMgf_uniformBound": "ImprovedBS/CgmyStrip.lean",
+    "cgmyMgf_markovTail": "ImprovedBS/CgmyStrip.lean",
+    "cgmyLaw_exp_integrable": "ImprovedBS/CgmyStrip.lean",
+    "openStrip_subset_integrableExpSet": "ImprovedBS/CgmyStrip.lean",
+    "cgmyLaw_mgf": "ImprovedBS/CgmyStrip.lean",
+    "cgmyStrip_target_analyticOnNhd": "ImprovedBS/CgmyStrip.lean",
+    "complexMGF_cgmyLaw": "ImprovedBS/CgmyStrip.lean",
+    "contourCharFun_cgmyLaw": "ImprovedBS/CgmyStrip.lean",
+    "cgmyTilt": "ImprovedBS/CgmyStrip.lean",
+    "cgmyTilt_isProbabilityMeasure": "ImprovedBS/CgmyStrip.lean",
+    "cgmy_tilt_numeraire": "ImprovedBS/CgmyStrip.lean",
+    "cgmy_tilt_mgf": "ImprovedBS/CgmyStrip.lean",
+    "cgmy_drift_identity": "ImprovedBS/CgmyStrip.lean",
+    "cgmy_modelFree_parity": "ImprovedBS/CgmyStrip.lean",
+    "cgmy_modelFree_call_bounds": "ImprovedBS/CgmyStrip.lean",
+    "cgmy_modelFree_put_bounds": "ImprovedBS/CgmyStrip.lean",
+    "cgmy_carrMadan_eq_modelFreeCall": "ImprovedBS/CgmyStrip.lean",
 }
 
 # Zero deferred-proof markers allowed. The T1/T2 node per BRIEF_001; the T3/T4
@@ -943,6 +969,32 @@ PROTECTED = {
     "cgmyOneSidedCompensated_eq",
     "cgmyLKExponent_eq_cgmyExponent",
     "charFun_cgmyLaw_eq_cgmyCharFactor",
+    # BRIEF_021: all 25 declarations of CgmyStrip.lean (2 defs + 23 theorems).
+    "mgf_conv",
+    "mgf_convPow",
+    "cgmyJumpLaw_exp_integrable",
+    "cgmyCpProbability_mgf",
+    "cgmyMgfTruncatedExponent",
+    "cgmyMgfTruncatedExponent_decomp",
+    "cgmyMgfTruncatedExponent_tendsto",
+    "cgmyMgfOneSided_eq",
+    "cgmyMgf_uniformBound",
+    "cgmyMgf_markovTail",
+    "cgmyLaw_exp_integrable",
+    "openStrip_subset_integrableExpSet",
+    "cgmyLaw_mgf",
+    "cgmyStrip_target_analyticOnNhd",
+    "complexMGF_cgmyLaw",
+    "contourCharFun_cgmyLaw",
+    "cgmyTilt",
+    "cgmyTilt_isProbabilityMeasure",
+    "cgmy_tilt_numeraire",
+    "cgmy_tilt_mgf",
+    "cgmy_drift_identity",
+    "cgmy_modelFree_parity",
+    "cgmy_modelFree_call_bounds",
+    "cgmy_modelFree_put_bounds",
+    "cgmy_carrMadan_eq_modelFreeCall",
 }
 
 # The T5 node, in dependency order, and the two citations docs/04's spine
@@ -1185,6 +1237,52 @@ CGMYLAW_G1 = "integral_cpow_mul_cexp_neg_mul_Ioi"
 CGMYLAW_G1_CITES = ("integral_cpow_mul_exp_neg_mul_Ioi",)
 CGMYLAW_G1_IDENTITY = ("eqOn_of_preconnected_of_frequently_eq", "eqOn_of_preconnected_of_eventuallyEq")
 CGMYLAW_G1_FORBIDS = (r"\bGamma_eq_integral\b", r"\bGammaIntegral\b")
+
+# BRIEF_021's `[CgmyStrip]` route commitments, five clauses, one lint mutant
+# each. R1: the law's mgf is a theorem of the weak limit -- `cgmyLaw_mgf`
+# cites `cgmyCpProbability_mgf` and the ladder's `Tendsto`, and never builds
+# the moment through `withDensity` / `Measure.map` / `Classical.choose` /
+# `mgf_undef` (the `mgf_undef` detour would make the statement `0 = e^{τκ}`-
+# shaped; the clause forbids it regardless). R2: the strip is OPEN -- the
+# three load-bearing statements carry `h₁ : -G < u`, `h₂ : u < M` (resp.
+# `z.re` versions), never `≤` (F3/M48). R3: the tilt is `Measure.tilted` over
+# the mgf and the numeraire is cited, never re-proved. R4: the complex
+# extension is the identity theorem on the landed CF (`analyticAt_complexMGF`
+# + an `eqOn_of_preconnected_*` identity theorem + `cgmyLaw_mgf`), never a
+# pointwise substitution through `charFun_cgmyLaw_eq_cgmyCharFactor` (the
+# CF's type has no imaginary arguments) and never a §1 re-proof inside §2.
+# R5: pricing consumes the landed Carr--Madan triangle
+# (`carrMadan_eq_modelFreeCall` + `contourCharFun_cgmyLaw`), never `gbm_*`
+# and never an inlined Fourier inversion.
+CGMYSTRIP_MGF = "cgmyLaw_mgf"
+CGMYSTRIP_MGF_CITES = ("cgmyCpProbability_mgf",)
+CGMYSTRIP_MGF_TENDSTO = ("cgmyCpProbability_tendsto_cgmyLaw", "cgmyLaw_unique")
+CGMYSTRIP_MGF_FORBIDS = (
+    r"\bwithDensity\b", r"\bMeasure\.map\b", r"\bClassical\.choose\b", r"\bmgf_undef\b",
+)
+# (name, two strict bounds to require, the closed forms to refuse)
+CGMYSTRIP_OPEN_STRIP = (
+    ("cgmyLaw_mgf", r"-G<u", r"u<M", (r"-G≤u", r"u≤M")),
+    ("complexMGF_cgmyLaw", r"-G<z\.re", r"z\.re<M", (r"-G≤z\.re", r"z\.re≤M")),
+    ("cgmyMgfTruncatedExponent_tendsto", r"-G<u", r"u<M", (r"-G≤u", r"u≤M")),
+)
+CGMYSTRIP_TILT = "cgmyTilt"
+CGMYSTRIP_TILT_CITES = (r"\.tilted\b", r"Measure\.tilted\b")
+CGMYSTRIP_TILT_FORBIDS = (r"\bwithDensity\b",)
+CGMYSTRIP_TILTMGF = "cgmy_tilt_mgf"
+CGMYSTRIP_TILTMGF_CITES = ("integral_exp_tilted",)
+CGMYSTRIP_NUMERAIRE = "cgmy_tilt_numeraire"
+CGMYSTRIP_NUMERAIRE_CITES = ("esscher_tilted_numeraire",)
+CGMYSTRIP_COMPLEX = "complexMGF_cgmyLaw"
+CGMYSTRIP_COMPLEX_ANALYTIC = ("analyticAt_complexMGF", "analyticOn_complexMGF")
+CGMYSTRIP_COMPLEX_IDENTITY = (
+    "eqOn_of_preconnected_of_frequently_eq", "eqOn_of_preconnected_of_eventuallyEq",
+)
+CGMYSTRIP_COMPLEX_CITES = ("cgmyLaw_mgf",)
+CGMYSTRIP_COMPLEX_FORBIDS = (r"\bcharFun_cgmyLaw_eq_cgmyCharFactor\b", r"\bcgmyMgfTruncatedExponent\b")
+CGMYSTRIP_PRICING = "cgmy_carrMadan_eq_modelFreeCall"
+CGMYSTRIP_PRICING_CITES = ("carrMadan_eq_modelFreeCall", "contourCharFun_cgmyLaw")
+CGMYSTRIP_PRICING_FORBIDS = (r"\bgbm\w*", r"[Ff]ourier")
 
 MARKERS = ("sorry", "admit", "native_decide")
 
@@ -2671,6 +2769,178 @@ def main() -> int:
                 "plus `tendsto_nhds_unique` and never `cgmyExponent`; "
                 "`integral_cpow_mul_cexp_neg_mul_Ioi` cites the shipped real-rate lemma "
                 "and the identity theorem"
+            )
+
+    # [CgmyStrip] BRIEF_021: the strip at the law. `lake build` grades that the
+    # theorems are true; this grades that they are the objects the brief asked
+    # for -- the mgf as a theorem of the weak limit on the OPEN strip, the tilt
+    # as `Measure.tilted` with a cited numeraire, the complex extension as the
+    # identity theorem on the landed CF, and pricing as the landed
+    # Carr--Madan triangle's instantiation. Bodies are comment-stripped.
+    cgmystrip_path = os.path.join(ROOT, "ImprovedBS", "CgmyStrip.lean")
+    if not os.path.exists(cgmystrip_path):
+        failures.append("[CgmyStrip] ImprovedBS/CgmyStrip.lean not found")
+    else:
+        cgmystrip_clean = strip_comments(open(cgmystrip_path, encoding="utf-8").read())
+        cgmystrip_bodies = {name: body for _, name, _, body in declarations(cgmystrip_clean)}
+        cgmystrip_failures: list[str] = []
+
+        def cs_body(name: str) -> str:
+            body = cgmystrip_bodies.get(name, "")
+            if body == "":
+                cgmystrip_failures.append(f"[CgmyStrip] `{name}` not found")
+            return body
+
+        def cs_rhs(name: str) -> str:
+            body = cs_body(name)
+            return " ".join((body.split(":=", 1)[1] if ":=" in body else "").split())
+
+        def cs_stmt(name: str) -> str:
+            body = cs_body(name)
+            return " ".join((body.split(":=", 1)[0] if body else "").split())
+
+        # (R1) the law's mgf is a theorem of the weak limit
+        body = cs_body(CGMYSTRIP_MGF)
+        if body:
+            squashed = re.sub(r"\s+", "", body)
+            for cite in CGMYSTRIP_MGF_CITES:
+                if not re.search(r"\b" + re.escape(cite) + r"\b", body):
+                    cgmystrip_failures.append(
+                        f"[CgmyStrip] `{CGMYSTRIP_MGF}` no longer cites `{cite}`. The law's "
+                        "mgf is a theorem of the weak limit -- the closed form at each "
+                        "marginal (`cgmyCpProbability_mgf`) plus F4's truncation sandwich, "
+                        "not a law-level definition with no ladder behind it."
+                    )
+            if not any(re.search(r"\b" + re.escape(c) + r"\b", body)
+                       for c in CGMYSTRIP_MGF_TENDSTO):
+                cgmystrip_failures.append(
+                    f"[CgmyStrip] `{CGMYSTRIP_MGF}` cites neither "
+                    "`cgmyCpProbability_tendsto_cgmyLaw` nor `cgmyLaw_unique`: the weak "
+                    "step is the ladder's `Tendsto`, the defining property the sandwich "
+                    "runs on."
+                )
+            for pat in CGMYSTRIP_MGF_FORBIDS:
+                if re.search(pat, squashed):
+                    cgmystrip_failures.append(
+                        f"[CgmyStrip] `{CGMYSTRIP_MGF}` builds the moment through {pat!r}: "
+                        "the mgf at `cgmyLaw` is the limit of the marginals' mgfs, not a "
+                        "hand-rolled density, a pushed-forward law, a bare choice, or the "
+                        "`mgf_undef` detour that makes the statement `0 = e^{τκ}`-shaped."
+                    )
+        # (R2) the strip is open
+        for name, lo, hi, closed in CGMYSTRIP_OPEN_STRIP:
+            stmt = re.sub(r"\s+", "", cs_stmt(name))
+            if not stmt:
+                continue
+            for pat in (lo, hi):
+                if not re.search(pat, stmt):
+                    cgmystrip_failures.append(
+                        f"[CgmyStrip] `{name}` no longer carries the open-strip bound "
+                        f"`{pat}`. §1's sandwich proves the OPEN strip only (its Markov "
+                        "tail needs a stricter interior moment); the edge is a different "
+                        "theorem and M48 keeps the primitive's contract there."
+                    )
+            for pat in closed:
+                if re.search(pat, stmt):
+                    cgmystrip_failures.append(
+                        f"[CgmyStrip] `{name}` carries the closed-strip bound `{pat}`. "
+                        "The statements keep `Ioo`/strict inequalities (F3/M48): the "
+                        "edge is outside the proof's reach, not a measured falsehood."
+                    )
+        # (R3) the tilt is Measure.tilted over the mgf, the numeraire is cited
+        rhs = cs_rhs(CGMYSTRIP_TILT)
+        if rhs:
+            if not any(re.search(pat, rhs) for pat in CGMYSTRIP_TILT_CITES):
+                cgmystrip_failures.append(
+                    f"[CgmyStrip] `{CGMYSTRIP_TILT}`'s RHS no longer cites `Measure.tilted`. "
+                    "The tilt of the law is mathlib's exponential tilt, read off the RHS "
+                    "(R3), not a second construction."
+                )
+            for pat in CGMYSTRIP_TILT_FORBIDS:
+                if re.search(pat, rhs):
+                    cgmystrip_failures.append(
+                        f"[CgmyStrip] `{CGMYSTRIP_TILT}` builds the tilt through {pat!r}: "
+                        "a `withDensity` hand-roll is a second specification of the same "
+                        "object."
+                    )
+        body = cs_body(CGMYSTRIP_TILTMGF)
+        if body and not re.search(r"\bintegral_exp_tilted\b", body):
+            cgmystrip_failures.append(
+                f"[CgmyStrip] `{CGMYSTRIP_TILTMGF}` does not cite `integral_exp_tilted`. "
+                "The tilted mgf is the ratio `M(θ+u)/M(θ)` by the shipped tilt integral, "
+                "not a re-derivation of the density's effect."
+            )
+        body = cs_body(CGMYSTRIP_NUMERAIRE)
+        if body and not re.search(r"\besscher_tilted_numeraire\b", body):
+            cgmystrip_failures.append(
+                f"[CgmyStrip] `{CGMYSTRIP_NUMERAIRE}` does not cite "
+                "`esscher_tilted_numeraire`. The numeraire condition is inherited from "
+                "BRIEF_013, never re-proved or assumed."
+            )
+        # (R4) the complex extension is the identity theorem on the landed CF
+        body = cs_body(CGMYSTRIP_COMPLEX)
+        if body:
+            if not any(re.search(r"\b" + re.escape(c) + r"\b", body)
+                       for c in CGMYSTRIP_COMPLEX_ANALYTIC):
+                cgmystrip_failures.append(
+                    f"[CgmyStrip] `{CGMYSTRIP_COMPLEX}` cites neither `analyticAt_complexMGF` "
+                    "nor `analyticOn_complexMGF`. The LHS's analyticity on the strip is the "
+                    "landed `complexMGF` theory plus §1's interior lemma."
+                )
+            if not any(re.search(r"\b" + re.escape(c) + r"\b", body)
+                       for c in CGMYSTRIP_COMPLEX_IDENTITY):
+                cgmystrip_failures.append(
+                    f"[CgmyStrip] `{CGMYSTRIP_COMPLEX}` drops the identity theorem "
+                    "(`eqOn_of_preconnected_of_frequently_eq` / "
+                    "`eqOn_of_preconnected_of_eventuallyEq`). The complex strip is "
+                    "analytic continuation from the real axis, not a pointwise claim."
+                )
+            for cite in CGMYSTRIP_COMPLEX_CITES:
+                if not re.search(r"\b" + re.escape(cite) + r"\b", body):
+                    cgmystrip_failures.append(
+                        f"[CgmyStrip] `{CGMYSTRIP_COMPLEX}` no longer cites `{cite}`. "
+                        "Agreement on the real axis is §1's headline; §2 does not "
+                        "re-prove §1."
+                    )
+            for pat in CGMYSTRIP_COMPLEX_FORBIDS:
+                if re.search(pat, body):
+                    cgmystrip_failures.append(
+                        f"[CgmyStrip] `{CGMYSTRIP_COMPLEX}` routes through {pat!r}. The CF's "
+                        "type has no imaginary arguments, so `charFun_cgmyLaw_eq_cgmyCharFactor` "
+                        "is not a pointwise substitution here, and the §1 decomposition is "
+                        "not re-run inside §2."
+                    )
+        # (R5) pricing consumes the landed Carr--Madan triangle
+        body = cs_body(CGMYSTRIP_PRICING)
+        if body:
+            for cite in CGMYSTRIP_PRICING_CITES:
+                if not re.search(r"\b" + re.escape(cite) + r"\b", body):
+                    cgmystrip_failures.append(
+                        f"[CgmyStrip] `{CGMYSTRIP_PRICING}` no longer cites `{cite}`. "
+                        "The pricing statement is the INSTANTIATION of the landed "
+                        "`carrMadan_eq_modelFreeCall` at `cgmyLaw`, with the contour "
+                        "identified by `contourCharFun_cgmyLaw` -- never a re-proof of "
+                        "the triangle."
+                    )
+            for pat in CGMYSTRIP_PRICING_FORBIDS:
+                if re.search(pat, body):
+                    cgmystrip_failures.append(
+                        f"[CgmyStrip] `{CGMYSTRIP_PRICING}` routes through {pat!r}: the "
+                        "Gaussian closed forms play no role at `cgmyLaw`, and the Fourier "
+                        "inversion is the landed triangle's business, not this body's."
+                    )
+
+        if cgmystrip_failures:
+            failures.extend(cgmystrip_failures)
+        else:
+            notes.append(
+                "[CgmyStrip] `cgmyLaw_mgf` is a theorem of the weak limit "
+                "(`cgmyCpProbability_mgf` + the ladder's `Tendsto`) on the open strip; "
+                "`cgmyTilt` is `Measure.tilted` and the numeraire is cited from "
+                "`esscher_tilted_numeraire`; `complexMGF_cgmyLaw` is the identity theorem "
+                "on `analyticAt_complexMGF` + `cgmyLaw_mgf`; "
+                "`cgmy_carrMadan_eq_modelFreeCall` consumes `carrMadan_eq_modelFreeCall` "
+                "and `contourCharFun_cgmyLaw`"
             )
 
     if "--write-baseline" in sys.argv:

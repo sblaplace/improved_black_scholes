@@ -437,6 +437,42 @@ MUTANTS = [
         "    return C * math.gamma(-Y) * (M ** (Y - 1.0) - G ** (Y - 1.0))",
         ["test_cgmy_law"],
     ),
+    # BRIEF_021: the strip at the law. M44-M48 each live in one of the three
+    # new primitives and are killed by `test_cgmy_strip` alone: the composite
+    # at the wrong strip point (13.808910 at Y = 3/2), the missing paired
+    # drift (|4 d_0| = 6.564529), the missing tau (0.450642), the conjugate
+    # line (21.370699), and the closed-strip acceptance (the refusal canary
+    # plus row 4's 83.051856 vs 91.586680).
+    (
+        "M44 mgf line reflected: the strip point u -> -u in the composite",
+        "    b_zero = cgmy_compensated_exponent(C, G, M, Y, 0.0, -1j * u,",
+        "    b_zero = cgmy_compensated_exponent(C, G, M, Y, 0.0, 1j * u,",
+        ["test_cgmy_strip"],
+    ),
+    (
+        "M45 the paired drift u*d_0 dropped from the composite exponent",
+        "    return b_zero + u * d_zero",
+        "    return b_zero + 0.0",
+        ["test_cgmy_strip"],
+    ),
+    (
+        "M46 the tau factor drops out of the mgf exponent",
+        "    return math.exp(tau * cgmy_mgf_exponent(C, G, M, Y, u).real)",
+        "    return math.exp(cgmy_mgf_exponent(C, G, M, Y, u).real)",
+        ["test_cgmy_strip"],
+    ),
+    (
+        "M47 the conjugate line: psi(-I z) -> psi(I z) in the complex mgf",
+        "    return cmath.exp(tau * cgmy_exponent(C, G, M, Y, -1j * z))",
+        "    return cmath.exp(tau * cgmy_exponent(C, G, M, Y, 1j * z))",
+        ["test_cgmy_strip"],
+    ),
+    (
+        "M48 the strip refusal accepts the closed edge: < -> <=",
+        "    if not (-G < u < M):",
+        "    if not (-G <= u <= M):",
+        ["test_cgmy_strip"],
+    ),
 ]
 
 
