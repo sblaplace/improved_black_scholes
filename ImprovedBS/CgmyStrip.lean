@@ -276,20 +276,20 @@ theorem cgmyMgf_markovTail (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G)
     exact Real.exp_pos _
   have hbig : Integrable (fun x : ℝ => K ^ (1 - u' / u) * Real.exp (u' * x)) μn :=
     hBexp.const_mul _
+  have hAmeas : MeasurableSet A :=
+    measurableSet_le measurable_const
+      ((Real.continuous_exp.comp (continuous_const.mul continuous_id)).measurable)
   have hAexp : IntegrableOn (fun x : ℝ => Real.exp (u * x)) A μn := by
     refine Integrable.mono hbig.integrableOn ?_ ?_
     · exact (Real.continuous_exp.comp
         (continuous_const.mul continuous_id)).aestronglyMeasurable
-    · refine (ae_restrict_iff A).2 (ae_of_all _ fun x hxin => ?_)
+    · refine (ae_restrict_iff hAmeas).2 (ae_of_all _ fun x hxin => ?_)
       rw [Real.norm_of_nonneg (Real.exp_nonneg _),
         Real.norm_of_nonneg (mul_nonneg (Real.rpow_nonneg hK.le _) (Real.exp_nonneg _))]
       exact hpw x hxin
   have hmono : ∫ x in A, Real.exp (u * x) ∂μn
       ≤ ∫ x in A, K ^ (1 - u' / u) * Real.exp (u' * x) ∂μn := by
-    refine setIntegral_mono_on hAexp hbig.integrableOn ?_ ?_
-    · exact measurableSet_le measurable_const
-        ((Real.continuous_exp.comp
-          (continuous_const.mul continuous_id)).measurable)
+    refine setIntegral_mono_on hAexp hbig.integrableOn hAmeas ?_
     · intro x hx
       exact hpw x hx
   have hconst : ∫ x in A, K ^ (1 - u' / u) * Real.exp (u' * x) ∂μn
@@ -449,19 +449,25 @@ theorem complexMGF_cgmyLaw (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G)
           hc.mul h2
         have h4 : Tendsto
             (fun n : ℕ => (min G M / 2) / ((n : ℝ) + 1)) atTop (𝓝 0) := by
-          simpa only [mul_zero, div_eq_mul_one_div] using h3
+          have h5 : (fun n : ℕ => (min G M / 2) / ((n : ℝ) + 1))
+              = fun n : ℕ => (min G M / 2) * (1 / ((n : ℝ) + 1)) := by
+            funext n
+            rw [div_eq_mul_one_div]
+          rw [h5, mul_zero]
+          exact h3
         exact tendsto_ofReal_iff.mpr h4
       · filter_upwards with n
         have hn : 0 < ((n : ℝ) + 1) := by positivity
         have hnz : (min G M / 2 : ℝ) / ((n : ℝ) + 1) ≠ 0 :=
           (div_pos hδ hn).ne'
-        show ((min G M / 2 : ℝ) / ((n : ℝ) + 1) : ℂ) ≠ 0
-        exact_mod_cast hnz
+        have hnin : ((min G M / 2 : ℝ) / ((n : ℝ) + 1) : ℂ) ∉ ({0} : Set ℂ) := by
+          exact_mod_cast hnz
+        exact hnin
     · intro n
       have hn : 0 < ((n : ℝ) + 1) := by positivity
       have hpos : (0 : ℝ) < (min G M / 2) / ((n : ℝ) + 1) := div_pos hδ hn
       have hlt : (min G M / 2 : ℝ) / ((n : ℝ) + 1) < min G M :=
-        lt_of_le_of_lt (div_le_self hδ.le (by linarith [Nat.cast_nonneg n]))
+        lt_of_le_of_lt (div_le_self hδ.le (by exact_mod_cast Nat.succ_le_succ (Nat.zero_le n)))
           (half_lt_self (lt_min hG hM))
       have hx₁ : -G < (min G M / 2 : ℝ) / ((n : ℝ) + 1) :=
         lt_of_lt_of_le (neg_lt_zero.mpr hG) hpos.le
@@ -546,7 +552,7 @@ theorem cgmy_tilt_mgf (C G M Y : ℝ) (hC : 0 < C) (hG : 0 < G)
   refine integral_congr_ae ?_
   filter_upwards with x
   simp only [Pi.add_apply]
-  ring
+  ring_nf
 
 /-- **Item 3.** The tilted call price pays `S·e^{(r−q)τ}` — the calc
 `S·mgf(tilt)1 = S·mgf(law)(1+θ)/mgf(law)θ = S·e^{τ(κ(θ+1)−κθ)}
